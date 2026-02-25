@@ -14,6 +14,7 @@ import {
 } from '@fluentui/react-icons';
 import { useAdminStats, formatBytes } from '../hooks/useAdminStats';
 import { CreateContainerForm } from '../components/CreateContainerForm';
+import { CreateFolderForm } from '../components/CreateFolderForm';
 
 // ── Types ──────────────────────────────────────────────────
 interface AuditEntry {
@@ -41,6 +42,7 @@ const vitals = [
 const Admin: React.FC = () => {
     const { containerCount, totalStorageUsedBytes, totalStorageTotalBytes, loading, error, refetch } = useAdminStats();
     const [panelOpen, setPanelOpen] = useState(false);
+    const [FolderpanelOpen, setFolderPanelOpen] = useState(false);
 
     const handleCreateSuccess = (_containerId?: string) => {
         setPanelOpen(false);
@@ -88,6 +90,10 @@ const Admin: React.FC = () => {
                     <button className={styles.newResourceBtn} onClick={() => setPanelOpen(true)}>
                         <AddRegular />
                         + New Resource
+                    </button>
+                    <button className={styles.newResourceBtn} onClick={() => setFolderPanelOpen(true)}>
+                        <AddRegular />
+                        + New Folder 664
                     </button>
                 </div>
 
@@ -335,6 +341,35 @@ const Admin: React.FC = () => {
                     </div>
                 </>
             )}
+
+            {/* //For nee folder */}
+
+            {FolderpanelOpen && (
+                <>
+                    {/* Backdrop */}
+                    <div className={styles.backdrop} onClick={() => setFolderPanelOpen(false)} />
+
+                    {/* Slide-over panel */}
+                    <div className={styles.panel}>
+                        <div className={styles.panelHeader}>
+                            <h2 className={styles.panelTitle}>New Container</h2>
+                            <button className={styles.panelClose} onClick={() => setFolderPanelOpen(false)}>
+                                <DismissRegular />
+                            </button>
+                        </div>
+                        <p className={styles.panelSubtitle}>
+                            Create a new SharePoint Embedded container with a display name, description, and administrator.
+                        </p>
+                        <div className={styles.panelBody}>
+                            <CreateFolderForm
+                                onSuccess={handleCreateSuccess}
+                                onCancel={() => setFolderPanelOpen(false)}
+                            />
+                        </div>
+                    </div>
+                </>
+            )}
+
         </div>
     );
 };

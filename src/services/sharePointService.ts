@@ -226,6 +226,7 @@ export class SharePointService {
   }
 
   async createFolder(token: string, containerId: string, path: string, folderName: string): Promise<void> {
+    debugger
     try {
       let url: string;
       if (path === 'root' || path === '') {
