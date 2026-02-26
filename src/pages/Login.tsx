@@ -220,7 +220,7 @@ const Login = () => {
   };
 
   if (isAuthenticated) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/insights" replace />;
   }
 
   const isConfigured = appConfig.clientId && appConfig.tenantId && appConfig.containerTypeId;
