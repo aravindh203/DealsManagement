@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import styles from './Admin.module.scss';
+import styles from './Insights.module.scss';
 import {
     AddRegular,
     SearchRegular,
-    ArrowUploadRegular,
     CubeRegular,
     PeopleRegular,
     ShieldCheckmarkRegular,
@@ -15,6 +14,20 @@ import {
 import { useAdminStats, formatBytes } from '../hooks/useAdminStats';
 import { CreateContainerForm } from '../components/CreateContainerForm';
 import { CreateFolderForm } from '../components/CreateFolderForm';
+
+// Line graph icon for REAL-TIME ACTIVE badge (matches design)
+const LineGraphIcon = () => (
+    <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.badgeChartIcon}>
+        <path d="M1 8L4 5L6 6L9 2L13 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+// Bell icon for notifications (with red dot)
+const BellIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 2a4.5 4.5 0 0 1 4.5 4.5v2.09a3 3 0 0 0 .66 1.87l.9 1.2a.75.75 0 0 1-.6 1.2H4.54a.75.75 0 0 1-.6-1.2l.9-1.2a3 3 0 0 0 .66-1.87V6.5A4.5 4.5 0 0 1 10 2zm3 12.5a3 3 0 1 1-6 0h6z" fill="currentColor" />
+    </svg>
+);
 
 // ── Types ──────────────────────────────────────────────────
 interface AuditEntry {
@@ -39,7 +52,7 @@ const vitals = [
 ];
 
 // ── Component ──────────────────────────────────────────────
-const Admin: React.FC = () => {
+const Insights: React.FC = () => {
     const { containerCount, totalStorageUsedBytes, totalStorageTotalBytes, loading, error, refetch } = useAdminStats();
     const [panelOpen, setPanelOpen] = useState(false);
     const [FolderpanelOpen, setFolderPanelOpen] = useState(false);
@@ -63,8 +76,8 @@ const Admin: React.FC = () => {
                 <div className={styles.navLeft}>
                     <span className={styles.logo}>Insights</span>
                     <div className={styles.badge}>
-                        <div className={styles.badgeDot} />
-                        Real-time Active
+                        <LineGraphIcon />
+                        <span>REAL-TIME ACTIVE</span>
                     </div>
                 </div>
 
@@ -73,42 +86,42 @@ const Admin: React.FC = () => {
                         <SearchRegular className={styles.searchIcon} />
                         <input type="text" placeholder="Search resources..." />
                     </div>
-                    <button className={styles.navIconBtn} onClick={refetch} title="Refresh stats">
-                        <ArrowUploadRegular />
+                    <button className={styles.navIconBtn} title="Notifications">
+                        <span className={styles.bellWrapper}>
+                            <BellIcon />
+                            <span className={styles.notifDot} />
+                        </span>
                     </button>
                 </div>
             </nav>
 
             {/* ── Main Content ── */}
             <main className={styles.main}>
-                {/* Page Header */}
-                <div className={styles.pageHeader}>
-                    <div className={styles.titleGroup}>
-                        <span className={styles.overline}>Operations Management</span>
-                        <h1 className={styles.pageTitle}>Workspace Alpha</h1>
+                {/* Static: Page Header + Stat Cards */}
+                <div className={styles.mainStatic}>
+                    <div className={styles.pageHeader}>
+                        <div className={styles.titleGroup}>
+                            <span className={styles.overline}>OPERATIONS MANAGEMENT</span>
+                            <h1 className={styles.pageTitle}>Workspace Alpha</h1>
+                        </div>
+                        <button className={styles.newResourceBtn} onClick={() => setPanelOpen(true)}>
+                            <AddRegular />
+                            NEW RESOURCE
+                        </button>
                     </div>
-                    <button className={styles.newResourceBtn} onClick={() => setPanelOpen(true)}>
-                        <AddRegular />
-                        + New Resource
-                    </button>
-                    <button className={styles.newResourceBtn} onClick={() => setFolderPanelOpen(true)}>
-                        <AddRegular />
-                        + New Folder 664
-                    </button>
-                </div>
 
-                {/* ── Stat Cards ── */}
-                <div className={styles.statsRow}>
-                    {/* Revenue */}
+                    {/* ── Stat Cards ── */}
+                    <div className={styles.statsRow}>
+                    {/* Fiscal Revenue – dark card */}
                     <div className={`${styles.card} ${styles.cardDark}`}>
                         <div className={styles.cardTop}>
                             <div className={`${styles.iconBox} ${styles.iconBoxDark}`}>
                                 <MoneyRegular />
                             </div>
-                            <span className={styles.trendChip}>+0.5%</span>
+                            <span className={styles.trendChip}>+12.5%</span>
                         </div>
                         <div className={styles.cardBottom}>
-                            <span className={styles.cardLabel}>Fiscal Revenue</span>
+                            <span className={styles.cardLabel}>FISCAL REVENUE</span>
                             <h2 className={styles.cardValue}>$1.24M</h2>
                         </div>
                     </div>
@@ -121,12 +134,12 @@ const Admin: React.FC = () => {
                             </div>
                             {loading && (
                                 <ArrowSyncRegular
-                                    style={{ color: '#6558f5', fontSize: 16, animation: 'spin 1s linear infinite' }}
+                                    style={{ color: '#6B47E5', fontSize: 16, animation: 'spin 1s linear infinite' }}
                                 />
                             )}
                         </div>
                         <div className={styles.cardBottom}>
-                            <span className={styles.cardLabel}>Container  Usage</span>
+                            <span className={styles.cardLabel}>CLUSTER STORAGE</span>
                             {error ? (
                                 <h2 className={styles.cardValue} style={{ fontSize: 20, color: '#e74c3c' }}>Error</h2>
                             ) : loading ? (
@@ -135,16 +148,14 @@ const Admin: React.FC = () => {
                                 <>
                                     <h2 className={styles.cardValue}>{usedFormatted}</h2>
                                     <span className={styles.cardSub}>
-                                        {/* {totalStorageTotalBytes > 0
-                                            ? `${storagePercent}% of ${totalFormatted}`
-                                            : `${containerCount} container${containerCount !== 1 ? 's' : ''}`} */}
+                                        of 2 TB limit
                                     </span>
                                 </>
                             )}
                         </div>
                     </div>
 
-                    {/* Active Sessions – container count as live proxy */}
+                    {/* Active Sessions */}
                     <div className={`${styles.card} ${styles.cardLight}`}>
                         <div className={styles.cardTop}>
                             <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
@@ -152,13 +163,13 @@ const Admin: React.FC = () => {
                             </div>
                         </div>
                         <div className={styles.cardBottom}>
-                            <span className={styles.cardLabel}>Active Containers</span>
+                            <span className={styles.cardLabel}>ACTIVE SESSIONS</span>
                             {loading ? (
-                                <h2 className={styles.cardValue} style={{ fontSize: 24 }}>…</h2>
+                                <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`} style={{ fontSize: 24 }}>…</h2>
                             ) : (
                                 <>
-                                    <h2 className={styles.cardValue}>{containerCount}</h2>
-                                    <span className={styles.cardSub}>SharePoint Embedded</span>
+                                    <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`}>{containerCount}</h2>
+                                    <span className={styles.cardSub}>Live interactions</span>
                                 </>
                             )}
                         </div>
@@ -172,13 +183,16 @@ const Admin: React.FC = () => {
                             </div>
                         </div>
                         <div className={styles.cardBottom}>
-                            <span className={styles.cardLabel}>Security Score</span>
+                            <span className={styles.cardLabel}>SECURITY SCORE</span>
                             <h2 className={styles.cardValue}>98.4%</h2>
                             <span className={styles.cardSub}>Verified Status</span>
                         </div>
                     </div>
                 </div>
+                </div>
 
+                {/* ── Scrollable: Audit Protocol + Cluster Vitals ── */}
+                <div className={styles.mainScroll}>
                 {/* ── Bottom Section ── */}
                 <div className={styles.bottomSection}>
                     {/* Audit Protocol */}
@@ -243,7 +257,6 @@ const Admin: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className={styles.auditTableBody}>
-                                        {/* We re-use the hook data via context — displayed rows come from useAdminStats containers */}
                                         <tr>
                                             <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
                                                 {containerCount} container{containerCount !== 1 ? 's' : ''} · Total used: {usedFormatted}
@@ -292,7 +305,6 @@ const Admin: React.FC = () => {
                             </div>
                         ))}
 
-                        {/* Storage vital – live */}
                         {!loading && totalStorageTotalBytes > 0 && (
                             <div className={styles.vitalRow}>
                                 <div className={styles.vitalMeta}>
@@ -313,15 +325,13 @@ const Admin: React.FC = () => {
                         </button>
                     </div>
                 </div>
+                </div>
             </main>
 
             {/* ── Create Container Panel ── */}
             {panelOpen && (
                 <>
-                    {/* Backdrop */}
                     <div className={styles.backdrop} onClick={() => setPanelOpen(false)} />
-
-                    {/* Slide-over panel */}
                     <div className={styles.panel}>
                         <div className={styles.panelHeader}>
                             <h2 className={styles.panelTitle}>New Container</h2>
@@ -342,14 +352,9 @@ const Admin: React.FC = () => {
                 </>
             )}
 
-            {/* //For nee folder */}
-
             {FolderpanelOpen && (
                 <>
-                    {/* Backdrop */}
                     <div className={styles.backdrop} onClick={() => setFolderPanelOpen(false)} />
-
-                    {/* Slide-over panel */}
                     <div className={styles.panel}>
                         <div className={styles.panelHeader}>
                             <h2 className={styles.panelTitle}>New Container</h2>
@@ -374,4 +379,4 @@ const Admin: React.FC = () => {
     );
 };
 
-export default Admin;
+export default Insights;

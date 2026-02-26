@@ -1,0 +1,29 @@
+/* ============================================
+   Admin placeholder page
+   ============================================ */
+
+.page {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #F8F9FA;
+    padding: 48px;
+}
+
+.content {
+    text-align: center;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1A202C;
+    margin: 0 0 12px 0;
+}
+
+.subtitle {
+    font-size: 15px;
+    color: #6b7280;
+    margin: 0;
+}

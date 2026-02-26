@@ -52,7 +52,12 @@ const LoadingFallback = () => (
 );
 
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
-import Admin from "./pages/Admin";
+import Insights from "./pages/Insights";
+import Directory from "./pages/Directory";
+import Repository from "./pages/Repository";
+import Analytics from "./pages/Analytics";
+import Identity from "./pages/Identity";
+import { AdminLayout } from "./pages/AdminLayout";
 
 const App = () => {
   console.log('App component rendering');
@@ -66,30 +71,24 @@ const App = () => {
               <ConfigProvider>
                 <ApiCallsProvider>
                   <Suspense fallback={<LoadingFallback />}>
+                    <Toaster />
+                    <Sonner />
                     <Routes>
                       <Route path="/login" element={<Login />} />
-                      <Route path="/admin" element={<ProtectedRouteStandalone><Admin /></ProtectedRouteStandalone>} />
-                      <Route
-                        path="*"
-                        element={
-                          <SidebarProvider>
-                            <>
-                              <Toaster />
-                              <Sonner />
-                              <Routes>
-
-                                <Route path="/" element={<ProtectedRouteWithSearch><Index /></ProtectedRouteWithSearch>} />
-                                <Route path="/admin" element={<ProtectedRouteStandalone><Admin /></ProtectedRouteStandalone>} />
-                                {/* <Route path="/projects" element={<ProtectedRouteWithSearch><Projects /></ProtectedRouteWithSearch>} />
-                                <Route path="/files/:containerId" element={<ProtectedRouteWithSearch><Files /></ProtectedRouteWithSearch>} />
-                                <Route path="/files" element={<ProtectedRouteWithSearch><Navigate to="/projects" replace /></ProtectedRouteWithSearch>} />
-                                <Route path="/search" element={<ProtectedRouteWithSearch><SearchResults /></ProtectedRouteWithSearch>} />
-                                <Route path="*" element={<NotFound />} /> */}
-                              </Routes>
-                            </>
-                          </SidebarProvider>
-                        }
-                      />
+                      <Route path="/admin" element={<Navigate to="/insights" replace />} />
+                      <Route path="/admin/directory" element={<Navigate to="/directory" replace />} />
+                      <Route path="/admin/repository" element={<Navigate to="/repository" replace />} />
+                      <Route path="/admin/analytics" element={<Navigate to="/analytics" replace />} />
+                      <Route path="/admin/identity" element={<Navigate to="/identity" replace />} />
+                      <Route path="/" element={<ProtectedRouteStandalone><AdminLayout /></ProtectedRouteStandalone>}>
+                        <Route index element={<Navigate to="/insights" replace />} />
+                        <Route path="insights" element={<Insights />} />
+                        <Route path="directory" element={<Directory />} />
+                        <Route path="repository" element={<Repository />} />
+                        <Route path="analytics" element={<Analytics />} />
+                        <Route path="identity" element={<Identity />} />
+                      </Route>
+                      <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
                 </ApiCallsProvider>

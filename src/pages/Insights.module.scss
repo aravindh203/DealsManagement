@@ -1,25 +1,26 @@
 /* ============================================
-   Admin Dashboard – Workspace Alpha
+   Insights – Workspace Alpha dashboard
    ============================================ */
 
 .page {
-    min-height: 100vh;
+    height: 100%;
     width: 100%;
-    background-color: #f4f5f9;
+    background-color: #F8F9FA;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
-/* ---- TOP NAV ---- */
 .topNav {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 18px 48px;
-    background-color: #f4f5f9;
+    background-color: #F8F9FA;
     border-bottom: 1px solid #ebebf0;
+    flex-shrink: 0;
 }
 
 .navLeft {
@@ -32,30 +33,25 @@
     font-size: 18px;
     font-weight: 900;
     letter-spacing: -0.5px;
-    color: #0d0d1a;
+    color: #1A202C;
 }
 
 .badge {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background-color: #e3faf0;
-    color: #16a34a;
-    padding: 5px 12px;
+    gap: 8px;
+    background-color: #72E088;
+    color: #fff;
+    padding: 6px 14px;
     border-radius: 20px;
     font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    border: 1px solid #bbf7d0;
 }
 
-.badgeDot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background-color: #22c55e;
-    box-shadow: 0 0 6px #22c55e;
+.badgeChartIcon {
+    color: #fff;
     flex-shrink: 0;
 }
 
@@ -102,7 +98,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #888;
+    color: #ADB5BD;
     font-size: 17px;
     border: none;
     cursor: pointer;
@@ -113,13 +109,46 @@
     }
 }
 
+.bellWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1A202C;
+}
+
+.notifDot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #FF4136;
+    border: 2px solid #ededf3;
+}
+
 /* ---- MAIN CONTENT ---- */
 .main {
     flex: 1;
-    padding: 48px 48px 60px;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 36px;
+    overflow: auto;
+}
+
+.mainStatic {
+    flex-shrink: 0;
+    padding: 36px 48px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.mainScroll {
+    flex: 1;
+    min-height: 0;
+    padding: 20px 48px 48px;
 }
 
 /* ---- PAGE HEADER ---- */
@@ -140,14 +169,14 @@
     font-weight: 800;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #6558f5;
+    color: #6B47E5;
 }
 
 .pageTitle {
     font-size: 44px;
     font-weight: 900;
     letter-spacing: -1.5px;
-    color: #0d0d1a;
+    color: #1A202C;
     margin: 0;
     line-height: 1;
 }
@@ -156,7 +185,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #6558f5;
+    background-color: #6B47E5;
     color: #fff;
     font-weight: 700;
     font-size: 13px;
@@ -165,13 +194,13 @@
     border-radius: 14px;
     border: none;
     cursor: pointer;
-    box-shadow: 0 10px 24px rgba(101, 88, 245, 0.32);
+    box-shadow: 0 10px 24px rgba(107, 71, 229, 0.32);
     transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
 
     &:hover {
-        background-color: #5245e8;
+        background-color: #5a3dd4;
         transform: translateY(-2px);
-        box-shadow: 0 14px 28px rgba(101, 88, 245, 0.42);
+        box-shadow: 0 14px 28px rgba(107, 71, 229, 0.42);
     }
 
     svg {
@@ -197,25 +226,38 @@
 
     &:hover {
         transform: translateY(-4px);
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.12);
     }
 }
 
 .cardDark {
-    background-color: #14141e;
+    background-color: #1A202C;
     color: #fff;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
 }
 
+.cardDark:hover {
+    box-shadow: 0 24px 52px rgba(0, 0, 0, 0.28);
+}
+
 .cardLight {
     background-color: #ffffff;
-    color: #0d0d1a;
+    color: #1A202C;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.05);
 }
 
+.cardLight:hover {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+}
+
 .cardPurple {
-    background-color: #6558f5;
+    background-color: #6B47E5;
     color: #fff;
-    box-shadow: 0 16px 36px rgba(101, 88, 245, 0.36);
+    box-shadow: 0 16px 36px rgba(107, 71, 229, 0.36);
+}
+
+.cardPurple:hover {
+    box-shadow: 0 24px 48px rgba(107, 71, 229, 0.45);
 }
 
 .cardTop {
@@ -236,13 +278,13 @@
 }
 
 .iconBoxDark {
-    background-color: #1e1e2e;
+    background-color: rgba(255, 255, 255, 0.12);
     color: #fff;
 }
 
 .iconBoxLight {
     background-color: #f0efff;
-    color: #6558f5;
+    color: #6B47E5;
 }
 
 .iconBoxPurple {
@@ -251,7 +293,7 @@
 }
 
 .trendChip {
-    background-color: #22c55e;
+    background-color: #4CAF50;
     color: #fff;
     font-size: 9px;
     font-weight: 800;
@@ -270,7 +312,17 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    opacity: 0.5;
+}
+
+.cardDark .cardLabel,
+.cardPurple .cardLabel {
+    opacity: 0.9;
+    color: #fff;
+}
+
+.cardLight .cardLabel {
+    color: #1A202C;
+    opacity: 0.7;
 }
 
 .cardValue {
@@ -281,10 +333,19 @@
     line-height: 1;
 }
 
+.cardValuePurple {
+    color: #6B47E5 !important;
+}
+
 .cardSub {
     font-size: 11px;
-    opacity: 0.45;
+    opacity: 0.6;
     margin-top: 3px;
+    color: inherit;
+}
+
+.cardLight .cardSub {
+    color: #ADB5BD;
 }
 
 /* ---- BOTTOM SECTION ---- */
@@ -292,6 +353,7 @@
     display: grid;
     grid-template-columns: 1fr 320px;
     gap: 20px;
+    padding-bottom: 20px;
 }
 
 /* ---- AUDIT TABLE ---- */
@@ -300,6 +362,12 @@
     border-radius: 28px;
     padding: 36px 36px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+    }
 }
 
 .auditHeader {
@@ -321,7 +389,7 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #6558f5;
+    color: #6B47E5;
     text-decoration: none;
 
     &:hover {
@@ -375,7 +443,7 @@
     height: 34px;
     border-radius: 10px;
     background-color: #f0efff;
-    color: #6558f5;
+    color: #6B47E5;
     font-weight: 800;
     font-size: 13px;
     display: flex;
@@ -437,6 +505,12 @@
     flex-direction: column;
     gap: 8px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 24px 52px rgba(0, 0, 0, 0.28);
+    }
 }
 
 .vitalsHeader {
@@ -557,7 +631,7 @@
     gap: 5px;
     font-size: 10px;
     font-weight: 800;
-    color: #6558f5;
+    color: #6B47E5;
     background: none;
     border: none;
     cursor: pointer;
