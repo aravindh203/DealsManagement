@@ -15,6 +15,8 @@ import {
 import { useAdminStats, formatBytes } from '../hooks/useAdminStats';
 import { CreateContainerForm } from '../components/CreateContainerForm';
 import { CreateFolderForm } from '../components/CreateFolderForm';
+import { getAccessTokenByApp } from '@/hooks/useClientCredentialsAuth';
+import { sharePointService } from '@/services/sharePointService';
 
 // ── Types ──────────────────────────────────────────────────
 interface AuditEntry {
@@ -56,6 +58,24 @@ const Admin: React.FC = () => {
         ? Math.round((totalStorageUsedBytes / totalStorageTotalBytes) * 100)
         : 0;
 
+debugger
+const handleCreateColumn = async () => {
+  try {
+    const token = await getAccessTokenByApp();
+
+    const Newcolumn = await sharePointService.CreateColumn(
+      token,
+      "b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ"
+    );
+
+    console.log("Folder created:", Newcolumn);
+  } catch (error) {
+    console.error("Error creating folder:", error);
+  }
+};
+
+
+
     return (
         <div className={styles.page}>
             {/* ── Top Navigation ── */}
@@ -95,6 +115,14 @@ const Admin: React.FC = () => {
                         <AddRegular />
                         + New Folder 664
                     </button>
+<button 
+  className={styles.newResourceBtn}
+  onClick={handleCreateColumn}
+>
+  <AddRegular />
+  + Create column
+</button>
+                    
                 </div>
 
                 {/* ── Stat Cards ── */}
