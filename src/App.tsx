@@ -9,7 +9,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, AppRole } from "./context/AuthContext";
+import { ProjectsProvider } from "./context/ProjectsContext";
 import { ConfigProvider } from "./context/ConfigContext";
 import { ApiCallsProvider } from "./context/ApiCallsContext";
 import { SidebarProvider } from "./components/ui/sidebar";
@@ -57,6 +58,7 @@ import Directory from "./pages/Directory";
 import Repository from "./pages/Repository";
 import Analytics from "./pages/Analytics";
 import Identity from "./pages/Identity";
+import ProjectDetail from "./pages/ProjectDetail";
 import { AdminLayout } from "./pages/AdminLayout";
 
 const App = () => {
@@ -68,6 +70,7 @@ const App = () => {
         <TooltipProvider>
           <Router>
             <AuthProvider>
+              <ProjectsProvider>
               <ConfigProvider>
                 <ApiCallsProvider>
                   <Suspense fallback={<LoadingFallback />}>
@@ -82,17 +85,61 @@ const App = () => {
                       <Route path="/admin/identity" element={<Navigate to="/identity" replace />} />
                       <Route path="/" element={<ProtectedRouteStandalone><AdminLayout /></ProtectedRouteStandalone>}>
                         <Route index element={<Navigate to="/insights" replace />} />
-                        <Route path="insights" element={<Insights />} />
-                        <Route path="directory" element={<Directory />} />
-                        <Route path="repository" element={<Repository />} />
-                        <Route path="analytics" element={<Analytics />} />
-                        <Route path="identity" element={<Identity />} />
+                        <Route
+                          path="insights"
+                          element={(
+                            <ModuleGuard allowedRoles={['admin']}>
+                              <Insights />
+                            </ModuleGuard>
+                          )}
+                        />
+                        <Route
+                          path="directory"
+                          element={(
+                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                              <Directory />
+                            </ModuleGuard>
+                          )}
+                        />
+                        <Route
+                          path="project/:id"
+                          element={(
+                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                              <ProjectDetail />
+                            </ModuleGuard>
+                          )}
+                        />
+                        <Route
+                          path="repository"
+                          element={(
+                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                              <Repository />
+                            </ModuleGuard>
+                          )}
+                        />
+                        <Route
+                          path="analytics"
+                          element={(
+                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                              <Analytics />
+                            </ModuleGuard>
+                          )}
+                        />
+                        <Route
+                          path="identity"
+                          element={(
+                            <ModuleGuard allowedRoles={['admin']}>
+                              <Identity />
+                            </ModuleGuard>
+                          )}
+                        />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
                 </ApiCallsProvider>
               </ConfigProvider>
+              </ProjectsProvider>
             </AuthProvider>
           </Router>
         </TooltipProvider>
@@ -128,6 +175,16 @@ const ProtectedRouteStandalone = ({ children }: { children: React.ReactNode }) =
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const ModuleGuard = ({ allowedRoles, children }: { allowedRoles: AppRole[]; children: React.ReactNode }) => {
+  const { role } = useAuth();
+
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/directory" replace />;
   }
 
   return <>{children}</>;
