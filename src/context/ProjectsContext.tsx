@@ -35,18 +35,21 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       const mapped: Project[] = containers.map((c, index) => {
         const created = c.createdDateTime ? new Date(c.createdDateTime) : new Date();
-        const expected = created.toLocaleDateString();
         const end = new Date(created.getTime() + 90 * 24 * 60 * 60 * 1000);
 
         return {
           id: index + 1,
-          name: c.name || 'Project',
-          location: 'SharePoint',
-          address: c.webUrl || '',
-          expected,
-          endDate: end.toLocaleDateString(),
-          duration: '90 days',
-          status: 'ACTIVE',
+          P_Name: c.name || 'Project',
+          P_Description: c.webUrl || '',
+          P_StartDate: created.toISOString(),
+          P_EndDate: end.toISOString(),
+          P_Type: 'SharePoint Container',
+          V_SubmittedByEmail: '',
+          V_BidSubmissionDate: null,
+          V_BidDescription: '',
+          V_BidAmount: '',
+          P_VendorSubmissionDueDate: null,
+          P_Budget: '',
         };
       });
 
@@ -61,7 +64,11 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({ children }
     reloadProjects();
   }, [reloadProjects]);
 
-  const addProject = useCallback((data: Omit<Project, 'id'>) => {
+  const addProject = useCallback(async (data: Omit<Project, 'id'>) => {
+    debugger;
+    const accessToken: string | null = await getAccessTokenByApp();
+    const containerId: string = appConfig.ContainerID;
+    await sharePointService.createFolder(accessToken, containerId, "", data.P_Name, data);
     setProjects((prev) => {
       const id = getNextId(prev);
       return [...prev, { ...data, id }];

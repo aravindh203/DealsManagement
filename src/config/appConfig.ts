@@ -6,10 +6,11 @@ export const appConfig = {
   tenantId: "3e8e53be-a48f-4147-adf8-7e90a6e46b57", // Replace with your tenant ID
   containerTypeId: "5d56b164-88fc-4574-b399-7da2520f3a03", // Replace with your container type ID
   appName: "Project Management using SharePoint Embedded",
-  
+  ContainerID: "b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ",
+
   // Add the SharePoint hostname explicitly
   sharePointHostname: "https://chandrudemo.sharepoint.com",
-  
+
   // MSAL configuration
   msalConfig: {
     auth: {
@@ -22,7 +23,7 @@ export const appConfig = {
       storeAuthStateInCookie: false,
     },
   },
-  
+
   // API endpoints
   endpoints: {
     graphBaseUrl: "https://graph.microsoft.com/v1.0",
@@ -30,7 +31,7 @@ export const appConfig = {
     containers: "/containers",
     drives: "/drives",
   },
-  
+
   // Copilot theme configuration
   copilotTheme: {
     useDarkMode: false,

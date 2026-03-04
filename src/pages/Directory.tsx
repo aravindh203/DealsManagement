@@ -51,7 +51,6 @@ const BriefcaseIcon = () => (
 const Directory: React.FC = () => {
     const { projects, addProject, updateProject, deleteProject, reloadProjects } = useProjects();
     const [searchProjects, setSearchProjects] = useState('');
-    const [statusFilter, setStatusFilter] = useState('All Status');
     const [formOpen, setFormOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
@@ -63,16 +62,13 @@ const Directory: React.FC = () => {
         if (q) {
             list = list.filter(
                 (p) =>
-                    p.name.toLowerCase().includes(q) ||
-                    p.location.toLowerCase().includes(q) ||
-                    p.address.toLowerCase().includes(q)
+                    (p.P_Name && p.P_Name.toLowerCase().includes(q)) ||
+                    (p.P_Type && p.P_Type.toLowerCase().includes(q)) ||
+                    (p.P_Description && p.P_Description.toLowerCase().includes(q))
             );
         }
-        if (statusFilter !== 'All Status') {
-            list = list.filter((p) => p.status === statusFilter);
-        }
         return list;
-    }, [projects, searchProjects, statusFilter]);
+    }, [projects, searchProjects]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
     const paginatedProjects = useMemo(() => {
@@ -82,7 +78,7 @@ const Directory: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchProjects, statusFilter]);
+    }, [searchProjects]);
 
     useEffect(() => {
         if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -90,7 +86,6 @@ const Directory: React.FC = () => {
 
     const handleRefresh = () => {
         setSearchProjects('');
-        setStatusFilter('All Status');
         setCurrentPage(1);
         // Reload projects from SharePoint containers
         reloadProjects();
@@ -201,16 +196,6 @@ const Directory: React.FC = () => {
                             />
                         </div>
                         <div className={styles.filterGroup}>
-                            <select
-                                className={styles.filterSelect}
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option>All Status</option>
-                                <option>ACTIVE</option>
-                                <option>TRIAL</option>
-                                <option>PENDING</option>
-                            </select>
                             <button type="button" className={styles.refreshBtn} onClick={handleRefresh} title="Refresh filters">
                                 <ArrowSyncRegular className={styles.refreshIcon} />
                             </button>
@@ -222,12 +207,11 @@ const Directory: React.FC = () => {
                             <thead>
                                 <tr>
                                     <th>PROJECT NAME</th>
-                                    <th>LOCATION</th>
-                                    <th>ADDRESS</th>
-                                    <th>EXPECTED</th>
+                                    <th>TYPE</th>
+                                    <th>START DATE</th>
                                     <th>END DATE</th>
-                                    <th>PROJECT DURATION</th>
-                                    <th>STATUS</th>
+                                    <th>BUDGET</th>
+                                    <th>BID AMOUNT</th>
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
@@ -236,20 +220,15 @@ const Directory: React.FC = () => {
                                     <tr key={project.id}>
                                         <td>
                                             <Link to={`/project/${project.id}`}>
-                                                <strong>{project.name}</strong>
+                                                <strong>{project.P_Name}</strong>
                                             </Link>
                                             <span className={styles.idHint}> (ID: {project.id})</span>
                                         </td>
-                                        <td>{project.location}</td>
-                                        <td>{project.address}</td>
-                                        <td>{project.expected}</td>
-                                        <td>{project.endDate}</td>
-                                        <td>{project.duration}</td>
-                                        <td>
-                                            <span className={`${styles.statusBadge} ${styles[`status${project.status}`]}`}>
-                                                {project.status}
-                                            </span>
-                                        </td>
+                                        <td>{project.P_Type || '-'}</td>
+                                        <td>{project.P_StartDate ? new Date(project.P_StartDate).toLocaleDateString() : '-'}</td>
+                                        <td>{project.P_EndDate ? new Date(project.P_EndDate).toLocaleDateString() : '-'}</td>
+                                        <td>{project.P_Budget ? `$${project.P_Budget}` : '-'}</td>
+                                        <td>{project.V_BidAmount ? `$${project.V_BidAmount}` : '-'}</td>
                                         <td>
                                             <div className={styles.actionsCell}>
                                                 <button

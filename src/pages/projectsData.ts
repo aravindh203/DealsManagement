@@ -1,55 +1,73 @@
-export type ProjectStatus = 'ACTIVE' | 'TRIAL' | 'PENDING';
-
 export interface Project {
-    id: number;
-    name: string;
-    location: string;
-    address: string;
-    expected: string;
-    endDate: string;
-    duration: string;
-    status: ProjectStatus;
+    id?: number;
+    P_Name: string;
+    P_Description?: string;
+    P_StartDate?: string | null;
+    P_EndDate?: string | null;
+    P_Type?: string;
+    V_SubmittedByEmail?: string;
+    V_BidSubmissionDate?: string | null;
+    V_BidDescription?: string | null;
+    V_BidAmount?: string;
+    P_VendorSubmissionDueDate?: string | null;
+    P_Budget?: string;
 }
 
 export const initialProjects: Project[] = [
     {
         id: 1,
-        name: 'Head Office Renovation',
-        location: 'New York, NY',
-        address: '123 Main St, New York, NY 10001',
-        expected: '01/04/2026',
-        endDate: '30/09/2026',
-        duration: '6 months',
-        status: 'ACTIVE',
+        P_Name: 'Head Office Renovation',
+        P_Description: 'Complete overhaul of the head office.',
+        P_StartDate: '2026-04-01T00:00:00.000Z',
+        P_EndDate: '2026-09-30T00:00:00.000Z',
+        P_Type: 'Renovation',
+        V_SubmittedByEmail: 'vendor1@example.com',
+        V_BidSubmissionDate: '2026-03-15T00:00:00.000Z',
+        V_BidDescription: 'Cost-effective renovation plan.',
+        V_BidAmount: '500000',
+        P_VendorSubmissionDueDate: '2026-03-20T00:00:00.000Z',
+        P_Budget: '600000',
     },
     {
         id: 2,
-        name: 'Retail Expansion Phase II',
-        location: 'Chicago, IL',
-        address: '200 Lake Shore Dr, Chicago, IL 60601',
-        expected: '15/05/2026',
-        endDate: '15/12/2026',
-        duration: '7 months',
-        status: 'TRIAL',
+        P_Name: 'Retail Expansion Phase II',
+        P_Description: 'Expanding retail footprint in the midwest.',
+        P_StartDate: '2026-05-15T00:00:00.000Z',
+        P_EndDate: '2026-12-15T00:00:00.000Z',
+        P_Type: 'Expansion',
+        V_SubmittedByEmail: 'retail_vendor@example.com',
+        V_BidSubmissionDate: '2026-04-01T00:00:00.000Z',
+        V_BidDescription: 'Phase II expansion strategy.',
+        V_BidAmount: '1200000',
+        P_VendorSubmissionDueDate: '2026-04-10T00:00:00.000Z',
+        P_Budget: '1500000',
     },
     {
         id: 3,
-        name: 'Logistics Hub Upgrade',
-        location: 'Dallas, TX',
-        address: '890 Industrial Rd, Dallas, TX 75201',
-        expected: '01/03/2026',
-        endDate: '31/08/2026',
-        duration: '6 months',
-        status: 'PENDING',
+        P_Name: 'Logistics Hub Upgrade',
+        P_Description: 'Upgrading software and hardware at main logistics hub.',
+        P_StartDate: '2026-03-01T00:00:00.000Z',
+        P_EndDate: '2026-08-31T00:00:00.000Z',
+        P_Type: 'Infrastructure',
+        V_SubmittedByEmail: 'tech_logistics@example.com',
+        V_BidSubmissionDate: '2026-02-15T00:00:00.000Z',
+        V_BidDescription: 'Full system upgrade proposal.',
+        V_BidAmount: '850000',
+        P_VendorSubmissionDueDate: '2026-02-28T00:00:00.000Z',
+        P_Budget: '900000',
     },
     {
         id: 4,
-        name: 'Data Center Migration',
-        location: 'Seattle, WA',
-        address: '410 Cloud Ave, Seattle, WA 98101',
-        expected: '10/04/2026',
-        endDate: '10/10/2026',
-        duration: '6 months',
-        status: 'ACTIVE',
+        P_Name: 'Data Center Migration',
+        P_Description: 'Migrating on-prem data center to the cloud.',
+        P_StartDate: '2026-04-10T00:00:00.000Z',
+        P_EndDate: '2026-10-10T00:00:00.000Z',
+        P_Type: 'Migration',
+        V_SubmittedByEmail: 'cloud_experts@example.com',
+        V_BidSubmissionDate: '2026-03-20T00:00:00.000Z',
+        V_BidDescription: 'Secure migration plan with zero downtime.',
+        V_BidAmount: '2000000',
+        P_VendorSubmissionDueDate: '2026-03-25T00:00:00.000Z',
+        P_Budget: '2500000',
     },
 ];
