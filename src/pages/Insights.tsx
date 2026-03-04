@@ -9,6 +9,7 @@ import {
     MoneyRegular,
     PulseRegular,
     ArrowSyncRegular,
+    ArrowUploadRegular,
     DismissRegular,
 } from '@fluentui/react-icons';
 import { useAdminStats, formatBytes } from '../hooks/useAdminStats';
@@ -86,6 +87,9 @@ const Insights: React.FC = () => {
                         <SearchRegular className={styles.searchIcon} />
                         <input type="text" placeholder="Search resources..." />
                     </div>
+                    <button className={styles.navIconBtn} onClick={refetch} title="Refresh stats">
+                        <ArrowUploadRegular />
+                    </button>
                     <button className={styles.navIconBtn} title="Notifications">
                         <span className={styles.bellWrapper}>
                             <BellIcon />
@@ -107,6 +111,10 @@ const Insights: React.FC = () => {
                         <button className={styles.newResourceBtn} onClick={() => setPanelOpen(true)}>
                             <AddRegular />
                             NEW RESOURCE
+                        </button>
+                        <button className={styles.newResourceBtn} onClick={() => setFolderPanelOpen(true)}>
+                            <AddRegular />
+                            NEW FOLDER
                         </button>
                     </div>
 

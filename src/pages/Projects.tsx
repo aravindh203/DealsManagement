@@ -57,18 +57,130 @@ interface Project {
 }
 
 const ProjectDetails = ({ project }: { project: Project }) => {
+  const { getAccessToken } = useAuth();
+
   // If we already have webUrl from search, we can use it directly
   const containerDetailsHook = project.webUrl ? null : useContainerDetails(project.id);
   const projectUrl = project.webUrl || (containerDetailsHook?.containerDetails?.webUrl || '');
+
+  // Project metadata (stored in SharePoint Embedded item fields)
+  const [metaLoading, setMetaLoading] = useState<boolean>(false);
+  const [metaError, setMetaError] = useState<string | null>(null);
+  const [budget, setBudget] = useState<string>('');
+  const [metaItemId, setMetaItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        setMetaLoading(true);
+        setMetaError(null);
+
+        const token = await getAccessToken();
+        if (!token) {
+          setMetaError('Failed to get access token for metadata.');
+          return;
+        }
+
+        const items = await sharePointService.listProjectMetadata(token, project.id);
+
+        const first = items[0];
+        if (first && first.fields) {
+          setMetaItemId(first.id);
+          if (first.fields.P_Budget) {
+            setBudget(first.fields.P_Budget);
+          }
+        }
+      } catch (err: any) {
+        console.error('Error loading project metadata:', err);
+        setMetaError(err.message || 'Failed to load metadata.');
+      } finally {
+        setMetaLoading(false);
+      }
+    };
+
+    loadMetadata();
+  }, [getAccessToken, project.id]);
+
+  const handleSaveMetadata = async () => {
+    try {
+      setMetaLoading(true);
+      setMetaError(null);
+
+      const token = await getAccessToken();
+      if (!token) {
+        setMetaError('Failed to get access token for metadata.');
+        return;
+      }
+
+      const fields = { P_Budget: budget };
+
+      let result;
+      if (metaItemId) {
+        result = await sharePointService.updateProjectMetadata(token, project.id, metaItemId, fields);
+      } else {
+        result = await sharePointService.CreateItem(token, project.id, fields);
+      }
+
+      setMetaItemId(result.id);
+
+      toast({
+        title: 'Metadata saved',
+        description: 'Project metadata has been saved successfully.',
+      });
+    } catch (err: any) {
+      console.error('Error saving project metadata:', err);
+      setMetaError(err.message || 'Failed to save metadata.');
+      toast({
+        title: 'Error saving metadata',
+        description: 'Unable to save project metadata.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMetaLoading(false);
+    }
+  };
+
+  const handleDeleteMetadata = async () => {
+    if (!metaItemId) return;
+    try {
+      setMetaLoading(true);
+      setMetaError(null);
+
+      const token = await getAccessToken();
+      if (!token) {
+        setMetaError('Failed to get access token for metadata.');
+        return;
+      }
+
+      await sharePointService.deleteProjectMetadata(token, project.id, metaItemId);
+      setMetaItemId(null);
+      setBudget('');
+
+      toast({
+        title: 'Metadata deleted',
+        description: 'Project metadata has been deleted.',
+      });
+    } catch (err: any) {
+      console.error('Error deleting project metadata:', err);
+      setMetaError(err.message || 'Failed to delete metadata.');
+      toast({
+        title: 'Error deleting metadata',
+        description: 'Unable to delete project metadata.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMetaLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div>
         <h4 className="font-semibold">Project URL</h4>
         {projectUrl ? (
-          <a 
-            href={projectUrl} 
-            target="_blank" 
+          <a
+            href={projectUrl}
+            target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:underline flex items-center gap-1"
           >
@@ -79,32 +191,68 @@ const ProjectDetails = ({ project }: { project: Project }) => {
           <p className="text-muted-foreground">Loading URL...</p>
         )}
       </div>
-      
+
       <div>
         <h4 className="font-semibold">Project Name</h4>
         <p>{project.displayName}</p>
       </div>
-      
+
       <div>
         <h4 className="font-semibold">Description</h4>
         <p>{project.description || 'No description available'}</p>
       </div>
-      
+
       <div>
         <h4 className="font-semibold">Created</h4>
         <p>{new Date(project.createdDateTime).toLocaleDateString()}</p>
       </div>
-      
+
       <div>
         <h4 className="font-semibold">Status</h4>
         <p>{project.status}</p>
       </div>
-      
+
       <div>
         <h4 className="font-semibold">Progress</h4>
         <div className="flex items-center gap-2">
           <Progress value={project.percentComplete} className="h-2" />
           <span>{project.percentComplete}%</span>
+        </div>
+      </div>
+
+      <div className="border-t pt-4 space-y-3">
+        <h4 className="font-semibold">Project Metadata</h4>
+        {metaError && (
+          <p className="text-sm text-red-500">
+            {metaError}
+          </p>
+        )}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            P_Budget
+          </label>
+          <input
+            type="text"
+            className="w-full border rounded px-2 py-1 text-sm"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            disabled={metaLoading}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={handleSaveMetadata} disabled={metaLoading}>
+            {metaLoading ? 'Saving...' : 'Save Metadata'}
+          </Button>
+          {metaItemId && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleDeleteMetadata}
+              disabled={metaLoading}
+            >
+              Delete Metadata
+            </Button>
+          )}
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   InteractionRequiredAuthError
 } from '@azure/msal-browser';
 import { appConfig } from '../config/appConfig';
+import { sharePointService } from '../services/sharePointService';
 
 export type AppRole = 'admin' | 'manager' | 'executive';
 
@@ -167,13 +168,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const loginVendor = async (username: string, password: string): Promise<void> => {
-    if (!username.trim() || !password) {
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername || !password) {
       throw new Error('Username and password are required.');
     }
-    // TODO: Replace with your vendor auth API call when available
-    // const res = await fetch('/api/auth/vendor', { method: 'POST', body: JSON.stringify({ username, password }) });
-    // if (!res.ok) throw new Error('Invalid credentials');
-    const vendor: VendorUser = { username: username.trim(), loginType: 'vendor' };
+
+    // Validate credentials against the SharePoint UserDetails list
+    const isValid = await sharePointService.validateVendorCredentials(trimmedUsername, password);
+    if (!isValid) {
+      throw new Error('Invalid username or password.');
+    }
+
+    const vendor: VendorUser = { username: trimmedUsername, loginType: 'vendor' };
     setUser(null);
     setStoredVendorSession(vendor);
     setIsAuthenticated(true);

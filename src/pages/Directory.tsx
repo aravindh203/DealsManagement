@@ -49,7 +49,7 @@ const BriefcaseIcon = () => (
 );
 
 const Directory: React.FC = () => {
-    const { projects, addProject, updateProject, deleteProject } = useProjects();
+    const { projects, addProject, updateProject, deleteProject, reloadProjects } = useProjects();
     const [searchProjects, setSearchProjects] = useState('');
     const [statusFilter, setStatusFilter] = useState('All Status');
     const [formOpen, setFormOpen] = useState(false);
@@ -92,6 +92,8 @@ const Directory: React.FC = () => {
         setSearchProjects('');
         setStatusFilter('All Status');
         setCurrentPage(1);
+        // Reload projects from SharePoint containers
+        reloadProjects();
     };
 
     const handleOpenCreate = () => {
