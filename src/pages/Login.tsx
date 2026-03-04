@@ -4,22 +4,17 @@ import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { appConfig } from '../config/appConfig';
+import { Input } from '@/components/ui/input';
 import {
   makeStyles,
   shorthands,
-  Button,
   Text,
-  tokens,
-  Title1,
-  Subtitle2,
-  Body1,
-  Caption1,
 } from "@fluentui/react-components";
 import {
   ShieldCheckmarkRegular,
   ChevronRightRegular,
-  PeopleRegular,
-  HeartPulseRegular
+  PersonRegular,
+  ArrowLeftRegular,
 } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
@@ -111,74 +106,6 @@ const useStyles = makeStyles({
       cursor: 'not-allowed',
     }
   },
-  manageButton: {
-    width: '100%',
-    height: '56px',
-    ...shorthands.borderRadius('18px'),
-    ...shorthands.border('1px', 'solid', '#eee'),
-    backgroundColor: 'transparent',
-    fontSize: '15px',
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: '48px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    ':hover': {
-      backgroundColor: '#f9f9f9',
-      ...shorthands.border('1px', 'solid', '#ddd'),
-    },
-  },
-  dividerSection: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    columnGap: '16px',
-    marginBottom: '32px',
-  },
-  line: {
-    height: '1px',
-    flexGrow: 1,
-    backgroundColor: '#edf0f5',
-  },
-  dividerText: {
-    fontSize: '10px',
-    color: '#adb5bd',
-    fontWeight: '700',
-    letterSpacing: '1px',
-    textTransform: 'uppercase',
-  },
-  bottomGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px',
-    width: '100%',
-  },
-  infoCard: {
-    backgroundColor: '#fff',
-    ...shorthands.border('1px', 'solid', '#f1f3f5'),
-    ...shorthands.borderRadius('20px'),
-    ...shorthands.padding('20px'),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    textAlign: 'left',
-    transition: 'all 0.2s ease',
-    ':hover': {
-      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.03)',
-      ...shorthands.borderColor('#e9ecef'),
-    }
-  },
-  infoIcon: {
-    fontSize: '24px',
-    color: '#5c5ce0',
-    marginBottom: '12px',
-  },
-  infoTitle: {
-    fontSize: '11px',
-    fontWeight: '800',
-    color: '#1a1a1a',
-    letterSpacing: '0.5px',
-  },
   errorAlert: {
     backgroundColor: '#fff5f5',
     ...shorthands.border('1px', 'solid', '#feb2b2'),
@@ -188,14 +115,86 @@ const useStyles = makeStyles({
     width: '100%',
     color: '#c53030',
     fontSize: '13px',
-  }
+  },
+  vendorButton: {
+    width: '100%',
+    height: '56px',
+    ...shorthands.borderRadius('18px'),
+    ...shorthands.border('2px', 'solid', '#5c5ce0'),
+    backgroundColor: 'transparent',
+    color: '#5c5ce0',
+    fontSize: '15px',
+    fontWeight: '600',
+    marginBottom: '32px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    columnGap: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    ':hover': {
+      backgroundColor: '#f0efff',
+    },
+  },
+  vendorForm: {
+    width: '100%',
+    marginTop: '8px',
+    marginBottom: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: '16px',
+  },
+  inputWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    width: '100%',
+  },
+  inputLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#333',
+  },
+  input: {
+    width: '100%',
+    height: '48px',
+    ...shorthands.padding('0', '16px'),
+    ...shorthands.border('1px', 'solid', '#e0e0e0'),
+    ...shorthands.borderRadius('12px'),
+    fontSize: '15px',
+    boxSizing: 'border-box',
+    ':focus': {
+      outline: 'none',
+      ...shorthands.border('2px', 'solid', '#5c5ce0'),
+    },
+  },
+  backLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    columnGap: '6px',
+    fontSize: '13px',
+    color: '#5c5ce0',
+    cursor: 'pointer',
+    marginTop: '8px',
+    fontWeight: '500',
+    backgroundColor: 'transparent',
+    border: 'none',
+    padding: 0,
+    ':hover': { textDecoration: 'underline' },
+  },
 });
 
 const Login = () => {
   const styles = useStyles();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, loginVendor } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showVendorForm, setShowVendorForm] = useState(false);
+  const [vendorUsername, setVendorUsername] = useState('');
+  const [vendorPassword, setVendorPassword] = useState('');
+  const [vendorLoading, setVendorLoading] = useState(false);
+  const [vendorError, setVendorError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     try {
@@ -206,9 +205,9 @@ const Login = () => {
         title: "Login successful",
         description: "You have been successfully authenticated.",
       });
-    } catch (error) {
-      console.error('Login failed:', error);
-      setError(error instanceof Error ? error.message : 'Authentication failed');
+    } catch (err) {
+      console.error('Login failed:', err);
+      setError(err instanceof Error ? err.message : 'Authentication failed');
       toast({
         title: "Login failed",
         description: "An error occurred during authentication.",
@@ -216,6 +215,29 @@ const Login = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVendorLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setVendorLoading(true);
+      setVendorError(null);
+      await loginVendor(vendorUsername, vendorPassword);
+      toast({
+        title: "Login successful",
+        description: "You have been signed in as a vendor.",
+      });
+    } catch (err) {
+      console.error('Vendor login failed:', err);
+      setVendorError(err instanceof Error ? err.message : 'Invalid username or password.');
+      toast({
+        title: "Vendor login failed",
+        description: "Please check your username and password.",
+        variant: "destructive",
+      });
+    } finally {
+      setVendorLoading(false);
     }
   };
 
@@ -239,51 +261,116 @@ const Login = () => {
           Identity-first workspace security for the next generation of cloud clusters.
         </Text>
 
-        {error && (
-          <div className={styles.errorAlert}>
-            {error}
-          </div>
-        )}
+        {!showVendorForm ? (
+          <>
+            {error && (
+              <div className={styles.errorAlert}>
+                {error}
+              </div>
+            )}
 
-        {!isConfigured && (
-          <div className={`${styles.errorAlert} !bg-blue-50 !border-blue-200 !text-blue-700`}>
-            Missing configuration: CLIENT_ID, TENANT_ID, or CONTAINER_TYPE_ID.
-          </div>
-        )}
+            {!isConfigured && (
+              <div className={`${styles.errorAlert} !bg-blue-50 !border-blue-200 !text-blue-700`}>
+                Missing configuration: CLIENT_ID, TENANT_ID, or CONTAINER_TYPE_ID.
+              </div>
+            )}
 
-        <button
-          className={styles.ssoButton}
-          onClick={handleLogin}
-          disabled={loading || !isConfigured}
-        >
-          {loading ? 'Signing in...' : (
-            <>
-              Sign in with Microsoft 365
+            <button
+              className={styles.ssoButton}
+              onClick={handleLogin}
+              disabled={loading || !isConfigured}
+            >
+              {loading ? 'Signing in...' : (
+                <>
+                  Sign in with Microsoft 365
+                  <ChevronRightRegular />
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className={styles.vendorButton}
+              onClick={() => {
+                setShowVendorForm(true);
+                setError(null);
+                setVendorError(null);
+              }}
+            >
+              <PersonRegular />
+              Vendor login
               <ChevronRightRegular />
-            </>
-          )}
-        </button>
+            </button>
+          </>
+        ) : (
+          <>
+            {vendorError && (
+              <div className={styles.errorAlert}>
+                {vendorError}
+              </div>
+            )}
 
-        <button className={styles.manageButton}>
-          Manage Global Identity
-        </button>
+            <form className={styles.vendorForm} onSubmit={handleVendorLogin}>
+              <div className={styles.inputWrap}>
+                <label className={styles.inputLabel} htmlFor="vendor-username">
+                  Username
+                </label>
+                <Input
+                  id="vendor-username"
+                  type="text"
+                  className={styles.input}
+                  placeholder="Enter your username"
+                  value={vendorUsername}
+                  onChange={(e) => setVendorUsername(e.target.value)}
+                  autoComplete="username"
+                  disabled={vendorLoading}
+                />
+              </div>
+              <div className={styles.inputWrap}>
+                <label className={styles.inputLabel} htmlFor="vendor-password">
+                  Password
+                </label>
+                <Input
+                  id="vendor-password"
+                  type="password"
+                  className={styles.input}
+                  placeholder="Enter your password"
+                  value={vendorPassword}
+                  onChange={(e) => setVendorPassword(e.target.value)}
+                  autoComplete="current-password"
+                  disabled={vendorLoading}
+                />
+              </div>
+              <button
+                type="submit"
+                className={styles.ssoButton}
+                disabled={vendorLoading || !vendorUsername.trim() || !vendorPassword}
+              >
+                {vendorLoading ? 'Signing in...' : (
+                  <>
+                    Sign in
+                    <ChevronRightRegular />
+                  </>
+                )}
+              </button>
+            </form>
 
-        <div className={styles.dividerSection}>
-          <div className={styles.line} />
-          <Text className={styles.dividerText}>Authorized Access Only</Text>
-          <div className={styles.line} />
-        </div>
+            <button
+              type="button"
+              className={styles.backLink}
+              onClick={() => {
+                setShowVendorForm(false);
+                setVendorUsername('');
+                setVendorPassword('');
+                setVendorError(null);
+              }}
+            >
+              <ArrowLeftRegular />
+              Back to login options
+            </button>
+          </>
+        )}
 
-        <div className={styles.bottomGrid}>
-          <div className={styles.infoCard}>
-            <PeopleRegular className={styles.infoIcon} />
-            <Text className={styles.infoTitle}>SSO SYNC</Text>
-          </div>
-          <div className={styles.infoCard}>
-            <HeartPulseRegular className={styles.infoIcon} />
-            <Text className={styles.infoTitle}>LIVE GUARD</Text>
-          </div>
-        </div>
       </div>
     </div>
   );

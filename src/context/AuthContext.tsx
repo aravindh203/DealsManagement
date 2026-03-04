@@ -1,23 +1,71 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  PublicClientApplication, 
-  AuthenticationResult, 
+import {
+  PublicClientApplication,
+  AuthenticationResult,
   AccountInfo,
-  InteractionRequiredAuthError 
+  InteractionRequiredAuthError
 } from '@azure/msal-browser';
 import { appConfig } from '../config/appConfig';
+
+export type AppRole = 'admin' | 'manager' | 'executive';
+
+export type LoginType = 'm365' | 'vendor';
+
+const VENDOR_SESSION_KEY = 'nexus_vendor_session';
+
+// Azure AD security group object IDs (from Entra ID)
+// Replace these with your actual group object IDs if they differ.
+const DEALS_MGMT_MANAGER_GROUP_ID = '50595f9b-6355-4db0-b90b-bdb3ec800caa';
+const DEALS_MGMT_ADMIN_GROUP_ID = '10b10632-bcef-4029-8af2-1fb1521e6255';
+const DEALS_MGMT_EXEC_GROUP_ID = 'f0620cab-6faa-4510-93cb-4a9ff11e4c2d';
+
+export interface VendorUser {
+  username: string;
+  loginType: 'vendor';
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AccountInfo | null;
+  vendorUser: VendorUser | null;
+  loginType: LoginType | null;
+  role: AppRole;
   login: () => Promise<void>;
+  loginVendor: (username: string, password: string) => Promise<void>;
   logout: () => void;
   getAccessToken: (resource?: string) => Promise<string | null>;
   getSharePointToken: (hostname: string) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const deriveRoleFromAccount = (account: AccountInfo | null): AppRole => {
+  if (!account || !account.idTokenClaims) {
+    return 'admin';
+  }
+
+  const claims = account.idTokenClaims as unknown as { [key: string]: any };
+
+  // 1) Prefer Azure AD security group membership (groups claim)
+  const groups: string[] = claims.groups || claims['groups'] || [];
+  if (Array.isArray(groups) && groups.length > 0) {
+    if (groups.includes(DEALS_MGMT_ADMIN_GROUP_ID)) return 'admin';
+    if (groups.includes(DEALS_MGMT_MANAGER_GROUP_ID)) return 'manager';
+    if (groups.includes(DEALS_MGMT_EXEC_GROUP_ID)) return 'executive';
+  }
+
+  // 2) Fallback to app roles (roles claim) if configured that way
+  const roles: string[] = claims.roles || claims['roles'] || [];
+  if (Array.isArray(roles)) {
+    if (roles.includes('DealsManagementAdmin')) return 'admin';
+    if (roles.includes('DealsManagementManager')) return 'manager';
+    if (roles.includes('DealsManagementExecutive')) return 'executive';
+  }
+
+  // 3) Safe default
+  return 'admin';
+};
 
 // Update authority with actual tenant ID
 const msalConfig = {
@@ -38,17 +86,48 @@ const msalInstance = new PublicClientApplication(msalConfig);
   await msalInstance.initialize();
 })();
 
+const getStoredVendorSession = (): VendorUser | null => {
+  try {
+    const raw = sessionStorage.getItem(VENDOR_SESSION_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as { username: string };
+    return { username: data.username, loginType: 'vendor' };
+  } catch {
+    return null;
+  }
+};
+
+const setStoredVendorSession = (vendorUser: VendorUser | null): void => {
+  if (vendorUser) {
+    sessionStorage.setItem(VENDOR_SESSION_KEY, JSON.stringify({ username: vendorUser.username }));
+  } else {
+    sessionStorage.removeItem(VENDOR_SESSION_KEY);
+  }
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<AccountInfo | null>(null);
+  const [vendorUser, setVendorUser] = useState<VendorUser | null>(null);
+  const [loginType, setLoginType] = useState<LoginType | null>(null);
+  const [role, setRole] = useState<AppRole>('admin');
 
   useEffect(() => {
-    // Check if there's a user already logged in
+    const vendor = getStoredVendorSession();
+    if (vendor) {
+      setIsAuthenticated(true);
+      setVendorUser(vendor);
+      setLoginType('vendor');
+      setRole('admin'); // default role for vendor users
+      return;
+    }
     const accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
       setIsAuthenticated(true);
       setUser(accounts[0]);
+      setLoginType('m365');
       msalInstance.setActiveAccount(accounts[0]);
+      setRole(deriveRoleFromAccount(accounts[0]));
     }
   }, []);
 
@@ -73,9 +152,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response: AuthenticationResult = await msalInstance.loginPopup(loginRequest);
       
       if (response) {
+        setVendorUser(null);
+        setStoredVendorSession(null);
         setIsAuthenticated(true);
         setUser(response.account);
-        // Set the active account for future token requests
+        setLoginType('m365');
+        setRole(deriveRoleFromAccount(response.account));
         msalInstance.setActiveAccount(response.account);
       }
     } catch (error) {
@@ -84,22 +166,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const loginVendor = async (username: string, password: string): Promise<void> => {
+    if (!username.trim() || !password) {
+      throw new Error('Username and password are required.');
+    }
+    // TODO: Replace with your vendor auth API call when available
+    // const res = await fetch('/api/auth/vendor', { method: 'POST', body: JSON.stringify({ username, password }) });
+    // if (!res.ok) throw new Error('Invalid credentials');
+    const vendor: VendorUser = { username: username.trim(), loginType: 'vendor' };
+    setUser(null);
+    setStoredVendorSession(vendor);
+    setIsAuthenticated(true);
+    setVendorUser(vendor);
+    setLoginType('vendor');
+    setRole('admin');
+  };
+
   const logout = (): void => {
-    msalInstance.logoutPopup().then(() => {
+    const isVendor = loginType === 'vendor';
+    if (isVendor) {
+      setVendorUser(null);
+      setLoginType(null);
+      setStoredVendorSession(null);
       setIsAuthenticated(false);
       setUser(null);
-      // Clear any local storage
       sessionStorage.clear();
       localStorage.removeItem('preferExternalChat');
       localStorage.removeItem('lastChatError');
-    }).catch(error => {
-      console.error('Logout failed:', error);
-    });
+    } else {
+      msalInstance.logoutPopup().then(() => {
+        setIsAuthenticated(false);
+        setUser(null);
+        setLoginType(null);
+        setVendorUser(null);
+        sessionStorage.clear();
+        localStorage.removeItem('preferExternalChat');
+        localStorage.removeItem('lastChatError');
+      }).catch(error => {
+        console.error('Logout failed:', error);
+      });
+    }
   };
 
   const getAccessToken = async (resource?: string): Promise<string | null> => {
+    if (loginType === 'vendor') {
+      return null; // Vendor users do not have MSAL tokens
+    }
     try {
-      // Use silent token acquisition if possible
       const accounts = msalInstance.getAllAccounts();
       if (accounts.length === 0) {
         console.error('No accounts found when trying to get access token');
@@ -166,8 +279,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
-      user, 
+      user,
+      vendorUser,
+      loginType,
+      role,
       login, 
+      loginVendor,
       logout, 
       getAccessToken,
       getSharePointToken

@@ -1,5 +1,5 @@
 /* ============================================
-   Directory – Client Registry
+   Directory – Project
    ============================================ */
 
 .page {
@@ -196,57 +196,6 @@
     }
 }
 
-.roleRow {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.currentRole {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #4b5563;
-}
-
-.roleIcon {
-    font-size: 18px;
-    color: #6B47E5;
-}
-
-.switchLabel {
-    font-size: 13px;
-    color: #6b7280;
-}
-
-.roleTabs {
-    display: flex;
-    gap: 4px;
-}
-
-.roleTab,
-.roleTabActive {
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    background-color: #f3f4f6;
-    color: #6b7280;
-}
-
-.roleTabActive {
-    background-color: #6B47E5;
-    color: #fff;
-}
-
-.roleTab:hover {
-    background-color: #e5e7eb;
-}
-
 .cardsRow {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -376,19 +325,28 @@
     cursor: pointer;
 }
 
-.clearFiltersBtn {
-    background: none;
-    border: none;
-    font-size: 12px;
-    font-weight: 700;
-    color: #2563eb;
+.refreshBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
     cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    transition: background 0.2s, color 0.2s;
 
     &:hover {
-        text-decoration: underline;
+        background: #f3f4f6;
+        color: #6B47E5;
     }
+}
+
+.refreshIcon {
+    width: 18px;
+    height: 18px;
 }
 
 .tableWrap {
@@ -496,6 +454,43 @@
     }
 }
 
+.actionsCell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.actionBtn,
+.actionBtnDanger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #6b7280;
+    background: transparent;
+    transition: background 0.2s, color 0.2s;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+.actionBtn:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.actionBtnDanger:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
 .paginationRow {
     display: flex;
     align-items: center;
@@ -529,8 +524,13 @@
     cursor: pointer;
 }
 
-.pageBtn:hover {
+.pageBtn:hover:not(:disabled) {
     background-color: #f9fafb;
+}
+
+.pageBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .pageBtnActive {

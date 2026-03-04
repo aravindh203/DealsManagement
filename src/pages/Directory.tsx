@@ -1,10 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import styles from './Directory.module.scss';
 import {
     AddRegular,
     SearchRegular,
-    PersonRegular,
+    ArrowSyncRegular,
+    EditRegular,
+    DeleteRegular,
 } from '@fluentui/react-icons';
+import { useProjects } from '../context/ProjectsContext';
+import { ProjectFormDialog } from '../components/ProjectFormDialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Project } from './projectsData';
+
+const PAGE_SIZE = 10;
 
 const LineGraphIcon = () => (
     <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.badgeChartIcon}>
@@ -30,36 +48,77 @@ const BriefcaseIcon = () => (
     </svg>
 );
 
-type CustomerStatus = 'ACTIVE' | 'TRIAL' | 'PENDING';
-type Role = 'Manager' | 'Broker' | 'Admin';
-
-interface Customer {
-    id: number;
-    name: string;
-    industry: string;
-    status: CustomerStatus;
-    assignedBroker: string;
-    lastActivity: string;
-    revenue: string;
-}
-
-const customers: Customer[] = [
-    { id: 1, name: 'Acme Corp', industry: 'Manufacturing', status: 'ACTIVE', assignedBroker: 'Lisa Johnson', lastActivity: '2 hours ago', revenue: '$45,200' },
-    { id: 2, name: 'Global Tech', industry: 'Technology', status: 'ACTIVE', assignedBroker: 'Robert Davis', lastActivity: 'Yesterday', revenue: '$120,000' },
-    { id: 3, name: 'Stark Industries', industry: 'Defense', status: 'TRIAL', assignedBroker: 'Lisa Johnson', lastActivity: '3 days ago', revenue: '$850,000' },
-    { id: 4, name: 'Cyberdyne Systems', industry: 'Technology', status: 'PENDING', assignedBroker: 'Unassigned', lastActivity: '5 hours ago', revenue: '$0' },
-];
-
 const Directory: React.FC = () => {
-    const [role, setRole] = useState<Role>('Admin');
-    const [searchCustomers, setSearchCustomers] = useState('');
+    const { projects, addProject, updateProject, deleteProject } = useProjects();
+    const [searchProjects, setSearchProjects] = useState('');
     const [statusFilter, setStatusFilter] = useState('All Status');
-    const [industryFilter, setIndustryFilter] = useState('All Industries');
+    const [formOpen, setFormOpen] = useState(false);
+    const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
-    const clearFilters = () => {
-        setSearchCustomers('');
+    const filteredProjects = useMemo(() => {
+        let list = projects;
+        const q = searchProjects.trim().toLowerCase();
+        if (q) {
+            list = list.filter(
+                (p) =>
+                    p.name.toLowerCase().includes(q) ||
+                    p.location.toLowerCase().includes(q) ||
+                    p.address.toLowerCase().includes(q)
+            );
+        }
+        if (statusFilter !== 'All Status') {
+            list = list.filter((p) => p.status === statusFilter);
+        }
+        return list;
+    }, [projects, searchProjects, statusFilter]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
+    const paginatedProjects = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredProjects.slice(start, start + PAGE_SIZE);
+    }, [filteredProjects, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchProjects, statusFilter]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) setCurrentPage(totalPages);
+    }, [currentPage, totalPages]);
+
+    const handleRefresh = () => {
+        setSearchProjects('');
         setStatusFilter('All Status');
-        setIndustryFilter('All Industries');
+        setCurrentPage(1);
+    };
+
+    const handleOpenCreate = () => {
+        setEditingProject(null);
+        setFormOpen(true);
+    };
+
+    const handleOpenEdit = (project: Project) => {
+        setEditingProject(project);
+        setFormOpen(true);
+    };
+
+    const handleSaveProject = (data: Omit<Project, 'id'>) => {
+        if (editingProject) {
+            updateProject(editingProject.id, data);
+        } else {
+            addProject(data);
+        }
+        setFormOpen(false);
+        setEditingProject(null);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deleteConfirmId !== null) {
+            deleteProject(deleteConfirmId);
+            setDeleteConfirmId(null);
+        }
     };
 
     return (
@@ -91,32 +150,12 @@ const Directory: React.FC = () => {
                     <div className={styles.pageHeader}>
                         <div className={styles.titleGroup}>
                             <span className={styles.overline}>RESOURCE DIRECTORY</span>
-                            <h1 className={styles.pageTitle}>Client Registry</h1>
+                            <h1 className={styles.pageTitle}>Project</h1>
                         </div>
-                        <button className={styles.registerBtn} type="button">
+                        <button className={styles.registerBtn} type="button" onClick={handleOpenCreate}>
                             <AddRegular />
-                            REGISTER CLIENT
+                            NEW PROJECT
                         </button>
-                    </div>
-
-                    <div className={styles.roleRow}>
-                        <span className={styles.currentRole}>
-                            <PersonRegular className={styles.roleIcon} />
-                            Current Role: <strong>ADMIN</strong>
-                        </span>
-                        <span className={styles.switchLabel}>Switch to:</span>
-                        <div className={styles.roleTabs}>
-                            {(['Manager', 'Broker', 'Admin'] as const).map((r) => (
-                                <button
-                                    key={r}
-                                    type="button"
-                                    className={role === r ? styles.roleTabActive : styles.roleTab}
-                                    onClick={() => setRole(r)}
-                                >
-                                    {r}
-                                </button>
-                            ))}
-                        </div>
                     </div>
 
                     <div className={styles.cardsRow}>
@@ -154,9 +193,9 @@ const Directory: React.FC = () => {
                             <SearchRegular className={styles.searchIcon} />
                             <input
                                 type="text"
-                                placeholder="Search customers..."
-                                value={searchCustomers}
-                                onChange={(e) => setSearchCustomers(e.target.value)}
+                                placeholder="Search projects..."
+                                value={searchProjects}
+                                onChange={(e) => setSearchProjects(e.target.value)}
                             />
                         </div>
                         <div className={styles.filterGroup}>
@@ -166,22 +205,12 @@ const Directory: React.FC = () => {
                                 onChange={(e) => setStatusFilter(e.target.value)}
                             >
                                 <option>All Status</option>
-                                <option>Active</option>
-                                <option>Trial</option>
-                                <option>Pending</option>
+                                <option>ACTIVE</option>
+                                <option>TRIAL</option>
+                                <option>PENDING</option>
                             </select>
-                            <select
-                                className={styles.filterSelect}
-                                value={industryFilter}
-                                onChange={(e) => setIndustryFilter(e.target.value)}
-                            >
-                                <option>All Industries</option>
-                                <option>Technology</option>
-                                <option>Manufacturing</option>
-                                <option>Defense</option>
-                            </select>
-                            <button type="button" className={styles.clearFiltersBtn} onClick={clearFilters}>
-                                CLEAR FILTERS
+                            <button type="button" className={styles.refreshBtn} onClick={handleRefresh} title="Refresh filters">
+                                <ArrowSyncRegular className={styles.refreshIcon} />
                             </button>
                         </div>
                     </div>
@@ -190,34 +219,54 @@ const Directory: React.FC = () => {
                         <table className={styles.dataTable}>
                             <thead>
                                 <tr>
-                                    <th>CUSTOMER NAME</th>
-                                    <th>INDUSTRY</th>
+                                    <th>PROJECT NAME</th>
+                                    <th>LOCATION</th>
+                                    <th>ADDRESS</th>
+                                    <th>EXPECTED</th>
+                                    <th>END DATE</th>
+                                    <th>PROJECT DURATION</th>
                                     <th>STATUS</th>
-                                    <th>ASSIGNED BROKER</th>
-                                    <th>LAST ACTIVITY</th>
-                                    <th>REVENUE</th>
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {customers.map((c) => (
-                                    <tr key={c.id}>
+                                {paginatedProjects.map((project) => (
+                                    <tr key={project.id}>
                                         <td>
-                                            <strong>{c.name}</strong>
-                                            <span className={styles.idHint}> (ID: {c.id})</span>
+                                            <Link to={`/project/${project.id}`}>
+                                                <strong>{project.name}</strong>
+                                            </Link>
+                                            <span className={styles.idHint}> (ID: {project.id})</span>
                                         </td>
-                                        <td>{c.industry}</td>
+                                        <td>{project.location}</td>
+                                        <td>{project.address}</td>
+                                        <td>{project.expected}</td>
+                                        <td>{project.endDate}</td>
+                                        <td>{project.duration}</td>
                                         <td>
-                                            <span className={`${styles.statusBadge} ${styles[`status${c.status}`]}`}>
-                                                {c.status}
+                                            <span className={`${styles.statusBadge} ${styles[`status${project.status}`]}`}>
+                                                {project.status}
                                             </span>
                                         </td>
-                                        <td>{c.assignedBroker}</td>
-                                        <td>{c.lastActivity}</td>
-                                        <td className={styles.revenueCell}><strong>{c.revenue}</strong></td>
                                         <td>
-                                            <button type="button" className={styles.actionLink}>VIEW</button>
-                                            <button type="button" className={styles.actionLinkMuted}>EDIT</button>
+                                            <div className={styles.actionsCell}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.actionBtn}
+                                                    onClick={() => handleOpenEdit(project)}
+                                                    title="Edit"
+                                                >
+                                                    <EditRegular />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.actionBtnDanger}
+                                                    onClick={() => setDeleteConfirmId(project.id)}
+                                                    title="Delete"
+                                                >
+                                                    <DeleteRegular />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -225,13 +274,64 @@ const Directory: React.FC = () => {
                         </table>
                     </div>
 
+                    <ProjectFormDialog
+                        open={formOpen}
+                        onOpenChange={setFormOpen}
+                        project={editingProject}
+                        onSave={handleSaveProject}
+                    />
+
+                    <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete project?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. The project will be removed from the list.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
                     <div className={styles.paginationRow}>
-                        <span className={styles.entriesCount}>Showing {customers.length} of {customers.length} entries</span>
+                        <span className={styles.entriesCount}>
+                            Showing {filteredProjects.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–
+                            {Math.min(currentPage * PAGE_SIZE, filteredProjects.length)} of {filteredProjects.length} entries
+                        </span>
                         <div className={styles.pagination}>
-                            <button type="button" className={styles.pageBtn} aria-label="Previous">&laquo;</button>
-                            <button type="button" className={styles.pageBtnActive}>1</button>
-                            <button type="button" className={styles.pageBtn}>2</button>
-                            <button type="button" className={styles.pageBtn} aria-label="Next">&raquo;</button>
+                            <button
+                                type="button"
+                                className={styles.pageBtn}
+                                aria-label="Previous"
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage <= 1}
+                            >
+                                &laquo;
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    className={page === currentPage ? styles.pageBtnActive : styles.pageBtn}
+                                    onClick={() => setCurrentPage(page)}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                className={styles.pageBtn}
+                                aria-label="Next"
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage >= totalPages}
+                            >
+                                &raquo;
+                            </button>
                         </div>
                     </div>
                 </div>

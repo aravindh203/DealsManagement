@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidenav.module.scss';
+import { useAuth } from '../context/AuthContext';
 
 // Grid / waffle icon for Insights (active state uses blue)
 const GridIcon = ({ active }: { active?: boolean }) => (
@@ -50,6 +51,20 @@ const navItems = [
 const clusterName = 'Workspace Alpha';
 
 export const Sidenav: React.FC = () => {
+    const { role } = useAuth();
+
+    const allowedNavItems = navItems.filter(({ to }) => {
+        if (role === 'admin') {
+            return true;
+        }
+
+        if (role === 'manager' || role === 'executive') {
+            return to === '/directory' || to === '/repository' || to === '/analytics';
+        }
+
+        return false;
+    });
+
     return (
         <aside className={styles.sidebar}>
             <div className={styles.header}>
@@ -58,7 +73,7 @@ export const Sidenav: React.FC = () => {
             </div>
 
             <nav className={styles.nav}>
-                {navItems.map(({ to, label, Icon }) => (
+                {allowedNavItems.map(({ to, label, Icon }) => (
                     <NavLink
                         key={to}
                         to={to}
