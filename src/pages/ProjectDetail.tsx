@@ -44,7 +44,7 @@ const ProjectDetail: React.FC = () => {
                 onSave={handleSaveEdit}
             />
 
-            <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '16px' }}>{project.name}</h1>
+            <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '16px' }}>{project.P_Name}</h1>
             <p style={{ marginBottom: '24px', color: '#4b5563' }}>Detailed information for this project.</p>
 
             <div
@@ -57,44 +57,51 @@ const ProjectDetail: React.FC = () => {
             >
                 <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                     <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
-                        Location
+                        Type
                     </h2>
-                    <p style={{ fontSize: '14px' }}>{project.location}</p>
+                    <p style={{ fontSize: '14px' }}>{project.P_Type || '-'}</p>
                 </div>
 
                 <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                     <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
-                        Address
+                        Start Date
                     </h2>
-                    <p style={{ fontSize: '14px' }}>{project.address}</p>
-                </div>
-
-                <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                    <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
-                        Expected
-                    </h2>
-                    <p style={{ fontSize: '14px' }}>{project.expected}</p>
+                    <p style={{ fontSize: '14px' }}>{project.P_StartDate ? new Date(project.P_StartDate).toLocaleDateString() : '-'}</p>
                 </div>
 
                 <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                     <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
                         End Date
                     </h2>
-                    <p style={{ fontSize: '14px' }}>{project.endDate}</p>
+                    <p style={{ fontSize: '14px' }}>{project.P_EndDate ? new Date(project.P_EndDate).toLocaleDateString() : '-'}</p>
                 </div>
 
                 <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                     <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
-                        Project Duration
+                        Budget
                     </h2>
-                    <p style={{ fontSize: '14px' }}>{project.duration}</p>
+                    <p style={{ fontSize: '14px' }}>{project.P_Budget ? `$${project.P_Budget}` : '-'}</p>
                 </div>
 
                 <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                     <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
-                        Status
+                        Vendor Email
                     </h2>
-                    <p style={{ fontSize: '14px' }}>{project.status}</p>
+                    <p style={{ fontSize: '14px' }}>{project.V_SubmittedByEmail || '-'}</p>
+                </div>
+
+                <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                    <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
+                        Bid Amount
+                    </h2>
+                    <p style={{ fontSize: '14px' }}>{project.V_BidAmount ? `$${project.V_BidAmount}` : '-'}</p>
+                </div>
+
+                <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                    <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
+                        Bid Submission
+                    </h2>
+                    <p style={{ fontSize: '14px' }}>{project.V_BidSubmissionDate ? new Date(project.V_BidSubmissionDate).toLocaleDateString() : '-'}</p>
                 </div>
             </div>
         </div>

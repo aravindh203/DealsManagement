@@ -1,6 +1,7 @@
 import { log } from "console";
 import { appConfig } from "../config/appConfig";
 import { getAccessTokenByApp } from "../hooks/useClientCredentialsAuth";
+import { Project } from "@/pages/projectsData";
 
 export interface FileItem {
   createdDateTime: string;
@@ -492,16 +493,17 @@ export class SharePointService {
     containerId: string,
     path: string,
     folderName: string,
+    data: Project
   ): Promise<void> {
+    let url: string = "";
+
     debugger;
     try {
-      let url: string;
       if (path === "root" || path === "") {
         url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/root:/${folderName}:`;
       } else {
         url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${path}:/${folderName}:`;
       }
-      console.log("Creating folder:", url);
 
       const response = await fetch(url, {
         method: "PUT",
@@ -523,6 +525,23 @@ export class SharePointService {
           `Failed to create folder: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
+
+      const responseData = await response.json();
+      const FolderID = responseData.id;
+
+      const updateUrl = `https://graph.microsoft.com/v1.0/storage/fileStorage/containers/${appConfig.ContainerID}/items/${FolderID}`;
+      await fetch(updateUrl, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          additionalData: {
+            ...data
+          }
+        })
+      });
 
       console.log("Folder created successfully");
     } catch (error) {
