@@ -160,7 +160,11 @@ export class SharePointService {
     try {
       const url = `https://graph.microsoft.com/v1.0/storage/fileStorage/containers/${containerId}/items/${itemId}?$expand=fields`;
 
-      console.log("Getting project metadata item:", { url, containerId, itemId });
+      console.log("Getting project metadata item:", {
+        url,
+        containerId,
+        itemId,
+      });
 
       const response = await fetch(url, {
         method: "GET",
@@ -488,16 +492,285 @@ export class SharePointService {
     }
   }
 
+  async fetchRootFolders(token: string, containerId: string): Promise<any[]> {
+    const url: string = `https://graph.microsoft.com/v1.0/drives/${containerId}/root/children`;
+
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+      await Promise.all(
+        (data?.value ?? [])?.sort(
+          (a: any, b: any) =>
+            new Date(b.createdDateTime).getTime() -
+            new Date(a.createdDateTime).getTime(),
+        ),
+      );
+
+      return data?.value ?? [];
+    } catch (error) {
+      console.error("Error creating item:", error);
+      return [];
+    }
+  }
+
+  async fetchCustomDatas(
+    token: string,
+    containerId: string,
+    folderId: string,
+  ): Promise<Project | null> {
+    const graphBase = "https://graph.microsoft.com/beta/drives";
+
+    try {
+      const selectFields = [
+        "id",
+        "P_Name",
+        "P_Description",
+        "P_StartDate",
+        "P_EndDate",
+        "P_Type",
+        "V_SubmittedByEmail",
+        "V_BidSubmissionDate",
+        "V_BidDescription",
+        "V_BidAmount",
+        "P_VendorSubmissionDueDate",
+        "P_Budget",
+      ].join(",");
+      const url = `${graphBase}/${containerId}/items/${folderId}/listitem/fields?$select=${selectFields}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      const obj: Project = {
+        id: folderId,
+        P_Name: data.P_Name || null,
+        P_Description: data.P_Description || null,
+        P_StartDate: data.P_StartDate || null,
+        P_EndDate: data.P_EndDate || null,
+        P_Type: data.P_Type || null,
+        V_SubmittedByEmail: data.V_SubmittedByEmail || null,
+        V_BidSubmissionDate: data.V_BidSubmissionDate || null,
+        V_BidDescription: data.V_BidDescription || null,
+        V_BidAmount: data.V_BidAmount || null,
+        P_VendorSubmissionDueDate: data.P_VendorSubmissionDueDate || null,
+        P_Budget: data.P_Budget || null,
+      };
+
+      return obj;
+    } catch (error) {
+      console.error("Error fetching item:", error);
+      return null;
+    }
+  }
+
+  async createCustomDatas(
+    token: string,
+    containerId: string,
+    folderName: string,
+    data: Project,
+  ): Promise<void> {
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/root:/${folderName}:`;
+
+    try {
+      const res: any = await fetch(url, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: folderName,
+          folder: {},
+          "@odata.conflictBehavior": "replace",
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error creating folder:", errorText);
+        throw new Error(
+          `Failed to create folder: ${res.status} ${res.statusText} - ${errorText}`,
+        );
+      }
+
+      const resData = await res.json();
+      const folderId = resData.id ?? "";
+      const addUrl = `https://graph.microsoft.com/beta/drives/${containerId}/items/${folderId}/listitem/fields`;
+
+      await fetch(addUrl, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          P_Name: data?.P_Name ?? "",
+          P_Description: data?.P_Description ?? "",
+          P_StartDate: data?.P_StartDate ?? "",
+          P_EndDate: data?.P_EndDate ?? "",
+          P_Type: data?.P_Type ?? "",
+          V_SubmittedByEmail: data?.V_SubmittedByEmail ?? "",
+          V_BidSubmissionDate: data?.V_BidSubmissionDate ?? "",
+          V_BidDescription: data?.V_BidDescription ?? "",
+          V_BidAmount: data?.V_BidAmount ?? "",
+          P_VendorSubmissionDueDate: data?.P_VendorSubmissionDueDate ?? "",
+          P_Budget: data?.P_Budget ?? "",
+        }),
+      });
+    } catch (error) {
+      console.error("Error creating item:", error);
+      throw error;
+    }
+  }
+
+  async updateCustomColumn(
+    token: string,
+    containerId: string,
+    folderId: string,
+    folderName: string,
+    data: Project,
+  ): Promise<void> {
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${folderId}`;
+
+    try {
+      const res: any = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: folderName,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error updating folder name:", errorText);
+        throw new Error(
+          `Failed to update folder name: ${res.status} ${res.statusText} - ${errorText}`,
+        );
+      }
+
+      const updateUrl = `https://graph.microsoft.com/beta/drives/${containerId}/items/${folderId}/listitem/fields`;
+
+      const itemRes: any = await fetch(updateUrl, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          P_Name: data?.P_Name ?? "",
+          P_Description: data?.P_Description ?? "",
+          P_StartDate: data?.P_StartDate ?? null,
+          P_EndDate: data?.P_EndDate ?? null,
+          P_Type: data?.P_Type ?? "",
+          V_SubmittedByEmail: data?.V_SubmittedByEmail ?? "",
+          V_BidSubmissionDate: data?.V_BidSubmissionDate ?? null,
+          V_BidDescription: data?.V_BidDescription ?? "",
+          V_BidAmount: data?.V_BidAmount ?? "",
+          P_VendorSubmissionDueDate: data?.P_VendorSubmissionDueDate ?? null,
+          P_Budget: data?.P_Budget ?? "",
+        }),
+      });
+
+      if (!itemRes.ok) {
+        const errorText = await itemRes.text();
+        console.error("Error updating item:", errorText);
+        throw new Error(
+          `Failed to update item: ${itemRes.status} ${itemRes.statusText} - ${errorText}`,
+        );
+      }
+    } catch (error) {
+      console.error("Error updating item:", error);
+      throw error;
+    }
+  }
+
+  async deleteFolderAndItem(
+    token: string,
+    containerId: string,
+    folderId: string,
+  ): Promise<void> {
+    const deleteUrl = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${folderId}`;
+
+    try {
+      const res = await fetch(deleteUrl, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error deleting folder:", errorText);
+
+        throw new Error(
+          `Failed to delete folder: ${res.status} ${res.statusText} - ${errorText}`,
+        );
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      throw error;
+    }
+  }
+
+  async getColumns(token: string): Promise<ArrayBuffer> {
+    try {
+      debugger;
+      // const url = `https://graph.microsoft.com/beta/storage/fileStorage/containers/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/columns`
+      // const url = `https://graph.microsoft.com/beta/drives//b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/root/children`
+      // const url = `https://graph.microsoft.com/beta/drives/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/items/01R2P44ADQAX4IFHRZLND3XS4FTYQOZUS2/listitem/fields$expand=listitem($expand=fields)`
+      const url = `https://graph.microsoft.com/beta/drives/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/items/01R2P44ADQAX4IFHRZLND3XS4FTYQOZUS2?$expand=listItem($expand=fields)`;
+      console.log("Fetching file content:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error fetching file content:", errorText);
+        throw new Error(
+          `Failed to fetch file content: ${response.status} ${response.statusText} - ${errorText}`,
+        );
+      }
+
+      const data = await response.arrayBuffer();
+      console.log("File content fetched successfully");
+
+      return data;
+    } catch (error) {
+      console.error("Error fetching file content:", error);
+      throw error;
+    }
+  }
+
   async createFolder(
     token: string,
     containerId: string,
     path: string,
     folderName: string,
-    data: Project
   ): Promise<void> {
     let url: string = "";
 
-    debugger;
     try {
       if (path === "root" || path === "") {
         url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/root:/${folderName}:`;
@@ -526,23 +799,7 @@ export class SharePointService {
         );
       }
 
-      const responseData = await response.json();
-      const FolderID = responseData.id;
-
-      const updateUrl = `https://graph.microsoft.com/v1.0/storage/fileStorage/containers/${appConfig.ContainerID}/items/${FolderID}`;
-      await fetch(updateUrl, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          additionalData: {
-            ...data
-          }
-        })
-      });
-
+      await response.json();
       console.log("Folder created successfully");
     } catch (error) {
       console.error("Error creating folder:", error);
@@ -1105,7 +1362,9 @@ export class SharePointService {
 
     const match = items.find((item: any) => {
       const fields = item.fields || {};
-      return fields.UserName === trimmedUsername && fields.Password === password;
+      return (
+        fields.UserName === trimmedUsername && fields.Password === password
+      );
     });
 
     return !!match;
