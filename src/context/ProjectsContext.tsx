@@ -18,6 +18,7 @@ interface ProjectsContextType {
   deleteProject: (id: string | number) => Promise<void>;
   getProjectById: (id: string | number) => Project | undefined;
   reloadProjects: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(
@@ -34,6 +35,43 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
 
+  const refetch = useCallback(async () => {
+    try {
+      const token: string | null = await getAccessTokenByApp();
+      const containerId: string = appConfig.ContainerID;
+
+      if (!token) {
+        console.error("Failed to acquire app token for projects reload");
+        return;
+      }
+
+      const folderRes: any[] = await sharePointService.fetchRootFolders(
+        token,
+        containerId,
+      );
+
+      const resData: any[] = await Promise.all(
+        folderRes?.map(async (data: any) => {
+          return {
+            mainFolderId: data?.id ?? "",
+            mainFolderName: data?.name ?? "",
+            mainFolderPath: data?.parentReference?.path ?? "",
+            subFolderData: await sharePointService.fetchSubFolders(
+              token,
+              containerId,
+              data?.name ?? "",
+            ),
+          };
+        }) ?? [],
+      );
+
+      debugger;
+      console.log("resData: ", resData);
+    } catch (error) {
+      console.error("Error reloading projects from SharePoint:", error);
+    }
+  }, []);
+
   const reloadProjects = useCallback(async () => {
     try {
       const token: string | null = await getAccessTokenByApp();
@@ -44,15 +82,11 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      const containers = await sharePointService.getAllContainers(
-        token,
-        appConfig.containerTypeId,
-      );
-
       const folderRes: any[] = await sharePointService.fetchRootFolders(
         token,
         containerId,
       );
+
       const resData: Project[] = await Promise.all(
         folderRes?.map(async (data: any) => {
           return await sharePointService.fetchCustomDatas(
@@ -120,6 +154,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
         deleteProject,
         getProjectById,
         reloadProjects,
+        refetch,
       }}
     >
       {children}

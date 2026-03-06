@@ -53,6 +53,7 @@ export const CreateFolderForm: React.FC<CreateFolderFormProps> = ({ onSuccess, o
             }
 
             console.log('Creating container with data:', data);
+            debugger;
             const newFolder = await sharePointService.createFolder(token, "b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ", "", data.FolderName,);
             console.log('Folder created successfully:', newFolder);
 

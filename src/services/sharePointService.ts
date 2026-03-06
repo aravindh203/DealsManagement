@@ -520,6 +520,48 @@ export class SharePointService {
     }
   }
 
+  async fetchSubFolders(
+    token: string,
+    containerId: string,
+    folderName: string,
+  ): Promise<any[]> {
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/root:/${folderName}:/children`;
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error fetching sub folder:", errorText);
+        throw new Error(
+          `Failed to fetch sub folder: ${res.status} ${res.statusText} - ${errorText}`,
+        );
+      }
+
+      const data = await res.json();
+      const preparedData: any[] = await Promise.all(
+        (data?.value ?? [])?.map(async (item: any) => {
+          return {
+            subFolderId: item.id ?? "",
+            subFolderName: item.name ?? "",
+            subFolderPath: item.parentReference?.path ?? "",
+          }
+        }),
+      );
+      debugger;
+
+      return preparedData ?? [];
+    } catch (error) {
+      console.error("Error fetching subfolders:", error);
+      return [];
+    }
+  }
+
   async fetchCustomDatas(
     token: string,
     containerId: string,
@@ -793,13 +835,31 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
+
         console.error("Error creating folder:", errorText);
         throw new Error(
           `Failed to create folder: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
-
-      await response.json();
+      debugger;
+      // await response.json();
+      const resData = await response.json();
+      const folderId = resData.id ?? "";
+      // const addUrl = `https://graph.microsoft.com/beta/drives/${containerId}/items/${folderId}/listitem/fields`;
+      const addUrl = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/root:/${folderName}:/children`;
+      const response1 = await fetch(addUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Vendor",
+          folder: {},
+          "@odata.conflictBehavior": "replace",
+        }),
+      });
+      console.log("Add URL response:", response1);
       console.log("Folder created successfully");
     } catch (error) {
       console.error("Error creating folder:", error);
