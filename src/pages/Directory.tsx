@@ -21,6 +21,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Project } from "./projectsData";
+import { getAccessTokenByApp } from "../hooks/useClientCredentialsAuth";
+import { appConfig } from "../config/appConfig";
+import { sharePointService } from "../services/sharePointService";
+import { toast } from "@/hooks/use-toast";
 
 const PAGE_SIZE = 10;
 
@@ -92,6 +96,29 @@ const BriefcaseIcon = () => (
   </svg>
 );
 
+type ProjectStatus = "Not Started" | "Open" | "Completed";
+
+const getProjectStatus = (project: Project, now: Date): ProjectStatus => {
+  const start = project.P_StartDate ? new Date(project.P_StartDate) : null;
+  const end = project.P_EndDate ? new Date(project.P_EndDate) : null;
+
+  if (end && end < now) return "Completed";
+  if (start && start > now) return "Not Started";
+  return "Open";
+};
+
+const isInCurrentMonth = (dateStr?: string | null): boolean => {
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return false;
+
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth()
+  );
+};
+
 const Directory: React.FC = () => {
   const { projects, addProject, updateProject, deleteProject, reloadProjects } =
     useProjects();
@@ -103,6 +130,19 @@ const Directory: React.FC = () => {
     string | number | null
   >(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const now = useMemo(() => new Date(), []);
+
+  const totalProjects = projects.length;
+
+  const openProjectsCount = useMemo(
+    () => projects.filter((p) => getProjectStatus(p, now) === "Open").length,
+    [projects, now],
+  );
+
+  const thisMonthProjectsCount = useMemo(
+    () => projects.filter((p) => isInCurrentMonth(p.P_StartDate)).length,
+    [projects],
+  );
 
   const filteredProjects = useMemo(() => {
     let list = projects;
@@ -152,14 +192,60 @@ const Directory: React.FC = () => {
     setFormOpen(true);
   };
 
-  const handleSaveProject = (data: Omit<Project, "id">) => {
-    if (editingProject) {
-      updateProject(editingProject.id, data);
-    } else {
-      addProject(data);
+  const handleSaveProject = async (
+    data: Omit<Project, "id">,
+    file?: File | null,
+  ) => {
+    try {
+      if (editingProject) {
+        await updateProject(editingProject.id, data);
+      } else {
+        await addProject(data);
+      }
+
+      if (file) {
+        try {
+          const token = await getAccessTokenByApp();
+          if (!token) {
+            toast({
+              title: "Upload failed",
+              description: "Could not get access token for file upload.",
+              variant: "destructive",
+            });
+          } else {
+            const containerId = appConfig.ContainerID;
+            await sharePointService.uploadFile(
+              token,
+              containerId,
+              "root",
+              file,
+              () => {},
+            );
+            toast({
+              title: "File uploaded",
+              description: `File ${file.name} uploaded successfully.`,
+            });
+          }
+        } catch (err) {
+          console.error("Error uploading file from project dialog:", err);
+          toast({
+            title: "Upload failed",
+            description: "File could not be uploaded.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error saving project:", err);
+      toast({
+        title: "Save failed",
+        description: "Project could not be saved.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormOpen(false);
+      setEditingProject(null);
     }
-    setFormOpen(false);
-    setEditingProject(null);
   };
 
   const handleConfirmDelete = () => {
@@ -215,26 +301,34 @@ const Directory: React.FC = () => {
               <div className={styles.dirCardIcon}>
                 <BriefcaseIcon />
               </div>
-              <span className={styles.dirCardLabel}>TOTAL CUSTOMERS</span>
-              <span className={styles.dirCardValue}>156</span>
-              <span className={styles.dirCardSub}>Active accounts</span>
+              <span className={styles.dirCardLabel}>TOTAL PROJECTS</span>
+              <span className={styles.dirCardValue}>{totalProjects}</span>
+              <span className={styles.dirCardSub}>Projects in directory</span>
             </div>
             <div className={styles.dirCard}>
               <div className={styles.dirCardIcon}>
                 <AddRegular />
               </div>
-              <span className={styles.dirCardBadge}>+8</span>
-              <span className={styles.dirCardLabel}>THIS MONTH</span>
-              <span className={styles.dirCardValue}>+8</span>
-              <span className={styles.dirCardSub}>New customers</span>
+              <span className={styles.dirCardBadge}>
+                {thisMonthProjectsCount}
+              </span>
+              <span className={styles.dirCardLabel}>THIS MONTH PROJECTS</span>
+              <span className={styles.dirCardValue}>
+                {thisMonthProjectsCount}
+              </span>
+              <span className={styles.dirCardSub}>
+                Starting in the current month
+              </span>
             </div>
             <div className={styles.dirCard}>
               <div className={styles.dirCardIcon}>
                 <ChartIcon />
               </div>
-              <span className={styles.dirCardLabel}>UNASSIGNED</span>
-              <span className={styles.dirCardValueOrange}>3</span>
-              <span className={styles.dirCardSub}>Awaiting assignment</span>
+              <span className={styles.dirCardLabel}>OPEN PROJECTS</span>
+              <span className={styles.dirCardValueOrange}>
+                {openProjectsCount}
+              </span>
+              <span className={styles.dirCardSub}>Currently active</span>
             </div>
           </div>
         </div>
@@ -267,7 +361,7 @@ const Directory: React.FC = () => {
               <thead>
                 <tr>
                   <th>PROJECT NAME</th>
-                  <th>TYPE</th>
+                  <th>STATUS</th>
                   <th>START DATE</th>
                   <th>END DATE</th>
                   <th>BUDGET</th>
@@ -284,7 +378,7 @@ const Directory: React.FC = () => {
                       </Link>
                       <span className={styles.idHint}> (ID: {project.id})</span>
                     </td>
-                    <td>{project.P_Type || "-"}</td>
+                    <td>{getProjectStatus(project, now)}</td>
                     <td>
                       {project.P_StartDate
                         ? new Date(project.P_StartDate).toLocaleDateString()
