@@ -16,7 +16,7 @@ interface ProjectFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project: Project | null; // null = create, otherwise edit
-  onSave: (data: Extract<Omit<Project, 'id'>, object>) => void;
+  onSave: (data: Extract<Omit<Project, 'id'>, object>, file?: File | null) => void;
 }
 
 const emptyForm: Omit<Project, 'id'> = {
@@ -40,6 +40,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   onSave,
 }) => {
   const [form, setForm] = useState<Omit<Project, 'id'>>(emptyForm);
+  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -56,7 +57,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.P_Name?.trim()) return;
-    onSave(form);
+    onSave(form, file);
     onOpenChange(false);
   };
 
@@ -137,7 +138,9 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                   id="P_StartDate"
                   type="date"
                   value={formatDateForInput(form.P_StartDate)}
-                  onChange={(e) => handleDateChange('P_StartDate', e.target.value)}
+                  onChange={(e) =>
+                    handleDateChange("P_StartDate", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -146,73 +149,41 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                   id="P_EndDate"
                   type="date"
                   value={formatDateForInput(form.P_EndDate)}
-                  onChange={(e) => handleDateChange('P_EndDate', e.target.value)}
+                  onChange={(e) =>
+                    handleDateChange("P_EndDate", e.target.value)
+                  }
                 />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="P_Budget">Budget</Label>
-              <Input
-                id="P_Budget"
-                value={form.P_Budget || ''}
-                onChange={(e) => handleDigitChange('P_Budget', e.target.value)}
-                placeholder="No decimals allowed"
-              />
-            </div>
-
-            <hr className="my-6 border-gray-200" />
-            <h3 className="text-sm font-semibold opacity-70 uppercase tracking-wide">Vendor Bid Details</h3>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="V_SubmittedByEmail">Vendor Email</Label>
+              <div className="space-y-2">
+                <Label htmlFor="P_Budget">Budget</Label>
                 <Input
-                  id="V_SubmittedByEmail"
-                  type="email"
-                  value={form.V_SubmittedByEmail || ''}
-                  onChange={(e) => update('V_SubmittedByEmail', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="V_BidAmount">Bid Amount</Label>
-                <Input
-                  id="V_BidAmount"
-                  value={form.V_BidAmount || ''}
-                  onChange={(e) => handleDigitChange('V_BidAmount', e.target.value)}
+                  id="P_Budget"
+                  value={form.P_Budget || ""}
+                  onChange={(e) =>
+                    handleDigitChange("P_Budget", e.target.value)
+                  }
                   placeholder="No decimals allowed"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="V_BidDescription">Bid Description</Label>
-              <Textarea
-                id="V_BidDescription"
-                value={form.V_BidDescription || ''}
-                onChange={(e) => update('V_BidDescription', e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="V_BidSubmissionDate">Bid Submission Date</Label>
+                <Label htmlFor="projectFile">Attachment (optional)</Label>
                 <Input
-                  id="V_BidSubmissionDate"
-                  type="date"
-                  value={formatDateForInput(form.V_BidSubmissionDate)}
-                  onChange={(e) => handleDateChange('V_BidSubmissionDate', e.target.value)}
+                  id="projectFile"
+                  type="file"
+                  onChange={(e) =>
+                    setFile(e.target.files && e.target.files[0]
+                      ? e.target.files[0]
+                      : null)
+                  }
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="P_VendorSubmissionDueDate">Vendor Submission Due</Label>
-                <Input
-                  id="P_VendorSubmissionDueDate"
-                  type="date"
-                  value={formatDateForInput(form.P_VendorSubmissionDueDate)}
-                  onChange={(e) => handleDateChange('P_VendorSubmissionDueDate', e.target.value)}
-                />
+                {file && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    Selected: {file.name}
+                  </p>
+                )}
               </div>
             </div>
 

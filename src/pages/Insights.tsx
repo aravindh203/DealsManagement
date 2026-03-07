@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styles from './Insights.module.scss';
 import {
     AddRegular,
@@ -13,8 +13,9 @@ import {
     DismissRegular,
 } from '@fluentui/react-icons';
 import { useAdminStats, formatBytes } from '../hooks/useAdminStats';
-import { CreateContainerForm } from '../components/CreateContainerForm';
 import { CreateFolderForm } from '../components/CreateFolderForm';
+import { useProjects } from '../context/ProjectsContext';
+import type { Project } from './projectsData';
 
 // Line graph icon for REAL-TIME ACTIVE badge (matches design)
 const LineGraphIcon = () => (
@@ -30,36 +31,78 @@ const BellIcon = () => (
     </svg>
 );
 
-// ── Types ──────────────────────────────────────────────────
-interface AuditEntry {
-    time: string;
-    initial: string;
-    name: string;
-    role: string;
-    status: 'success' | 'active';
-}
+type ProjectStatus = 'Not Started' | 'Open' | 'Completed';
 
-// ── Static audit data ──────────────────────────────────────
-const auditData: AuditEntry[] = [
-    { time: '14:41:01', initial: 'M', name: 'Marcus Wright', role: 'Identity Validation', status: 'success' },
-    { time: '13:30:12', initial: 'A', name: 'Automated Sync', role: 'Cluster Balancing', status: 'active' },
-    { time: '12:15:58', initial: 'S', name: 'Sarah Chen', role: 'Security Overhaul', status: 'success' },
-];
+const getProjectStatus = (project: Project, now: Date): ProjectStatus => {
+    const start = project.P_StartDate ? new Date(project.P_StartDate) : null;
+    const end = project.P_EndDate ? new Date(project.P_EndDate) : null;
 
-const vitals = [
-    { label: 'Gateway Latency', value: '12ms', valueClass: 'green', barClass: 'green', fill: 72 },
-    { label: 'Storage Yield', value: 'Active', valueClass: 'green', barClass: 'green', fill: 42 },
-    { label: 'Security Logic', value: 'Encrypted', valueClass: 'purple', barClass: 'purple', fill: 100 },
-];
+    if (end && end < now) return 'Completed';
+    if (start && start > now) return 'Not Started';
+    return 'Open';
+};
 
 // ── Component ──────────────────────────────────────────────
 const Insights: React.FC = () => {
-    const { containerCount, totalStorageUsedBytes, totalStorageTotalBytes, loading, error, refetch } = useAdminStats();
-    const [panelOpen, setPanelOpen] = useState(false);
+    const {
+        containerCount,
+        totalStorageUsedBytes,
+        totalStorageTotalBytes,
+        containers,
+        loading,
+        error,
+        refetch,
+    } = useAdminStats();
+    const { projects } = useProjects();
     const [FolderpanelOpen, setFolderPanelOpen] = useState(false);
 
-    const handleCreateSuccess = (_containerId?: string) => {
-        setPanelOpen(false);
+    const now = new Date();
+
+    const totalProjects = projects.length;
+    const openProjectsCount = projects.filter((p) => getProjectStatus(p, now) === 'Open').length;
+
+    const latestUpdates = useMemo(
+        () => {
+            const items = projects
+                .map((project) => {
+                    const dateStr =
+                        project.P_StartDate ||
+                        project.V_BidSubmissionDate ||
+                        project.P_EndDate ||
+                        project.P_VendorSubmissionDueDate ||
+                        null;
+                    if (!dateStr) return null;
+                    return { project, date: new Date(dateStr) };
+                })
+                .filter(
+                    (x): x is { project: Project; date: Date } =>
+                        x !== null
+                )
+                .sort((a, b) => b.date.getTime() - a.date.getTime());
+            return items.slice(0, 5);
+        },
+        [projects]
+    );
+
+    const topVendors = useMemo(
+        () => {
+            const counts = new Map<string, number>();
+            projects.forEach((p) => {
+                if (p.V_SubmittedByEmail) {
+                    const email = p.V_SubmittedByEmail;
+                    counts.set(email, (counts.get(email) || 0) + 1);
+                }
+            });
+            return Array.from(counts.entries())
+                .map(([email, count]) => ({ email, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 4);
+        },
+        [projects]
+    );
+
+    const handleFolderCreateSuccess = () => {
+        setFolderPanelOpen(false);
         refetch();
     };
 
@@ -108,10 +151,6 @@ const Insights: React.FC = () => {
                             <span className={styles.overline}>OPERATIONS MANAGEMENT</span>
                             <h1 className={styles.pageTitle}>Workspace Alpha</h1>
                         </div>
-                        <button className={styles.newResourceBtn} onClick={() => setPanelOpen(true)}>
-                            <AddRegular />
-                            NEW RESOURCE
-                        </button>
                         <button className={styles.newResourceBtn} onClick={() => setFolderPanelOpen(true)}>
                             <AddRegular />
                             NEW FOLDER
@@ -163,7 +202,7 @@ const Insights: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Active Sessions */}
+                    {/* Total Projects */}
                     <div className={`${styles.card} ${styles.cardLight}`}>
                         <div className={styles.cardTop}>
                             <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
@@ -171,19 +210,19 @@ const Insights: React.FC = () => {
                             </div>
                         </div>
                         <div className={styles.cardBottom}>
-                            <span className={styles.cardLabel}>ACTIVE SESSIONS</span>
+                            <span className={styles.cardLabel}>TOTAL PROJECTS</span>
                             {loading ? (
                                 <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`} style={{ fontSize: 24 }}>…</h2>
                             ) : (
                                 <>
-                                    <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`}>{containerCount}</h2>
-                                    <span className={styles.cardSub}>Live interactions</span>
+                                    <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`}>{totalProjects}</h2>
+                                    <span className={styles.cardSub}>Projects in directory</span>
                                 </>
                             )}
                         </div>
                     </div>
 
-                    {/* Security Score */}
+                    {/* Open Projects */}
                     <div className={`${styles.card} ${styles.cardPurple}`}>
                         <div className={styles.cardTop}>
                             <div className={`${styles.iconBox} ${styles.iconBoxPurple}`}>
@@ -191,9 +230,9 @@ const Insights: React.FC = () => {
                             </div>
                         </div>
                         <div className={styles.cardBottom}>
-                            <span className={styles.cardLabel}>SECURITY SCORE</span>
-                            <h2 className={styles.cardValue}>98.4%</h2>
-                            <span className={styles.cardSub}>Verified Status</span>
+                            <span className={styles.cardLabel}>OPEN PROJECT</span>
+                            <h2 className={styles.cardValue}>{openProjectsCount}</h2>
+                            <span className={styles.cardSub}>Currently active</span>
                         </div>
                     </div>
                 </div>
@@ -206,7 +245,7 @@ const Insights: React.FC = () => {
                     {/* Audit Protocol */}
                     <div className={styles.auditCard}>
                         <div className={styles.auditHeader}>
-                            <h3 className={styles.auditTitle}>Audit Protocol</h3>
+                            <h3 className={styles.auditTitle}>Audit Protocol - Latest Updates</h3>
                             <a href="#" className={styles.historyLink}>Full History</a>
                         </div>
 
@@ -214,36 +253,47 @@ const Insights: React.FC = () => {
                             <thead className={styles.auditTableHead}>
                                 <tr>
                                     <th>Time</th>
-                                    <th>Entity</th>
-                                    <th></th>
+                                    <th>Entry</th>
+                                    <th>Project Status</th>
                                 </tr>
                             </thead>
                             <tbody className={styles.auditTableBody}>
-                                {auditData.map((entry, idx) => (
-                                    <tr key={idx}>
-                                        <td className={styles.timeCell}>{entry.time}</td>
-                                        <td>
-                                            <div className={styles.entityCell}>
-                                                <div className={styles.avatar}>{entry.initial}</div>
-                                                <div className={styles.entityInfo}>
-                                                    <span className={styles.entityName}>{entry.name}</span>
-                                                    <span className={styles.entityRole}>{entry.role}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className={styles.verificationCell}>
-                                            <span
-                                                className={
-                                                    entry.status === 'active'
-                                                        ? `${styles.chip} ${styles.chipActive}`
-                                                        : `${styles.chip} ${styles.chipSuccess}`
-                                                }
-                                            >
-                                                {entry.status === 'active' ? 'Active' : 'Success'}
-                                            </span>
+                                {latestUpdates.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
+                                            No recent project updates.
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    latestUpdates.map(({ project, date }, idx) => {
+                                        const status = getProjectStatus(project, now);
+                                        const statusClass =
+                                            status === 'Open'
+                                                ? `${styles.chip} ${styles.chipActive}`
+                                                : status === 'Completed'
+                                                    ? `${styles.chip} ${styles.chipSuccess}`
+                                                    : styles.chip;
+                                        const initial = project.P_Name ? project.P_Name.charAt(0).toUpperCase() : '?';
+
+                                        return (
+                                            <tr key={idx}>
+                                                <td className={styles.timeCell}>{date.toLocaleDateString()}</td>
+                                                <td>
+                                                    <div className={styles.entityCell}>
+                                                        <div className={styles.avatar}>{initial}</div>
+                                                        <div className={styles.entityInfo}>
+                                                            <span className={styles.entityName}>{project.P_Name}</span>
+                                                            <span className={styles.entityRole}>{project.P_Type || 'Project'}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className={styles.verificationCell}>
+                                                    <span className={statusClass}>{status}</span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
                             </tbody>
                         </table>
 
@@ -261,16 +311,36 @@ const Insights: React.FC = () => {
                                         <tr>
                                             <th>Container</th>
                                             <th>Storage Used</th>
-                                            <th>Quota</th>
+                                            <th>Quota (Available)</th>
                                         </tr>
                                     </thead>
                                     <tbody className={styles.auditTableBody}>
-                                        <tr>
-                                            <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
-                                                {containerCount} container{containerCount !== 1 ? 's' : ''} · Total used: {usedFormatted}
-                                                {totalStorageTotalBytes > 0 ? ` of ${totalFormatted} (${storagePercent}%)` : ''}
-                                            </td>
-                                        </tr>
+                                        {containers.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
+                                                    No containers found.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            <>
+                                                {containers.map((c) => {
+                                                    const availableBytes = Math.max(c.totalBytes - c.usedBytes, 0);
+                                                    return (
+                                                        <tr key={c.id}>
+                                                            <td>{c.name}</td>
+                                                            <td>{formatBytes(c.usedBytes)}</td>
+                                                            <td>{formatBytes(availableBytes)}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                <tr>
+                                                    <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
+                                                        {containerCount} container{containerCount !== 1 ? 's' : ''} · Total used: {usedFormatted}
+                                                        {totalStorageTotalBytes > 0 ? ` of ${totalFormatted} (${storagePercent}%)` : ''}
+                                                    </td>
+                                                </tr>
+                                            </>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -283,99 +353,67 @@ const Insights: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Cluster Vitals */}
+                    {/* Top Vendors (Projects) */}
                     <div className={styles.vitalsCard}>
                         <div className={styles.vitalsHeader}>
-                            <h3 className={styles.vitalsTitle}>Cluster Vitals</h3>
+                            <h3 className={styles.vitalsTitle}>Top Vendors (Projects)</h3>
                             <PulseRegular className={styles.pulseIcon} />
                         </div>
 
-                        {vitals.map((v, idx) => (
-                            <div key={idx} className={styles.vitalRow}>
-                                <div className={styles.vitalMeta}>
-                                    <span className={styles.vitalLabel}>{v.label}</span>
-                                    <span
-                                        className={
-                                            v.valueClass === 'green' ? styles.vitalValueGreen : styles.vitalValuePurple
-                                        }
-                                    >
-                                        {v.value}
-                                    </span>
-                                </div>
-                                <div className={styles.progressTrack}>
-                                    <div
-                                        className={
-                                            v.barClass === 'green' ? styles.progressBarGreen : styles.progressBarPurple
-                                        }
-                                        style={{ width: `${v.fill}%` }}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-
-                        {!loading && totalStorageTotalBytes > 0 && (
-                            <div className={styles.vitalRow}>
-                                <div className={styles.vitalMeta}>
-                                    <span className={styles.vitalLabel}>Cluster Storage</span>
-                                    <span className={styles.vitalValueGreen}>{usedFormatted}</span>
-                                </div>
-                                <div className={styles.progressTrack}>
-                                    <div
-                                        className={styles.progressBarGreen}
-                                        style={{ width: `${storagePercent}%` }}
-                                    />
-                                </div>
-                            </div>
+                        {topVendors.length === 0 ? (
+                            <p style={{ color: '#b0b5c8', fontSize: 12, marginTop: 8 }}>
+                                No vendor data available yet.
+                            </p>
+                        ) : (
+                            topVendors.map((v, idx) => {
+                                const maxCount = topVendors[0].count || 1;
+                                const fill = Math.round((v.count / maxCount) * 100);
+                                const isPrimary = idx < 2;
+                                return (
+                                    <div key={v.email} className={styles.vitalRow}>
+                                        <div className={styles.vitalMeta}>
+                                            <span className={styles.vitalLabel}>{v.email}</span>
+                                            <span
+                                                className={
+                                                    isPrimary ? styles.vitalValueGreen : styles.vitalValuePurple
+                                                }
+                                            >
+                                                {v.count} project{v.count !== 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                        <div className={styles.progressTrack}>
+                                            <div
+                                                className={
+                                                    isPrimary ? styles.progressBarGreen : styles.progressBarPurple
+                                                }
+                                                style={{ width: `${fill}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })
                         )}
-
-                        <button className={styles.diagnosticsBtn} onClick={refetch}>
-                            Execute Diagnostics
-                        </button>
                     </div>
                 </div>
                 </div>
             </main>
-
-            {/* ── Create Container Panel ── */}
-            {panelOpen && (
-                <>
-                    <div className={styles.backdrop} onClick={() => setPanelOpen(false)} />
-                    <div className={styles.panel}>
-                        <div className={styles.panelHeader}>
-                            <h2 className={styles.panelTitle}>New Container</h2>
-                            <button className={styles.panelClose} onClick={() => setPanelOpen(false)}>
-                                <DismissRegular />
-                            </button>
-                        </div>
-                        <p className={styles.panelSubtitle}>
-                            Create a new SharePoint Embedded container with a display name, description, and administrator.
-                        </p>
-                        <div className={styles.panelBody}>
-                            <CreateContainerForm
-                                onSuccess={handleCreateSuccess}
-                                onCancel={() => setPanelOpen(false)}
-                            />
-                        </div>
-                    </div>
-                </>
-            )}
 
             {FolderpanelOpen && (
                 <>
                     <div className={styles.backdrop} onClick={() => setFolderPanelOpen(false)} />
                     <div className={styles.panel}>
                         <div className={styles.panelHeader}>
-                            <h2 className={styles.panelTitle}>New Container</h2>
+                            <h2 className={styles.panelTitle}>New Folder</h2>
                             <button className={styles.panelClose} onClick={() => setFolderPanelOpen(false)}>
                                 <DismissRegular />
                             </button>
                         </div>
                         <p className={styles.panelSubtitle}>
-                            Create a new SharePoint Embedded container with a display name, description, and administrator.
+                            Create a new SharePoint Embedded folder with a display name and description.
                         </p>
                         <div className={styles.panelBody}>
                             <CreateFolderForm
-                                onSuccess={handleCreateSuccess}
+                                onSuccess={handleFolderCreateSuccess}
                                 onCancel={() => setFolderPanelOpen(false)}
                             />
                         </div>
