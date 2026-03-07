@@ -281,12 +281,12 @@ export class SharePointService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          description: "P_Budget",
-          displayName: "P_Budget",
+          description: "P_UsedBudget",
+          displayName: "P_UsedBudget",
           enforceUniqueValues: false,
           hidden: false,
           indexed: false,
-          name: "P_Budget",
+          name: "P_UsedBudget",
           text: {
             allowMultipleLines: false,
             appendChangesToExistingText: false,
@@ -550,7 +550,7 @@ export class SharePointService {
             subFolderId: item.id ?? "",
             subFolderName: item.name ?? "",
             subFolderPath: item.parentReference?.path ?? "",
-          }
+          };
         }),
       );
       debugger;
@@ -577,14 +577,17 @@ export class SharePointService {
         "P_StartDate",
         "P_EndDate",
         "P_Type",
+        "P_Status",
         "V_SubmittedByEmail",
         "V_BidSubmissionDate",
         "V_BidDescription",
         "V_BidAmount",
         "P_VendorSubmissionDueDate",
         "P_Budget",
+        "P_UsedBudget",
       ].join(",");
       const url = `${graphBase}/${containerId}/items/${folderId}/listitem/fields?$select=${selectFields}`;
+      // const url = `${graphBase}/${containerId}/items/${folderId}/listitem/fields`;
 
       const response = await fetch(url, {
         method: "GET",
@@ -595,6 +598,7 @@ export class SharePointService {
       });
 
       const data = await response.json();
+      console.log("Data:", data);
       const obj: Project = {
         id: folderId,
         P_Name: data.P_Name || null,
@@ -602,12 +606,14 @@ export class SharePointService {
         P_StartDate: data.P_StartDate || null,
         P_EndDate: data.P_EndDate || null,
         P_Type: data.P_Type || null,
+        P_Status: data.P_Status || "Open",
         V_SubmittedByEmail: data.V_SubmittedByEmail || null,
         V_BidSubmissionDate: data.V_BidSubmissionDate || null,
         V_BidDescription: data.V_BidDescription || null,
         V_BidAmount: data.V_BidAmount || null,
         P_VendorSubmissionDueDate: data.P_VendorSubmissionDueDate || null,
         P_Budget: data.P_Budget || null,
+        P_UsedBudget: data.P_UsedBudget || null,
       };
 
       return obj;
@@ -617,12 +623,15 @@ export class SharePointService {
     }
   }
 
+  /** Name of the subfolder used for project attachments. */
+  static readonly PROJECT_ATTACHMENTS_FOLDER_NAME = "Project";
+
   async createCustomDatas(
     token: string,
     containerId: string,
     folderName: string,
     data: Project,
-  ): Promise<void> {
+  ): Promise<{ folderId: string; attachmentsFolderId: string }> {
     const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/root:/${folderName}:`;
 
     try {
@@ -651,7 +660,7 @@ export class SharePointService {
       const folderId = resData.id ?? "";
       const addUrl = `https://graph.microsoft.com/beta/drives/${containerId}/items/${folderId}/listitem/fields`;
 
-      await fetch(addUrl, {
+      const patchRes = await fetch(addUrl, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -660,21 +669,116 @@ export class SharePointService {
         body: JSON.stringify({
           P_Name: data?.P_Name ?? "",
           P_Description: data?.P_Description ?? "",
-          P_StartDate: data?.P_StartDate ?? "",
-          P_EndDate: data?.P_EndDate ?? "",
+          P_StartDate: data?.P_StartDate ?? null,
+          P_EndDate: data?.P_EndDate ?? null,
           P_Type: data?.P_Type ?? "",
+          P_Status: data?.P_Status ?? "Open",
           V_SubmittedByEmail: data?.V_SubmittedByEmail ?? "",
-          V_BidSubmissionDate: data?.V_BidSubmissionDate ?? "",
+          V_BidSubmissionDate: data?.V_BidSubmissionDate ?? null,
           V_BidDescription: data?.V_BidDescription ?? "",
           V_BidAmount: data?.V_BidAmount ?? "",
-          P_VendorSubmissionDueDate: data?.P_VendorSubmissionDueDate ?? "",
+          P_VendorSubmissionDueDate: data?.P_VendorSubmissionDueDate ?? null,
           P_Budget: data?.P_Budget ?? "",
+          P_UsedBudget: data?.P_UsedBudget ?? "",
         }),
       });
+
+      if (!patchRes.ok) {
+        const errorText = await patchRes.text();
+        console.error("Error PATCH listItem fields:", errorText);
+        throw new Error(
+          `Failed to set folder metadata: ${patchRes.status} ${patchRes.statusText} - ${errorText}`,
+        );
+      }
+
+      const attachmentsFolderId = await this.createProjectAttachmentsSubfolder(
+        token,
+        containerId,
+        folderId,
+      );
+
+      return { folderId, attachmentsFolderId };
     } catch (error) {
       console.error("Error creating item:", error);
       throw error;
     }
+  }
+
+  /**
+   * Creates the "Attachments" subfolder inside a project folder. Returns the new folder id.
+   */
+  private async createProjectAttachmentsSubfolder(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+  ): Promise<string> {
+    const name = SharePointService.PROJECT_ATTACHMENTS_FOLDER_NAME;
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${projectFolderId}:/${name}:`;
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        folder: {},
+        "@odata.conflictBehavior": "replace",
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Error creating Attachments subfolder:", errorText);
+      throw new Error(
+        `Failed to create Attachments folder: ${res.status} ${res.statusText} - ${errorText}`,
+      );
+    }
+
+    const data = await res.json();
+    return data.id ?? "";
+  }
+
+  /**
+   * Returns the drive item id of the "Attachments" subfolder for a project. Creates the folder if it does not exist (e.g. for older projects).
+   */
+  async getOrCreateProjectAttachmentsFolderId(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+  ): Promise<string> {
+    const name = SharePointService.PROJECT_ATTACHMENTS_FOLDER_NAME;
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${projectFolderId}/children`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Error listing project children:", errorText);
+      throw new Error(
+        `Failed to list project folder: ${res.status} ${res.statusText} - ${errorText}`,
+      );
+    }
+
+    const data = await res.json();
+    const children = data.value ?? [];
+    const existing = children.find(
+      (item: any) => item.folder && item.name === name,
+    );
+    if (existing?.id) return existing.id;
+
+    return this.createProjectAttachmentsSubfolder(
+      token,
+      containerId,
+      projectFolderId,
+    );
   }
 
   async updateCustomColumn(
@@ -720,12 +824,14 @@ export class SharePointService {
           P_StartDate: data?.P_StartDate ?? null,
           P_EndDate: data?.P_EndDate ?? null,
           P_Type: data?.P_Type ?? "",
+          P_Status: data?.P_Status ?? "Open",
           V_SubmittedByEmail: data?.V_SubmittedByEmail ?? "",
           V_BidSubmissionDate: data?.V_BidSubmissionDate ?? null,
           V_BidDescription: data?.V_BidDescription ?? "",
           V_BidAmount: data?.V_BidAmount ?? "",
           P_VendorSubmissionDueDate: data?.P_VendorSubmissionDueDate ?? null,
           P_Budget: data?.P_Budget ?? "",
+          P_UsedBudget: data?.P_UsedBudget ?? "",
         }),
       });
 

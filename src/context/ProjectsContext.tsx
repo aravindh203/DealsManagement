@@ -11,9 +11,14 @@ import { sharePointService } from "../services/sharePointService";
 import { getAccessTokenByApp } from "../hooks/useClientCredentialsAuth";
 import { appConfig } from "../config/appConfig";
 
+export interface CreateProjectResult {
+  folderId: string;
+  attachmentsFolderId: string;
+}
+
 interface ProjectsContextType {
   projects: Project[];
-  addProject: (data: Project) => Promise<void>;
+  addProject: (data: Project) => Promise<CreateProjectResult>;
   updateProject: (id: string | number, data: Project) => Promise<void>;
   deleteProject: (id: string | number) => Promise<void>;
   getProjectById: (id: string | number) => Project | undefined;
@@ -111,14 +116,15 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
   const addProject = useCallback(async (data: Project) => {
     const accessToken: string | null = await getAccessTokenByApp();
     const containerId: string = appConfig.ContainerID;
-    await sharePointService.createCustomDatas(
+    const result = await sharePointService.createCustomDatas(
       accessToken,
       containerId,
       data?.P_Name,
       data,
     );
     await reloadProjects();
-  }, []);
+    return result;
+  }, [reloadProjects]);
 
   const updateProject = useCallback(async (id: string, data: Project) => {
     const accessToken: string | null = await getAccessTokenByApp();

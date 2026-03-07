@@ -7,22 +7,21 @@ import { Project } from './projectsData';
 
 const ProjectDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const projectId = Number(id);
     const { getProjectById, updateProject } = useProjects();
     const [editOpen, setEditOpen] = useState(false);
 
-    if (Number.isNaN(projectId)) {
+    if (!id) {
         return <Navigate to="/directory" replace />;
     }
 
-    const project = getProjectById(projectId);
+    const project = getProjectById(id);
 
     if (!project) {
         return <Navigate to="/directory" replace />;
     }
 
-    const handleSaveEdit = (data: Omit<Project, 'id'>) => {
-        updateProject(projectId, data);
+    const handleSaveEdit = (data: Omit<Project, 'id'>, files?: File[] | null, attachmentIdsToDelete?: string[]) => {
+        updateProject(project.id!, data);
         setEditOpen(false);
     };
 
@@ -81,6 +80,13 @@ const ProjectDetail: React.FC = () => {
                         Budget
                     </h2>
                     <p style={{ fontSize: '14px' }}>{project.P_Budget ? `$${project.P_Budget}` : '-'}</p>
+                </div>
+
+                <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                    <h2 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#6b7280', marginBottom: '8px' }}>
+                        Used Budget
+                    </h2>
+                    <p style={{ fontSize: '14px' }}>{project.P_UsedBudget ? `$${project.P_UsedBudget}` : '-'}</p>
                 </div>
 
                 <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
