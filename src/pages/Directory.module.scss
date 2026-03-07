@@ -279,7 +279,7 @@
 .filtersRow {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 16px;
     margin-bottom: 20px;
     flex-wrap: wrap;
@@ -391,6 +391,37 @@
     }
 }
 
+/* Blink row when used budget exceeds budget */
+@keyframes overBudgetBlink {
+
+    0%,
+    100% {
+        background-color: #fef2f2;
+    }
+
+    50% {
+        background-color: #fee2e2;
+    }
+}
+
+.rowOverBudget {
+    animation: overBudgetBlink 1.5s ease-in-out infinite;
+
+    td {
+        border-bottom-color: #fecaca;
+    }
+}
+
+.usedBudgetCell {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.usedBudgetOver {
+    font-weight: 700;
+    color: #b91c1c !important;
+}
+
 .idHint {
     font-weight: 400;
     color: #9ca3af;
@@ -420,6 +451,41 @@
 .statusPENDING {
     background-color: #ffedd5;
     color: #ea580c;
+}
+
+/* Project status pill */
+.statusPill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.statusNotStarted {
+    background-color: #e0e7ff;
+    color: #4338ca;
+}
+
+.statusOpen {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.statusYetTostart {
+    background-color: #e0e7ff;
+    color: #4338ca;
+}
+
+.statusPending {
+    background-color: #ffedd5;
+    color: #ea580c;
+}
+
+.statusCompleted {
+    background-color: #f1f5f9;
+    color: #475569;
 }
 
 .revenueCell {

@@ -1,3 +1,6 @@
+/** Allowed values for P_Status column. Default is "Open". */
+export type ProjectStatusValue = "Open" | "Yet to start" | "Pending" | "Completed";
+
 export interface Project {
   id?: string | number;
   P_Name: string;
@@ -5,12 +8,14 @@ export interface Project {
   P_StartDate?: string | null;
   P_EndDate?: string | null;
   P_Type?: string;
+  P_Status?: ProjectStatusValue;
   V_SubmittedByEmail?: string;
   V_BidSubmissionDate?: string | null;
   V_BidDescription?: string | null;
   V_BidAmount?: string;
   P_VendorSubmissionDueDate?: string | null;
   P_Budget?: string;
+  P_UsedBudget?: string;
 }
 
 export const initialProjects: Project[] = [
