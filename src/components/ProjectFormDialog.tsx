@@ -12,14 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Project, type ProjectStatusValue } from '@/pages/projectsData';
+import { Project } from '@/pages/projectsData';
 import {
   Briefcase,
   Calendar,
@@ -46,6 +39,8 @@ interface ProjectFormDialogProps {
   project: Project | null; // null = create, otherwise edit
   /** 'view' = read-only popup; default derived from project (edit vs create). */
   mode?: ProjectDialogMode;
+  /** When true (e.g. vendor viewing), hide Budget and Project Start/End date sections. */
+  isVendor?: boolean;
   /** (formData, newFiles?, attachmentIdsToDelete?) – attachmentIdsToDelete are removed when user saves. Not used when mode is 'view'. */
   onSave?: (
     data: Extract<Omit<Project, 'id'>, object>,
@@ -55,13 +50,6 @@ interface ProjectFormDialogProps {
   /** When editing/viewing, load existing files from the project Attachments folder. */
   onLoadExistingAttachments?: (projectId: string) => Promise<ExistingAttachment[]>;
 }
-
-const P_STATUS_OPTIONS: { value: ProjectStatusValue; label: string }[] = [
-  { value: 'Open', label: 'Open' },
-  { value: 'Yet to start', label: 'Yet to start' },
-  { value: 'Pending', label: 'Pending' },
-  { value: 'Completed', label: 'Completed' },
-];
 
 const emptyForm: Omit<Project, 'id'> = {
   P_Name: '',
@@ -76,7 +64,9 @@ const emptyForm: Omit<Project, 'id'> = {
   V_BidAmount: '',
   P_VendorSubmissionDueDate: null,
   P_Budget: '',
-  P_UsedBudget: '',
+  P_BidStartDate: null,
+  P_BidEndDate: null,
+  P_Company: null,
 };
 
 export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
@@ -84,6 +74,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   onOpenChange,
   project,
   mode: modeProp,
+  isVendor = false,
   onSave,
   onLoadExistingAttachments,
 }) => {
@@ -217,28 +208,9 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                       placeholder="e.g. Renovation, SPFX"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="P_Status" className="text-sm font-medium">Status</Label>
-                    <Select
-                      value={form.P_Status || 'Open'}
-                      onValueChange={(v) => !isView && update('P_Status', v as ProjectStatusValue)}
-                      disabled={isView}
-                    >
-                      <SelectTrigger id="P_Status" className="h-10">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {P_STATUS_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="P_Description" className="text-sm font-medium">Description</Label>
+                    <Label htmlFor="P_Description" className="text-sm font-medium">Description</Label>
                   <Textarea
                     id="P_Description"
                     value={form.P_Description || ''}
@@ -253,31 +225,68 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
 
               <Separator />
 
-              {/* Schedule */}
+              {!isVendor && (
+                <>
+                  {/* Schedule */}
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      Schedule
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="P_StartDate" className="text-sm font-medium">Start date</Label>
+                        <Input
+                          id="P_StartDate"
+                          type="date"
+                          value={formatDateForInput(form.P_StartDate)}
+                          onChange={(e) => !isView && handleDateChange("P_StartDate", e.target.value)}
+                          disabled={isView}
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="P_EndDate" className="text-sm font-medium">End date</Label>
+                        <Input
+                          id="P_EndDate"
+                          type="date"
+                          value={formatDateForInput(form.P_EndDate)}
+                          onChange={(e) => !isView && handleDateChange("P_EndDate", e.target.value)}
+                          disabled={isView}
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                  <Separator />
+                </>
+              )}
+
+              {/* Bid window */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  Schedule
+                  Bid start / end date
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="P_StartDate" className="text-sm font-medium">Start date</Label>
+                    <Label htmlFor="P_BidStartDate" className="text-sm font-medium">Bid start date</Label>
                     <Input
-                      id="P_StartDate"
+                      id="P_BidStartDate"
                       type="date"
-                      value={formatDateForInput(form.P_StartDate)}
-                      onChange={(e) => !isView && handleDateChange("P_StartDate", e.target.value)}
+                      value={formatDateForInput(form.P_BidStartDate)}
+                      onChange={(e) => !isView && handleDateChange("P_BidStartDate", e.target.value)}
                       disabled={isView}
                       className="h-10"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="P_EndDate" className="text-sm font-medium">End date</Label>
+                    <Label htmlFor="P_BidEndDate" className="text-sm font-medium">Bid end date</Label>
                     <Input
-                      id="P_EndDate"
+                      id="P_BidEndDate"
                       type="date"
-                      value={formatDateForInput(form.P_EndDate)}
-                      onChange={(e) => !isView && handleDateChange("P_EndDate", e.target.value)}
+                      value={formatDateForInput(form.P_BidEndDate)}
+                      onChange={(e) => !isView && handleDateChange("P_BidEndDate", e.target.value)}
                       disabled={isView}
                       className="h-10"
                     />
@@ -287,39 +296,31 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
 
               <Separator />
 
-              {/* Budget & Used Budget */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  Budget
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="P_Budget" className="text-sm font-medium">Budget</Label>
-                    <Input
-                      id="P_Budget"
-                      value={form.P_Budget || ""}
-                      onChange={(e) => !isView && handleDigitChange("P_Budget", e.target.value)}
-                      disabled={isView}
-                      placeholder="No decimals"
-                      className="h-10 w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="P_UsedBudget" className="text-sm font-medium">Used budget</Label>
-                    <Input
-                      id="P_UsedBudget"
-                      value={form.P_UsedBudget || ""}
-                      onChange={(e) => !isView && handleDigitChange("P_UsedBudget", e.target.value)}
-                      disabled={isView}
-                      placeholder="No decimals"
-                      className="h-10 w-full"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <Separator />
+              {!isVendor && (
+                <>
+                  {/* Budget */}
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      Budget
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="P_Budget" className="text-sm font-medium">Budget</Label>
+                        <Input
+                          id="P_Budget"
+                          value={form.P_Budget || ""}
+                          onChange={(e) => !isView && handleDigitChange("P_Budget", e.target.value)}
+                          disabled={isView}
+                          placeholder="No decimals"
+                          className="h-10 w-full"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                  <Separator />
+                </>
+              )}
 
               {/* Attachments */}
               <section className="space-y-4">

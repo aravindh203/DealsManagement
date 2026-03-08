@@ -51,9 +51,14 @@ const navItems = [
 const clusterName = 'Workspace Alpha';
 
 export const Sidenav: React.FC = () => {
-    const { role } = useAuth();
+    const { role, loginType } = useAuth();
 
     const allowedNavItems = navItems.filter(({ to }) => {
+        // Vendors: only Directory and Repository
+        if (loginType === 'vendor') {
+            return to === '/directory' || to === '/repository';
+        }
+
         if (role === 'admin') {
             return true;
         }
