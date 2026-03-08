@@ -48,7 +48,7 @@ const getProjectStatus = (project: Project, now: Date): ProjectStatus => {
 
 // ── Component ──────────────────────────────────────────────
 const Insights: React.FC = () => {
-    const { logout, loginType } = useAuth();
+    const { logout } = useAuth();
     const navigate = useNavigate();
     const {
         containerCount,
