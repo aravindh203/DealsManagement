@@ -281,12 +281,12 @@ export class SharePointService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          description: "P_UsedBudget",
-          displayName: "P_UsedBudget",
+          description: "V_CompanyBidAmount ",
+          displayName: "V_CompanyBidAmount ",
           enforceUniqueValues: false,
           hidden: false,
           indexed: false,
-          name: "P_UsedBudget",
+          name: "V_CompanyBidAmount ",
           text: {
             allowMultipleLines: false,
             appendChangesToExistingText: false,
@@ -399,6 +399,35 @@ export class SharePointService {
     }
   }
 
+  /** Max size (bytes) for simple PUT upload. Larger files use resumable upload. */
+  private static readonly SIMPLE_UPLOAD_MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+
+  /**
+   * Simple upload (single PUT) for small files. More reliable and faster than resumable for vendor submission docs.
+   */
+  private async uploadFileSimple(
+    token: string,
+    containerId: string,
+    parentFolderId: string,
+    file: File,
+  ): Promise<void> {
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${parentFolderId}:/${encodeURIComponent(file.name)}:/content`;
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/octet-stream",
+      },
+      body: file,
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Simple upload failed: ${response.status} ${response.statusText} - ${errorText}`,
+      );
+    }
+  }
+
   async uploadFile(
     token: string,
     containerId: string,
@@ -407,22 +436,27 @@ export class SharePointService {
     progressCallback: (progress: number) => void,
   ): Promise<void> {
     try {
+      if (file.size <= SharePointService.SIMPLE_UPLOAD_MAX_SIZE) {
+        await this.uploadFileSimple(token, containerId, path, file);
+        progressCallback(100);
+        return;
+      }
+
       const uploadSession = await this.createUploadSession(
         token,
         containerId,
         path,
         file.name,
       );
-      const chunkSize = 320 * 1024; // 320 KB, as recommended by Microsoft
+      const chunkSize = 320 * 1024; // 320 KB
       let start = 0;
       let end = Math.min(chunkSize, file.size);
-      let chunkId = 0;
 
       while (start < file.size) {
         const chunk = file.slice(start, end);
         const contentRange = `bytes ${start}-${end - 1}/${file.size}`;
 
-        await fetch(uploadSession.uploadUrl, {
+        const response = await fetch(uploadSession.uploadUrl, {
           method: "PUT",
           headers: {
             "Content-Length": `${end - start}`,
@@ -431,15 +465,25 @@ export class SharePointService {
           body: chunk,
         });
 
+        const responseText = await response.text();
+        if (response.status === 200 || response.status === 201) {
+          progressCallback(100);
+          return;
+        }
+        if (response.status !== 202) {
+          throw new Error(
+            `Upload chunk failed: ${response.status} ${response.statusText} - ${responseText}`,
+          );
+        }
+
         start = end;
         end = Math.min(start + chunkSize, file.size);
-        chunkId++;
-
-        const progress = Math.min(100, Math.round((start / file.size) * 100));
-        progressCallback(progress);
+        progressCallback(
+          Math.min(100, Math.round((start / file.size) * 100)),
+        );
       }
 
-      console.log("File uploaded successfully");
+      progressCallback(100);
     } catch (error) {
       console.error("File upload failed:", error);
       throw error;
@@ -584,10 +628,13 @@ export class SharePointService {
         "V_BidAmount",
         "P_VendorSubmissionDueDate",
         "P_Budget",
-        "P_UsedBudget",
+        "P_BidStartDate",
+        "P_BidEndDate",
+        "P_Company",
+        "P_CreatedUserEmail",
       ].join(",");
       const url = `${graphBase}/${containerId}/items/${folderId}/listitem/fields?$select=${selectFields}`;
-      // const url = `${graphBase}/${containerId}/items/${folderId}/listitem/fields`;
+      //const url = `${graphBase}/${containerId}/items/${folderId}/listitem/fields`;
 
       const response = await fetch(url, {
         method: "GET",
@@ -613,7 +660,10 @@ export class SharePointService {
         V_BidAmount: data.V_BidAmount || null,
         P_VendorSubmissionDueDate: data.P_VendorSubmissionDueDate || null,
         P_Budget: data.P_Budget || null,
-        P_UsedBudget: data.P_UsedBudget || null,
+        P_BidStartDate: data.P_BidStartDate || null,
+        P_BidEndDate: data.P_BidEndDate || null,
+        P_Company: data.P_Company ?? null,
+        P_CreatedUserEmail: data.P_CreatedUserEmail || null,
       };
 
       return obj;
@@ -623,8 +673,243 @@ export class SharePointService {
     }
   }
 
+  /**
+   * Returns P_CreatedUserEmail for a drive item (from list item fields). Returns null if not found or no list item.
+   */
+  async getListItemCreatedBy(
+    token: string,
+    containerId: string,
+    itemId: string,
+  ): Promise<string | null> {
+    const graphBase = "https://graph.microsoft.com/beta/drives";
+    const url = `${graphBase}/${containerId}/items/${itemId}/listitem/fields?$select=P_CreatedUserEmail`;
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const value = data.P_CreatedUserEmail;
+      return value != null && value !== "" ? String(value).trim() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Sets P_CreatedUserEmail on a drive item's list item (e.g. when a vendor creates a folder).
+   */
+  async patchListItemCreatedBy(
+    token: string,
+    containerId: string,
+    itemId: string,
+    createdBy: string,
+  ): Promise<void> {
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${itemId}/listitem/fields`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ P_CreatedUserEmail: createdBy || "" }),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Error patching P_CreatedUserEmail:", errorText);
+      throw new Error(
+        `Failed to set created by: ${res.status} ${res.statusText} - ${errorText}`,
+      );
+    }
+  }
+
   /** Name of the subfolder used for project attachments. */
   static readonly PROJECT_ATTACHMENTS_FOLDER_NAME = "Project";
+  /** Name of the subfolder used for vendor files. */
+  static readonly PROJECT_VENDOR_FOLDER_NAME = "Vendor";
+
+  /** Subfolder names under a vendor company folder for submission documents. */
+  static readonly VENDOR_SUBFOLDER_NAMES = [
+    "Proposal Document",
+    "Supporting Documents",
+    "Cost Estimation",
+    "Policy Documents",
+    "Approval Documents",
+  ] as const;
+
+  /**
+   * Get the Vendor folder id under a project folder. Returns null if not found.
+   */
+  async getVendorFolderId(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+  ): Promise<string | null> {
+    const children = await this.listFiles(token, containerId, projectFolderId);
+    const vendor = children.find(
+      (item) =>
+        item.folder &&
+        item.name === SharePointService.PROJECT_VENDOR_FOLDER_NAME,
+    );
+    return vendor?.id ?? null;
+  }
+
+  /**
+   * Get V_BidAmount from the company folder (under Vendor) for the given company name. Returns null if not found.
+   */
+  async getCompanyFolderBidAmount(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+    companyName: string,
+  ): Promise<string | null> {
+    const trimmed = (companyName ?? "").trim();
+    if (!trimmed) return null;
+    const vendorFolderId = await this.getVendorFolderId(
+      token,
+      containerId,
+      projectFolderId,
+    );
+    if (!vendorFolderId) return null;
+    const children = await this.listFiles(token, containerId, vendorFolderId);
+    const companyFolder = children.find(
+      (item) => item.folder && item.name.trim() === trimmed,
+    );
+    if (!companyFolder?.id) return null;
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${companyFolder.id}/listitem/fields?$select=V_BidAmount`;
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const val = data.V_BidAmount;
+      return val != null && String(val).trim() !== ""
+        ? String(val).trim()
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Returns true if the Vendor folder already contains a subfolder with the given company name.
+   */
+  async hasCompanyFolderUnderVendor(
+    token: string,
+    containerId: string,
+    vendorFolderId: string,
+    companyName: string,
+  ): Promise<boolean> {
+    const trimmed = (companyName ?? "").trim();
+    if (!trimmed) return false;
+    const children = await this.listFiles(token, containerId, vendorFolderId);
+    return children.some((item) => item.folder && item.name.trim() === trimmed);
+  }
+
+  /**
+   * Patch list item fields on a drive item (e.g. set V_BidAmount on company folder).
+   */
+  async patchListItemFields(
+    token: string,
+    containerId: string,
+    itemId: string,
+    fields: Record<string, string | number | null>,
+  ): Promise<void> {
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${itemId}/listitem/fields`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(fields),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Error patching list item fields:", errorText);
+      throw new Error(
+        `Failed to set list item fields: ${res.status} ${res.statusText} - ${errorText}`,
+      );
+    }
+  }
+
+  /**
+   * Create company folder under Vendor, create 5 subfolders, upload files to each, set bid amount on company folder.
+   * filesByCategory keys must match VENDOR_SUBFOLDER_NAMES order: proposalDocument, supportingDocuments, costEstimation, policyDocuments, approvalDocuments.
+   */
+  async createCompanySubmission(
+    token: string,
+    containerId: string,
+    vendorFolderId: string,
+    companyName: string,
+    bidAmount: string,
+    filesByCategory: {
+      proposalDocument: File[];
+      supportingDocuments: File[];
+      costEstimation: File[];
+      policyDocuments: File[];
+      approvalDocuments: File[];
+    },
+  ): Promise<void> {
+    const raw = (companyName ?? "").trim();
+    if (!raw)
+      throw new Error("Company name is required for vendor submission.");
+    const name = raw.replace(/[/\\:*?"<>|]/g, "_");
+
+    const companyFolderId = await this.createFolder(
+      token,
+      containerId,
+      vendorFolderId,
+      name,
+    );
+
+    const subfolderIds: string[] = [];
+    for (const subName of SharePointService.VENDOR_SUBFOLDER_NAMES) {
+      const id = await this.createFolder(
+        token,
+        containerId,
+        companyFolderId,
+        subName,
+      );
+      subfolderIds.push(id);
+    }
+
+    const noop = () => {};
+    const categories: (keyof typeof filesByCategory)[] = [
+      "proposalDocument",
+      "supportingDocuments",
+      "costEstimation",
+      "policyDocuments",
+      "approvalDocuments",
+    ];
+    for (let i = 0; i < categories.length; i++) {
+      const files = filesByCategory[categories[i]] ?? [];
+      const folderId = subfolderIds[i];
+      for (const file of files) {
+        await this.uploadFile(token, containerId, folderId, file, noop);
+      }
+    }
+
+    try {
+      await this.patchListItemFields(token, containerId, companyFolderId, {
+        V_BidAmount: (bidAmount ?? "").trim() || "",
+      });
+    } catch (err) {
+      console.warn(
+        "Could not set V_BidAmount on company folder (column may not exist):",
+        err,
+      );
+    }
+  }
 
   async createCustomDatas(
     token: string,
@@ -679,7 +964,10 @@ export class SharePointService {
           V_BidAmount: data?.V_BidAmount ?? "",
           P_VendorSubmissionDueDate: data?.P_VendorSubmissionDueDate ?? null,
           P_Budget: data?.P_Budget ?? "",
-          P_UsedBudget: data?.P_UsedBudget ?? "",
+          P_BidStartDate: data?.P_BidStartDate ?? null,
+          P_BidEndDate: data?.P_BidEndDate ?? null,
+          P_Company: data?.P_Company ?? "",
+          P_CreatedUserEmail: data?.P_CreatedUserEmail ?? "",
         }),
       });
 
@@ -696,6 +984,7 @@ export class SharePointService {
         containerId,
         folderId,
       );
+      await this.createProjectVendorSubfolder(token, containerId, folderId);
 
       return { folderId, attachmentsFolderId };
     } catch (error) {
@@ -733,6 +1022,42 @@ export class SharePointService {
       console.error("Error creating Attachments subfolder:", errorText);
       throw new Error(
         `Failed to create Attachments folder: ${res.status} ${res.statusText} - ${errorText}`,
+      );
+    }
+
+    const data = await res.json();
+    return data.id ?? "";
+  }
+
+  /**
+   * Creates the "Vendor" subfolder inside a project folder. Returns the new folder id.
+   */
+  private async createProjectVendorSubfolder(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+  ): Promise<string> {
+    const name = SharePointService.PROJECT_VENDOR_FOLDER_NAME;
+    const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${projectFolderId}:/${name}:`;
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        folder: {},
+        "@odata.conflictBehavior": "replace",
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Error creating Vendor subfolder:", errorText);
+      throw new Error(
+        `Failed to create Vendor folder: ${res.status} ${res.statusText} - ${errorText}`,
       );
     }
 
@@ -831,7 +1156,10 @@ export class SharePointService {
           V_BidAmount: data?.V_BidAmount ?? "",
           P_VendorSubmissionDueDate: data?.P_VendorSubmissionDueDate ?? null,
           P_Budget: data?.P_Budget ?? "",
-          P_UsedBudget: data?.P_UsedBudget ?? "",
+          P_BidStartDate: data?.P_BidStartDate ?? null,
+          P_BidEndDate: data?.P_BidEndDate ?? null,
+          P_Company: data?.P_Company ?? "",
+          P_CreatedUserEmail: data?.P_CreatedUserEmail ?? "",
         }),
       });
 
@@ -916,7 +1244,7 @@ export class SharePointService {
     containerId: string,
     path: string,
     folderName: string,
-  ): Promise<void> {
+  ): Promise<string> {
     let url: string = "";
 
     try {
@@ -947,26 +1275,9 @@ export class SharePointService {
           `Failed to create folder: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
-      debugger;
-      // await response.json();
       const resData = await response.json();
       const folderId = resData.id ?? "";
-      // const addUrl = `https://graph.microsoft.com/beta/drives/${containerId}/items/${folderId}/listitem/fields`;
-      const addUrl = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/root:/${folderName}:/children`;
-      const response1 = await fetch(addUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: "Vendor",
-          folder: {},
-          "@odata.conflictBehavior": "replace",
-        }),
-      });
-      console.log("Add URL response:", response1);
-      console.log("Folder created successfully");
+      return folderId;
     } catch (error) {
       console.error("Error creating folder:", error);
       throw error;
@@ -1534,6 +1845,84 @@ export class SharePointService {
     });
 
     return !!match;
+  }
+
+  /**
+   * Get all distinct company names from the UserDetails SharePoint list (Company column).
+   * Used e.g. for Top Vendors section; project counts can be merged later.
+   */
+  async getAllCompaniesFromUserDetails(): Promise<string[]> {
+    const token = await getAccessTokenByApp();
+    if (!token) return [];
+
+    const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
+    const sitePath = "/sites/HackerthonDealsManagement";
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=Company)`;
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      const items = Array.isArray(data.value) ? data.value : [];
+      const companies = new Set<string>();
+      items.forEach((item: any) => {
+        const company = item.fields?.Company;
+        if (company != null && String(company).trim() !== "") {
+          companies.add(String(company).trim());
+        }
+      });
+      return Array.from(companies).sort((a, b) => a.localeCompare(b));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get the Company (single-line text) for a vendor from the UserDetails SharePoint list by UserName.
+   * Returns null if not found or no token.
+   */
+  async getVendorCompanyFromUserDetails(
+    username: string,
+  ): Promise<string | null> {
+    const trimmed = username?.trim();
+    if (!trimmed) return null;
+
+    const token = await getAccessTokenByApp();
+    if (!token) return null;
+
+    const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
+    const sitePath = "/sites/HackerthonDealsManagement";
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Company)`;
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      const items = Array.isArray(data.value) ? data.value : [];
+      const match = items.find((item: any) => {
+        const fields = item.fields || {};
+        return fields.UserName === trimmed;
+      });
+      if (!match?.fields) return null;
+      const company = match.fields.Company;
+      return company != null && String(company).trim() !== ""
+        ? String(company).trim()
+        : null;
+    } catch {
+      return null;
+    }
   }
 }
 

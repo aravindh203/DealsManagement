@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './Analytics.module.scss';
-import { SearchRegular } from '@fluentui/react-icons';
+import { LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const LineGraphIcon = () => (
     <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.badgeChartIcon}>
@@ -65,6 +67,8 @@ const historicalReports: HistoricalReport[] = [
 ];
 
 const Analytics: React.FC = () => {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
     const [reportType, setReportType] = useState('Revenue Analysis');
     const [temporalRange, setTemporalRange] = useState('Last 30 Days');
     const [aggregation, setAggregation] = useState('By Broker');
@@ -80,15 +84,14 @@ const Analytics: React.FC = () => {
                     </div>
                 </div>
                 <div className={styles.navRight}>
-                    <div className={styles.searchBar}>
-                        <SearchRegular className={styles.searchIcon} />
-                        <input type="text" placeholder="Search resources..." />
-                    </div>
-                    <button className={styles.navIconBtn} title="Notifications">
-                        <span className={styles.bellWrapper}>
-                            <BellIcon />
-                            <span className={styles.notifDot} />
-                        </span>
+                    <button
+                        type="button"
+                        className={styles.logoutBtn}
+                        onClick={() => { logout(); navigate('/login'); }}
+                        title="Logout"
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
                     </button>
                 </div>
             </nav>

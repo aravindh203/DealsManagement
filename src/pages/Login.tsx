@@ -183,6 +183,124 @@ const useStyles = makeStyles({
     padding: 0,
     ':hover': { textDecoration: 'underline' },
   },
+  // Vendor login specific
+  vendorCard: {
+    borderLeft: '4px solid #5c5ce0',
+    textAlign: 'left' as const,
+    alignItems: 'stretch',
+  },
+  vendorHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '12px',
+    marginBottom: '28px',
+  },
+  vendorIconBox: {
+    width: '48px',
+    height: '48px',
+    backgroundColor: '#f0efff',
+    ...shorthands.borderRadius('12px'),
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vendorIcon: {
+    fontSize: '24px',
+    color: '#5c5ce0',
+  },
+  vendorTitleBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  vendorTagline: {
+    color: '#5c5ce0',
+    fontWeight: '700',
+    letterSpacing: '1.5px',
+    fontSize: '10px',
+    textTransform: 'uppercase',
+  },
+  vendorTitle: {
+    fontSize: '24px',
+    fontWeight: '800',
+    color: '#1a1a2e',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  vendorDescription: {
+    color: '#64748b',
+    fontSize: '13px',
+    lineHeight: '1.5',
+    marginBottom: '24px',
+  },
+  vendorSignInBtn: {
+    width: '100%',
+    height: '52px',
+    backgroundColor: '#5c5ce0',
+    color: 'white',
+    ...shorthands.borderRadius('14px'),
+    fontSize: '15px',
+    fontWeight: '600',
+    marginTop: '8px',
+    marginBottom: '0',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    columnGap: '10px',
+    cursor: 'pointer',
+    border: 'none',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 4px 14px rgba(92, 92, 224, 0.35)',
+    ':hover': {
+      backgroundColor: '#4a4ae0',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 6px 20px rgba(92, 92, 224, 0.4)',
+    },
+    ':active': {
+      transform: 'translateY(0)',
+    },
+    ':disabled': {
+      backgroundColor: '#a5b4fc',
+      cursor: 'not-allowed',
+      transform: 'none',
+      boxShadow: 'none',
+    },
+  },
+  vendorBackLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    columnGap: '8px',
+    fontSize: '13px',
+    color: '#64748b',
+    cursor: 'pointer',
+    marginTop: '24px',
+    fontWeight: '500',
+    backgroundColor: 'transparent',
+    border: 'none',
+    padding: '8px 0',
+    transition: 'color 0.2s ease',
+    ':hover': {
+      color: '#5c5ce0',
+      textDecoration: 'none',
+    },
+  },
+  vendorInput: {
+    width: '100%',
+    height: '48px',
+    ...shorthands.padding('0', '16px'),
+    ...shorthands.border('1px', 'solid', '#e2e8f0'),
+    ...shorthands.borderRadius('12px'),
+    fontSize: '15px',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    ':focus': {
+      outline: 'none',
+      ...shorthands.border('2px', 'solid', '#5c5ce0'),
+      boxShadow: '0 0 0 3px rgba(92, 92, 224, 0.15)',
+    },
+    '::placeholder': {
+      color: '#94a3b8',
+    },
+  },
 });
 
 const Login = () => {
@@ -249,7 +367,9 @@ const Login = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+      <div className={`${styles.card} ${showVendorForm ? styles.vendorCard : ''}`}>
+        {!showVendorForm ? (
+          <>
         <div className={styles.iconBox}>
           <ShieldCheckmarkRegular className={styles.icon} />
         </div>
@@ -261,8 +381,6 @@ const Login = () => {
           Identity-first workspace security for the next generation of cloud clusters.
         </Text>
 
-        {!showVendorForm ? (
-          <>
             {error && (
               <div className={styles.errorAlert}>
                 {error}
@@ -304,6 +422,19 @@ const Login = () => {
           </>
         ) : (
           <>
+            <div className={styles.vendorHeader}>
+              <div className={styles.vendorIconBox}>
+                <PersonRegular className={styles.vendorIcon} />
+              </div>
+              <div className={styles.vendorTitleBlock}>
+                <Text className={styles.vendorTagline}>Partner access</Text>
+                <Text className={styles.vendorTitle}>Vendor sign in</Text>
+              </div>
+            </div>
+            <Text className={styles.vendorDescription}>
+              Sign in with your vendor credentials to access Directory and Repository.
+            </Text>
+
             {vendorError && (
               <div className={styles.errorAlert}>
                 {vendorError}
@@ -318,7 +449,7 @@ const Login = () => {
                 <Input
                   id="vendor-username"
                   type="text"
-                  className={styles.input}
+                  className={styles.vendorInput}
                   placeholder="Enter your username"
                   value={vendorUsername}
                   onChange={(e) => setVendorUsername(e.target.value)}
@@ -333,7 +464,7 @@ const Login = () => {
                 <Input
                   id="vendor-password"
                   type="password"
-                  className={styles.input}
+                  className={styles.vendorInput}
                   placeholder="Enter your password"
                   value={vendorPassword}
                   onChange={(e) => setVendorPassword(e.target.value)}
@@ -343,7 +474,7 @@ const Login = () => {
               </div>
               <button
                 type="submit"
-                className={styles.ssoButton}
+                className={styles.vendorSignInBtn}
                 disabled={vendorLoading || !vendorUsername.trim() || !vendorPassword}
               >
                 {vendorLoading ? 'Signing in...' : (
@@ -357,7 +488,7 @@ const Login = () => {
 
             <button
               type="button"
-              className={styles.backLink}
+              className={styles.vendorBackLink}
               onClick={() => {
                 setShowVendorForm(false);
                 setVendorUsername('');
@@ -365,7 +496,7 @@ const Login = () => {
                 setVendorError(null);
               }}
             >
-              <ArrowLeftRegular />
+              <ArrowLeftRegular size={16} />
               Back to login options
             </button>
           </>

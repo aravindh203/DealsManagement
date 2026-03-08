@@ -84,7 +84,7 @@ const App = () => {
                       <Route path="/admin/analytics" element={<Navigate to="/analytics" replace />} />
                       <Route path="/admin/identity" element={<Navigate to="/identity" replace />} />
                       <Route path="/" element={<ProtectedRouteStandalone><AdminLayout /></ProtectedRouteStandalone>}>
-                        <Route index element={<Navigate to="/insights" replace />} />
+                        <Route index element={<DefaultRedirect />} />
                         <Route
                           path="insights"
                           element={(
@@ -96,7 +96,7 @@ const App = () => {
                         <Route
                           path="directory"
                           element={(
-                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
                               <Directory />
                             </ModuleGuard>
                           )}
@@ -104,7 +104,7 @@ const App = () => {
                         <Route
                           path="project/:id"
                           element={(
-                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
                               <ProjectDetail />
                             </ModuleGuard>
                           )}
@@ -112,7 +112,7 @@ const App = () => {
                         <Route
                           path="repository"
                           element={(
-                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
                               <Repository />
                             </ModuleGuard>
                           )}
@@ -169,6 +169,12 @@ const ProtectedRouteWithSearch = ({ children }: { children: React.ReactNode }) =
   return <LayoutWithSearch>{children}</LayoutWithSearch>;
 };
 
+// Redirect to default screen: vendors go to Directory, others to Insights
+const DefaultRedirect = () => {
+  const { loginType } = useAuth();
+  return <Navigate to={loginType === 'vendor' ? '/directory' : '/insights'} replace />;
+};
+
 // Standalone protected route without standard layout
 const ProtectedRouteStandalone = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -180,8 +186,21 @@ const ProtectedRouteStandalone = ({ children }: { children: React.ReactNode }) =
   return <>{children}</>;
 };
 
-const ModuleGuard = ({ allowedRoles, children }: { allowedRoles: AppRole[]; children: React.ReactNode }) => {
-  const { role } = useAuth();
+const ModuleGuard = ({
+  allowedRoles,
+  allowVendor = false,
+  children,
+}: {
+  allowedRoles: AppRole[];
+  allowVendor?: boolean;
+  children: React.ReactNode;
+}) => {
+  const { role, loginType } = useAuth();
+
+  // Vendors may only access Directory and Repository (and project detail from Directory)
+  if (loginType === 'vendor' && !allowVendor) {
+    return <Navigate to="/directory" replace />;
+  }
 
   if (!allowedRoles.includes(role)) {
     return <Navigate to="/directory" replace />;

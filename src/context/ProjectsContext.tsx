@@ -10,6 +10,7 @@ import { Project, initialProjects } from "../pages/projectsData";
 import { sharePointService } from "../services/sharePointService";
 import { getAccessTokenByApp } from "../hooks/useClientCredentialsAuth";
 import { appConfig } from "../config/appConfig";
+import { useAuth } from "../context/AuthContext";
 
 export interface CreateProjectResult {
   folderId: string;
@@ -39,6 +40,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const { user, vendorUser, loginType } = useAuth();
 
   const refetch = useCallback(async () => {
     try {
@@ -92,7 +94,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
         containerId,
       );
 
-      const resData: Project[] = await Promise.all(
+      const rawData: (Project | null)[] = await Promise.all(
         folderRes?.map(async (data: any) => {
           return await sharePointService.fetchCustomDatas(
             token,
@@ -100,6 +102,11 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
             data?.id,
           );
         }) ?? [],
+      );
+
+      const resData: Project[] = rawData.filter(
+        (p): p is Project =>
+          p != null && (p.P_Name ?? "").trim() !== "",
       );
 
       setProjects(resData);
@@ -116,15 +123,27 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
   const addProject = useCallback(async (data: Project) => {
     const accessToken: string | null = await getAccessTokenByApp();
     const containerId: string = appConfig.ContainerID;
+    const createdByEmail =
+      loginType === "vendor"
+        ? vendorUser?.username ?? ""
+        : (user?.username ?? "");
+    // P_Company: "Admin" when M365 created; vendor's Company from UserDetails when vendor created
+    let P_Company: string = "Admin";
+    if (loginType === "vendor" && vendorUser?.username) {
+      const company = await sharePointService.getVendorCompanyFromUserDetails(
+        vendorUser.username,
+      );
+      P_Company = company ?? vendorUser.username;
+    }
     const result = await sharePointService.createCustomDatas(
       accessToken,
       containerId,
       data?.P_Name,
-      data,
+      { ...data, P_CreatedUserEmail: createdByEmail, P_Company },
     );
     await reloadProjects();
     return result;
-  }, [reloadProjects]);
+  }, [reloadProjects, loginType, vendorUser?.username, user?.username]);
 
   const updateProject = useCallback(async (id: string, data: Project) => {
     const accessToken: string | null = await getAccessTokenByApp();

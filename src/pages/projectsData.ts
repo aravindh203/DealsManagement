@@ -15,7 +15,13 @@ export interface Project {
   V_BidAmount?: string;
   P_VendorSubmissionDueDate?: string | null;
   P_Budget?: string;
-  P_UsedBudget?: string;
+  /** Bid window: start and end date for the bid. */
+  P_BidStartDate?: string | null;
+  P_BidEndDate?: string | null;
+  /** "Admin" when folder created by M365 user; vendor's Company from UserDetails when created by vendor. */
+  P_Company?: string | null;
+  /** Email or username of the user who created the project (M365: email, vendor: username). */
+  P_CreatedUserEmail?: string;
 }
 
 export const initialProjects: Project[] = [
@@ -32,6 +38,9 @@ export const initialProjects: Project[] = [
     V_BidAmount: "500000",
     P_VendorSubmissionDueDate: "2026-03-20T00:00:00.000Z",
     P_Budget: "600000",
+    P_BidStartDate: "2026-03-01T00:00:00.000Z",
+    P_BidEndDate: "2026-03-25T00:00:00.000Z",
+    P_Company: "Admin",
   },
   {
     id: 2,
@@ -46,6 +55,9 @@ export const initialProjects: Project[] = [
     V_BidAmount: "1200000",
     P_VendorSubmissionDueDate: "2026-04-10T00:00:00.000Z",
     P_Budget: "1500000",
+    P_BidStartDate: "2026-03-15T00:00:00.000Z",
+    P_BidEndDate: "2026-04-05T00:00:00.000Z",
+    P_Company: "Admin",
   },
   {
     id: 3,
@@ -60,6 +72,9 @@ export const initialProjects: Project[] = [
     V_BidAmount: "850000",
     P_VendorSubmissionDueDate: "2026-02-28T00:00:00.000Z",
     P_Budget: "900000",
+    P_BidStartDate: "2026-02-01T00:00:00.000Z",
+    P_BidEndDate: "2026-02-25T00:00:00.000Z",
+    P_Company: "Acme Logistics",
   },
   {
     id: 4,
@@ -74,5 +89,8 @@ export const initialProjects: Project[] = [
     V_BidAmount: "2000000",
     P_VendorSubmissionDueDate: "2026-03-25T00:00:00.000Z",
     P_Budget: "2500000",
+    P_BidStartDate: "2026-03-10T00:00:00.000Z",
+    P_BidEndDate: "2026-03-30T00:00:00.000Z",
+    P_Company: "Admin",
   },
 ];

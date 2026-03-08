@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './Insights.module.scss';
 import {
-    AddRegular,
-    SearchRegular,
     CubeRegular,
     PeopleRegular,
     ShieldCheckmarkRegular,
@@ -12,8 +11,9 @@ import {
     ArrowUploadRegular,
     DismissRegular,
 } from '@fluentui/react-icons';
+import { LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useAdminStats, formatBytes } from '../hooks/useAdminStats';
-import { CreateFolderForm } from '../components/CreateFolderForm';
 import { useProjects } from '../context/ProjectsContext';
 import { getAccessTokenByApp } from '../hooks/useClientCredentialsAuth';
 import { appConfig } from '../config/appConfig';
@@ -48,6 +48,8 @@ const getProjectStatus = (project: Project, now: Date): ProjectStatus => {
 
 // ── Component ──────────────────────────────────────────────
 const Insights: React.FC = () => {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
     const {
         containerCount,
         totalStorageUsedBytes,
@@ -58,12 +60,30 @@ const Insights: React.FC = () => {
         refetch,
     } = useAdminStats();
     const { projects } = useProjects();
-    const [FolderpanelOpen, setFolderPanelOpen] = useState(false);
+    const [companiesFromUserDetails, setCompaniesFromUserDetails] = useState<string[]>([]);
+    const [loadingCompanies, setLoadingCompanies] = useState(true);
+
+    const loadCompanies = useCallback(async () => {
+        setLoadingCompanies(true);
+        try {
+            const list = await sharePointService.getAllCompaniesFromUserDetails();
+            setCompaniesFromUserDetails(list);
+        } catch {
+            setCompaniesFromUserDetails([]);
+        } finally {
+            setLoadingCompanies(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadCompanies();
+    }, [loadCompanies]);
 
     const now = new Date();
 
     const totalProjects = projects.length;
-    const openProjectsCount = projects.filter((p) => getProjectStatus(p, now) === 'Open').length;
+    /** Open count uses P_Status (same as Directory) so the card reflects actual list data. */
+    const openProjectsCount = projects.filter((p) => (p.P_Status ?? 'Open') === 'Open').length;
 
     const latestUpdates = useMemo(
         () => {
@@ -88,54 +108,15 @@ const Insights: React.FC = () => {
         [projects]
     );
 
+    /** Top Vendors: companies from UserDetails; project count static (0) for now, will be dynamic later. */
     const topVendors = useMemo(
-        () => {
-            const counts = new Map<string, number>();
-            projects.forEach((p) => {
-                if (p.V_SubmittedByEmail) {
-                    const email = p.V_SubmittedByEmail;
-                    counts.set(email, (counts.get(email) || 0) + 1);
-                }
-            });
-            return Array.from(counts.entries())
-                .map(([email, count]) => ({ email, count }))
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 4);
-        },
-        [projects]
+        () =>
+            companiesFromUserDetails.map((company) => ({
+                company,
+                count: 0,
+            })),
+        [companiesFromUserDetails]
     );
-
-    const handleFolderCreateSuccess = () => {
-        setFolderPanelOpen(false);
-        refetch();
-    };
-
-    const handleNewFolderClick = async () => {
-        try {
-            const token = await getAccessTokenByApp();
-            if (token) {
-                await sharePointService.CreateColumn(token, appConfig.ContainerID);
-                toast({
-                    title: 'Column created',
-                    description: 'P_Status column was created successfully.',
-                });
-            } else {
-                toast({
-                    title: 'Failed',
-                    description: 'Could not get access token to create column.',
-                    variant: 'destructive',
-                });
-            }
-        } catch (err) {
-            console.error('CreateColumn error:', err);
-            toast({
-                title: 'Create column failed',
-                description: err instanceof Error ? err.message : 'Could not create column.',
-                variant: 'destructive',
-            });
-        }
-        setFolderPanelOpen(true);
-    };
 
     // Format storage for display
     const usedFormatted = formatBytes(totalStorageUsedBytes);
@@ -157,18 +138,17 @@ const Insights: React.FC = () => {
                 </div>
 
                 <div className={styles.navRight}>
-                    <div className={styles.searchBar}>
-                        <SearchRegular className={styles.searchIcon} />
-                        <input type="text" placeholder="Search resources..." />
-                    </div>
                     <button className={styles.navIconBtn} onClick={refetch} title="Refresh stats">
                         <ArrowUploadRegular />
                     </button>
-                    <button className={styles.navIconBtn} title="Notifications">
-                        <span className={styles.bellWrapper}>
-                            <BellIcon />
-                            <span className={styles.notifDot} />
-                        </span>
+                    <button
+                        type="button"
+                        className={styles.logoutBtn}
+                        onClick={() => { logout(); navigate('/login'); }}
+                        title="Logout"
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
                     </button>
                 </div>
             </nav>
@@ -182,10 +162,6 @@ const Insights: React.FC = () => {
                             <span className={styles.overline}>OPERATIONS MANAGEMENT</span>
                             <h1 className={styles.pageTitle}>Workspace Alpha</h1>
                         </div>
-                        <button className={styles.newResourceBtn} onClick={handleNewFolderClick}>
-                            <AddRegular />
-                            NEW FOLDER
-                        </button>
                     </div>
 
                     {/* ── Stat Cards ── */}
@@ -283,21 +259,23 @@ const Insights: React.FC = () => {
                             <table className={styles.auditTable}>
                                 <thead className={styles.auditTableHead}>
                                     <tr>
-                                        <th>Time</th>
-                                        <th>Entry</th>
-                                        <th>Project Status</th>
+                                        <th>Project name</th>
+                                        <th>Date</th>
+                                        <th>Budget</th>
+                                        <th>Bid amount</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className={styles.auditTableBody}>
                                     {latestUpdates.length === 0 ? (
                                         <tr>
-                                            <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
+                                            <td colSpan={5} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
                                                 No recent project updates.
                                             </td>
                                         </tr>
                                     ) : (
                                         latestUpdates.map(({ project, date }, idx) => {
-                                            const status = getProjectStatus(project, now);
+                                            const status = project.P_Status ?? 'Open';
                                             const statusClass =
                                                 status === 'Open'
                                                     ? `${styles.chip} ${styles.chipActive}`
@@ -308,16 +286,18 @@ const Insights: React.FC = () => {
 
                                             return (
                                                 <tr key={idx}>
-                                                    <td className={styles.timeCell}>{date.toLocaleDateString()}</td>
                                                     <td>
                                                         <div className={styles.entityCell}>
                                                             <div className={styles.avatar}>{initial}</div>
                                                             <div className={styles.entityInfo}>
-                                                                <span className={styles.entityName}>{project.P_Name}</span>
+                                                                <span className={styles.entityName}>{project.P_Name || '—'}</span>
                                                                 <span className={styles.entityRole}>{project.P_Type || 'Project'}</span>
                                                             </div>
                                                         </div>
                                                     </td>
+                                                    <td className={styles.timeCell}>{date.toLocaleDateString()}</td>
+                                                    <td>{project.P_Budget ? `$${project.P_Budget}` : '—'}</td>
+                                                    <td>{project.V_BidAmount != null && String(project.V_BidAmount).trim() !== '' ? `$${project.V_BidAmount}` : '—'}</td>
                                                     <td className={styles.verificationCell}>
                                                         <span className={statusClass}>{status}</span>
                                                     </td>
@@ -391,19 +371,23 @@ const Insights: React.FC = () => {
                                 <PulseRegular className={styles.pulseIcon} />
                             </div>
 
-                            {topVendors.length === 0 ? (
+                            {loadingCompanies ? (
+                                <p style={{ color: '#b0b5c8', fontSize: 12, marginTop: 8 }}>
+                                    Loading companies…
+                                </p>
+                            ) : topVendors.length === 0 ? (
                                 <p style={{ color: '#b0b5c8', fontSize: 12, marginTop: 8 }}>
                                     No vendor data available yet.
                                 </p>
                             ) : (
                                 topVendors.map((v, idx) => {
-                                    const maxCount = topVendors[0].count || 1;
-                                    const fill = Math.round((v.count / maxCount) * 100);
+                                    const maxCount = Math.max(1, ...topVendors.map((x) => x.count));
+                                    const fill = maxCount > 0 ? Math.round((v.count / maxCount) * 100) : 0;
                                     const isPrimary = idx < 2;
                                     return (
-                                        <div key={v.email} className={styles.vitalRow}>
+                                        <div key={v.company} className={styles.vitalRow}>
                                             <div className={styles.vitalMeta}>
-                                                <span className={styles.vitalLabel}>{v.email}</span>
+                                                <span className={styles.vitalLabel}>{v.company}</span>
                                                 <span
                                                     className={
                                                         isPrimary ? styles.vitalValueGreen : styles.vitalValuePurple
@@ -428,29 +412,6 @@ const Insights: React.FC = () => {
                     </div>
                 </div>
             </main>
-
-            {FolderpanelOpen && (
-                <>
-                    <div className={styles.backdrop} onClick={() => setFolderPanelOpen(false)} />
-                    <div className={styles.panel}>
-                        <div className={styles.panelHeader}>
-                            <h2 className={styles.panelTitle}>New Folder</h2>
-                            <button className={styles.panelClose} onClick={() => setFolderPanelOpen(false)}>
-                                <DismissRegular />
-                            </button>
-                        </div>
-                        <p className={styles.panelSubtitle}>
-                            Create a new SharePoint Embedded folder with a display name and description.
-                        </p>
-                        <div className={styles.panelBody}>
-                            <CreateFolderForm
-                                onSuccess={handleFolderCreateSuccess}
-                                onCancel={() => setFolderPanelOpen(false)}
-                            />
-                        </div>
-                    </div>
-                </>
-            )}
 
         </div>
     );

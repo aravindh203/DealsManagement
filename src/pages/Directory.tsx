@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import styles from "./Directory.module.scss";
 import {
     AddRegular,
@@ -8,10 +8,11 @@ import {
     EditRegular,
     DeleteRegular,
 } from "@fluentui/react-icons";
-import { Eye } from "lucide-react";
+import { Eye, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useProjects } from "../context/ProjectsContext";
 import { ProjectFormDialog, type ProjectDialogMode } from "../components/ProjectFormDialog";
+import { VendorSubmissionDialog } from "../components/VendorSubmissionDialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -123,14 +124,6 @@ const getStatusPillClass = (status: ProjectStatusValue): string => {
     return status.replace(/\s+/g, "");
 };
 
-/** True when used budget exceeds project budget (both parsed as numbers). */
-const isOverBudget = (project: Project): boolean => {
-    const budget = project.P_Budget ? parseInt(project.P_Budget.replace(/\D/g, ""), 10) : 0;
-    const used = project.P_UsedBudget ? parseInt(project.P_UsedBudget.replace(/\D/g, ""), 10) : 0;
-    if (!budget || isNaN(budget)) return false;
-    return !isNaN(used) && used > budget;
-};
-
 const isInCurrentMonth = (dateStr?: string | null): boolean => {
     if (!dateStr) return false;
     const date = new Date(dateStr);
@@ -144,7 +137,8 @@ const isInCurrentMonth = (dateStr?: string | null): boolean => {
 };
 
 const Directory: React.FC = () => {
-    const { loginType } = useAuth();
+    const { loginType, logout, vendorUser } = useAuth();
+    const navigate = useNavigate();
     const isVendor = loginType === "vendor";
 
     const { projects, addProject, updateProject, deleteProject, reloadProjects } =
@@ -159,6 +153,11 @@ const Directory: React.FC = () => {
         string | number | null
     >(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [vendorCompanyName, setVendorCompanyName] = useState<string | null>(null);
+    const [projectHasVendorSubmission, setProjectHasVendorSubmission] = useState<Record<string, boolean>>({});
+    const [projectVendorBidAmountMap, setProjectVendorBidAmountMap] = useState<Record<string, string | null>>({});
+    const [vendorSubmissionOpen, setVendorSubmissionOpen] = useState(false);
+    const [vendorSubmissionProject, setVendorSubmissionProject] = useState<Project | null>(null);
 
     const totalProjects = projects.length;
 
@@ -205,6 +204,74 @@ const Directory: React.FC = () => {
     useEffect(() => {
         if (currentPage > totalPages) setCurrentPage(totalPages);
     }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        if (!isVendor || !vendorUser?.username) {
+            setVendorCompanyName(null);
+            setProjectHasVendorSubmission({});
+            setProjectVendorBidAmountMap({});
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            const company = await sharePointService.getVendorCompanyFromUserDetails(vendorUser.username);
+            if (cancelled) return;
+            setVendorCompanyName(company ?? vendorUser.username);
+            if (!projects.length) {
+                setProjectHasVendorSubmission({});
+                setProjectVendorBidAmountMap({});
+                return;
+            }
+            const token = await getAccessTokenByApp();
+            if (!token || cancelled) return;
+            const containerId = appConfig.ContainerID;
+            const companyName = company ?? vendorUser.username;
+            const map: Record<string, boolean> = {};
+            const bidMap: Record<string, string | null> = {};
+            for (const project of projects) {
+                if (cancelled) break;
+                const pid = String(project.id);
+                try {
+                    const vendorFolderId = await sharePointService.getVendorFolderId(
+                        token,
+                        containerId,
+                        pid,
+                    );
+                    if (!vendorFolderId) {
+                        map[pid] = false;
+                        bidMap[pid] = null;
+                        continue;
+                    }
+                    const has = await sharePointService.hasCompanyFolderUnderVendor(
+                        token,
+                        containerId,
+                        vendorFolderId,
+                        companyName,
+                    );
+                    map[pid] = has;
+                    if (has) {
+                        const amount = await sharePointService.getCompanyFolderBidAmount(
+                            token,
+                            containerId,
+                            pid,
+                            companyName,
+                        );
+                        bidMap[pid] = amount;
+                    } else {
+                        bidMap[pid] = null;
+                    }
+                } catch {
+                    map[pid] = false;
+                    bidMap[pid] = null;
+                }
+            }
+            if (!cancelled) {
+                setProjectHasVendorSubmission(map);
+                setProjectVendorBidAmountMap(bidMap);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [isVendor, vendorUser?.username, projects]);
 
     const handleRefresh = () => {
         setSearchProjects("");
@@ -373,6 +440,64 @@ const Directory: React.FC = () => {
         }
     };
 
+    const handleOpenVendorSubmission = (project: Project) => {
+        setVendorSubmissionProject(project);
+        setVendorSubmissionOpen(true);
+    };
+
+    const handleVendorSubmissionSave = async (
+        bidAmount: string,
+        filesByCategory: {
+            proposalDocument: File[];
+            supportingDocuments: File[];
+            costEstimation: File[];
+            policyDocuments: File[];
+            approvalDocuments: File[];
+        },
+    ) => {
+        if (!vendorSubmissionProject || !vendorCompanyName) return;
+        const projectId = String(vendorSubmissionProject.id);
+        try {
+            const token = await getAccessTokenByApp();
+            if (!token) {
+                toast({ title: "Error", description: "Could not get access token.", variant: "destructive" });
+                return;
+            }
+            const containerId = appConfig.ContainerID;
+            const vendorFolderId = await sharePointService.getVendorFolderId(
+                token,
+                containerId,
+                projectId,
+            );
+            if (!vendorFolderId) {
+                toast({ title: "Error", description: "Vendor folder not found for this project. The project may need to have a Vendor folder created first.", variant: "destructive" });
+                return;
+            }
+            await sharePointService.createCompanySubmission(
+                token,
+                containerId,
+                vendorFolderId,
+                vendorCompanyName,
+                bidAmount,
+                filesByCategory,
+            );
+            toast({ title: "Submission saved", description: "Your company folder and documents have been created." });
+            setVendorSubmissionOpen(false);
+            setVendorSubmissionProject(null);
+            await reloadProjects();
+            setProjectHasVendorSubmission((prev) => ({ ...prev, [projectId]: true }));
+            setProjectVendorBidAmountMap((prev) => ({ ...prev, [projectId]: bidAmount.trim() || null }));
+        } catch (err) {
+            console.error("Vendor submission failed:", err);
+            const message = err instanceof Error ? err.message : "Submission failed. Check the console for details.";
+            toast({
+                title: "Submission failed",
+                description: message,
+                variant: "destructive",
+            });
+        }
+    };
+
     return (
         <div className={styles.page}>
             <nav className={styles.topNav}>
@@ -384,15 +509,14 @@ const Directory: React.FC = () => {
                     </div>
                 </div>
                 <div className={styles.navRight}>
-                    <div className={styles.searchBar}>
-                        <SearchRegular className={styles.searchIcon} />
-                        <input type="text" placeholder="Search resources..." />
-                    </div>
-                    <button className={styles.navIconBtn} title="Notifications">
-                        <span className={styles.bellWrapper}>
-                            <BellIcon />
-                            <span className={styles.notifDot} />
-                        </span>
+                    <button
+                        type="button"
+                        className={styles.logoutBtn}
+                        onClick={() => { logout(); navigate("/login"); }}
+                        title="Logout"
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
                     </button>
                 </div>
             </nav>
@@ -497,20 +621,26 @@ const Directory: React.FC = () => {
                                 <tr>
                                     <th>PROJECT NAME</th>
                                     <th>PROJECT TYPE</th>
-                                    <th>START DATE</th>
-                                    <th>END DATE</th>
-                                    <th>BUDGET</th>
-                                    <th>USED BUDGET</th>
+                                    {isVendor ? (
+                                        <>
+                                            <th>BID START DATE</th>
+                                            <th>BID END DATE</th>
+                                            <th>YOUR BID AMOUNT</th>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <th>START DATE</th>
+                                            <th>END DATE</th>
+                                            <th>BUDGET</th>
+                                        </>
+                                    )}
                                     <th>STATUS</th>
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paginatedProjects.map((project) => (
-                                    <tr
-                                        key={project.id}
-                                        className={isOverBudget(project) ? styles.rowOverBudget : undefined}
-                                    >
+                                    <tr key={project.id}>
                                         <td>
                                             <Link to={`/project/${project.id}`}>
                                                 <strong>{project.P_Name}</strong>
@@ -518,20 +648,40 @@ const Directory: React.FC = () => {
                                             <span className={styles.idHint}> (ID: {project.id})</span>
                                         </td>
                                         <td>{project.P_Type || "-"}</td>
-                                        <td>
-                                            {project.P_StartDate
-                                                ? new Date(project.P_StartDate).toLocaleDateString()
-                                                : "-"}
-                                        </td>
-                                        <td>
-                                            {project.P_EndDate
-                                                ? new Date(project.P_EndDate).toLocaleDateString()
-                                                : "-"}
-                                        </td>
-                                        <td>{project.P_Budget ? `$${project.P_Budget}` : "-"}</td>
-                                        <td className={isOverBudget(project) ? styles.usedBudgetOver : styles.usedBudgetCell}>
-                                            {project.P_UsedBudget ? `$${project.P_UsedBudget}` : "-"}
-                                        </td>
+                                        {isVendor ? (
+                                            <>
+                                                <td>
+                                                    {project.P_BidStartDate
+                                                        ? new Date(project.P_BidStartDate).toLocaleDateString()
+                                                        : "-"}
+                                                </td>
+                                                <td>
+                                                    {project.P_BidEndDate
+                                                        ? new Date(project.P_BidEndDate).toLocaleDateString()
+                                                        : "-"}
+                                                </td>
+                                                <td>
+                                                    {(() => {
+                                                        const amount = projectVendorBidAmountMap[String(project.id)];
+                                                        return amount != null && amount !== "" ? `$${amount}` : "-";
+                                                    })()}
+                                                </td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td>
+                                                    {project.P_StartDate
+                                                        ? new Date(project.P_StartDate).toLocaleDateString()
+                                                        : "-"}
+                                                </td>
+                                                <td>
+                                                    {project.P_EndDate
+                                                        ? new Date(project.P_EndDate).toLocaleDateString()
+                                                        : "-"}
+                                                </td>
+                                                <td>{project.P_Budget ? `$${project.P_Budget}` : "-"}</td>
+                                            </>
+                                        )}
                                         <td>
                                             <span
                                                 className={`${styles.statusPill} ${styles[`status${getStatusPillClass(getProjectStatus(project))}`]}`}
@@ -550,7 +700,18 @@ const Directory: React.FC = () => {
                                                 >
                                                     <Eye size={16} />
                                                 </button>
-                                                {!isVendor && (
+                                                {isVendor ? (
+                                                    !projectHasVendorSubmission[String(project.id)] && (
+                                                        <button
+                                                            type="button"
+                                                            className={styles.actionBtn}
+                                                            onClick={() => handleOpenVendorSubmission(project)}
+                                                            title="Submit (create company folder and upload documents)"
+                                                        >
+                                                            <EditRegular />
+                                                        </button>
+                                                    )
+                                                ) : (
                                                     <>
                                                         <button
                                                             type="button"
@@ -583,9 +744,23 @@ const Directory: React.FC = () => {
                         onOpenChange={setFormOpen}
                         project={editingProject}
                         mode={dialogMode}
+                        isVendor={isVendor}
                         onSave={handleSaveProject}
                         onLoadExistingAttachments={loadExistingAttachments}
                     />
+
+                    {isVendor && vendorSubmissionProject && (
+                        <VendorSubmissionDialog
+                            open={vendorSubmissionOpen}
+                            onOpenChange={(open) => {
+                                setVendorSubmissionOpen(open);
+                                if (!open) setVendorSubmissionProject(null);
+                            }}
+                            project={vendorSubmissionProject}
+                            vendorCompanyName={vendorCompanyName ?? vendorUser?.username ?? ""}
+                            onSave={handleVendorSubmissionSave}
+                        />
+                    )}
 
                     <AlertDialog
                         open={deleteConfirmId !== null}
