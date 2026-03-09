@@ -60,6 +60,7 @@ import Analytics from "./pages/Analytics";
 import Identity from "./pages/Identity";
 import ProjectDetail from "./pages/ProjectDetail";
 import { AdminLayout } from "./pages/AdminLayout";
+import Aianalyzie from "./components/Aianalyzie";
 
 const App = () => {
   console.log('App component rendering');
@@ -133,6 +134,7 @@ const App = () => {
                             </ModuleGuard>
                           )}
                         />
+                        <Route path="aianalyzie" element={<Aianalyzie />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
