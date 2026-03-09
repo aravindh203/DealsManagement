@@ -8,7 +8,8 @@ import {
     EditRegular,
     DeleteRegular,
 } from "@fluentui/react-icons";
-import { Eye, LogOut } from "lucide-react";
+import { Eye, LogOut, Sparkles } from "lucide-react";
+import AiSummarize from "../components/AI/AiSummarize";
 import { useAuth } from "../context/AuthContext";
 import { useProjects } from "../context/ProjectsContext";
 import { ProjectFormDialog, type ProjectDialogMode } from "../components/ProjectFormDialog";
@@ -158,6 +159,8 @@ const Directory: React.FC = () => {
     const [projectVendorBidAmountMap, setProjectVendorBidAmountMap] = useState<Record<string, string | null>>({});
     const [vendorSubmissionOpen, setVendorSubmissionOpen] = useState(false);
     const [vendorSubmissionProject, setVendorSubmissionProject] = useState<Project | null>(null);
+    const [aiSummarizeOpen, setAiSummarizeOpen] = useState(false);
+    const [aiSummarizeProject, setAiSummarizeProject] = useState<string | null>("");
 
     const totalProjects = projects.length;
 
@@ -440,6 +443,11 @@ const Directory: React.FC = () => {
         }
     };
 
+    const handleOpenAiSummarize = (project: Project) => {
+        setAiSummarizeProject(String(project.id));
+        setAiSummarizeOpen(true);
+    };
+
     const handleOpenVendorSubmission = (project: Project) => {
         setVendorSubmissionProject(project);
         setVendorSubmissionOpen(true);
@@ -700,6 +708,14 @@ const Directory: React.FC = () => {
                                                 >
                                                     <Eye size={16} />
                                                 </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.actionBtn}
+                                                    onClick={() => handleOpenAiSummarize(project)}
+                                                    title="AI Suggested Vendor"
+                                                >
+                                                    <Sparkles size={16} className="text-emerald-500" />
+                                                </button>
                                                 {isVendor ? (
                                                     !projectHasVendorSubmission[String(project.id)] && (
                                                         <button
@@ -761,6 +777,14 @@ const Directory: React.FC = () => {
                             onSave={handleVendorSubmissionSave}
                         />
                     )}
+                    <AiSummarize
+                        isOpen={aiSummarizeOpen}
+                        onClose={() => {
+                            setAiSummarizeOpen(false);
+                            setAiSummarizeProject(null);
+                        }}
+                        project={aiSummarizeProject}
+                    />
 
                     <AlertDialog
                         open={deleteConfirmId !== null}

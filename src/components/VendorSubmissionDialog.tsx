@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Project } from "@/pages/projectsData";
 import { DollarSign, FileText, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export interface VendorFilesByCategory {
   proposalDocument: File[];
@@ -59,6 +60,7 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
   const [filesByCategory, setFilesByCategory] =
     useState<VendorFilesByCategory>(emptyFiles);
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
@@ -93,6 +95,7 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
     try {
       await onSave(bidAmount.trim(), filesByCategory);
       onOpenChange(false);
+      navigate('/aianalyzie');
     } finally {
       setSaving(false);
     }
