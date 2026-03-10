@@ -1878,8 +1878,8 @@ export class SharePointService {
 
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
     const sitePath = "/sites/HackerthonDealsManagement";
-    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items`;
-
+    // const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items`;
+      const url = `https://graph.microsoft.com/v1.0/sites/chandrudemo.sharepoint.com:/sites/HackerthonDealsManagement:/lists/UserDetails/items`
     const body = {
       fields: {
         Title: trimmedUsername,

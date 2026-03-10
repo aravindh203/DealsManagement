@@ -128,3 +128,85 @@ ${JSON.stringify(vendorData, null, 2)}
   console.log("content", content);
   return JSON.parse(content);
 };
+
+
+
+
+
+export const analyzeProposalDocuments = async (vendorData: any, projectDetails: any) => {
+  const systemPrompt = `
+Your job is to analyze and compare the project description with the vendor proposal text provided through OCR or user input.
+
+Project Description: ${projectDetails?.P_Description || ""}
+
+Vendor Document / Text Input: ${vendorData}
+
+Instructions:
+
+Carefully compare the Project Description with the Vendor Document/Text Input.
+
+Evaluate how well the vendor proposal matches the project requirements, scope, services, cost indications, and compliance.
+
+Based on this comparison, calculate a match score from 0 to 100% indicating how well the vendor proposal aligns with the project description.
+
+Generate an AI suggestion based on the score using the rules below.
+
+Scoring Rules:
+
+0 – 69 → Poor match. Suggest improvements or recommend rejection.
+
+70 – 79 → Good match. Provide a positive recommendation explaining why the vendor is suitable.
+
+80 – 100 → Strong match. Provide a positive evaluation but also mention possible risks, gaps, or considerations.
+
+Response Format:
+
+Return ONLY valid JSON using this exact structure:
+
+{
+"score": 0,
+"aiSuggestion": ""
+}
+
+Only respond with valid JSON. Do not include markdown formatting like json`;
+
+  const userPrompt = `
+Project Details:
+${JSON.stringify(projectDetails, null, 2)}
+
+Vendor Documents Extracted Text:
+${JSON.stringify(vendorData, null, 2)}
+`;
+
+  const response = await fetch(
+    `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_DEPLOYMENT_NAME}/chat/completions?api-version=${AZURE_API_VERSION}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": AZURE_OPENAI_API_KEY,
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.2, // Low temperature for more analytical/consistent scoring
+        max_tokens: 1500,
+      }),
+    }
+  );
+
+  const json = await response.json();
+  let content = json.choices[0].message.content.trim();
+  
+  if (content.startsWith("```json")) {
+    content = content.substring(7);
+  }
+  if (content.endsWith("```")) {
+    content = content.substring(0, content.length - 3);
+  }
+
+  console.log("content", content);
+  return JSON.parse(content);
+};
