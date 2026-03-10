@@ -15,13 +15,10 @@ import {
   DollarSign,
   FileText,
   Loader2,
-  Search,
-  FileCheck,
-  ShieldCheck,
+  Paperclip,
   CheckCircle2,
-  CircleDot,
+  AlertCircle,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { getFileContent } from "@/services/aiFileService";
 import { analyzeProposalDocuments } from "@/services/aiSummary";
 
@@ -42,30 +39,6 @@ const CATEGORY_LABELS: { key: keyof VendorFilesByCategory; label: string }[] = [
 ];
 
 const emptyFiles: VendorFilesByCategory = {
-  proposalDocument: [],
-  supportingDocuments: [],
-  costEstimation: [],
-  policyDocuments: [],
-  approvalDocuments: [],
-};
-
-type VerificationStatus = "idle" | "processing" | "success" | "error";
-
-interface FileVerificationResult {
-  status: VerificationStatus;
-  score?: number;
-  aiSuggestion?: string;
-  error?: string;
-  fileName?: string;
-  categoryKey?: keyof VendorFilesByCategory;
-  fileIndex?: number;
-}
-
-type VerificationByCategory = {
-  [K in keyof VendorFilesByCategory]: FileVerificationResult[];
-};
-
-const emptyVerification: VerificationByCategory = {
   proposalDocument: [],
   supportingDocuments: [],
   costEstimation: [],
@@ -95,40 +68,24 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
   const [filesByCategory, setFilesByCategory] =
     useState<VendorFilesByCategory>(emptyFiles);
   const [saving, setSaving] = useState(false);
-  const [verificationByCategory, setVerificationByCategory] =
-    useState<VerificationByCategory>(emptyVerification);
-  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
-  const [activeVerification, setActiveVerification] = useState<FileVerificationResult | null>(null);
-  const navigate = useNavigate();
+  type VerificationStatus = "idle" | "processing" | "accepted" | "rejected" | "error";
+  interface VendorVerificationItem {
+    file: File;
+    category: string;
+    status: VerificationStatus;
+    description: string;
+    score?: number;
+    error?: string;
+  }
 
-  const steps = [
-    {
-      label: "Scanning Document Structure",
-      icon: <FileText className="w-5 h-5 text-emerald-600" />,
-      completedAt: 25,
-    },
-    {
-      label: "OCR Data Extraction",
-      icon: <Search className="w-5 h-5 text-emerald-600" />,
-      completedAt: 50,
-    },
-    {
-      label: "Signature Authenticity Check",
-      icon: <FileCheck className="w-5 h-5 text-emerald-600" />,
-      completedAt: 75,
-    },
-    {
-      label: "Legal Compliance Verification",
-      icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />,
-      completedAt: 100,
-    },
-  ];
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationItems, setVerificationItems] = useState<VendorVerificationItem[]>([]);
+  const [verificationRunning, setVerificationRunning] = useState(false);
 
   useEffect(() => {
     if (open) {
       setBidAmount("");
       setFilesByCategory({ ...emptyFiles });
-      setVerificationByCategory({ ...emptyVerification });
     }
   }, [open]);
 
@@ -140,151 +97,12 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
     if (!chosen?.length) return;
     const newFiles = Array.from(chosen);
 
-    // Track starting index for these new files in this category
-    let baseIndex = 0;
-
     setFilesByCategory((prev) => {
       const updated = {
         ...prev,
         [key]: [...(prev[key] ?? []), ...newFiles],
       };
       return updated;
-    });
-
-    // Initialize verification entries for all new files
-    setVerificationByCategory((prev) => {
-      const existing = prev[key] ?? [];
-      baseIndex = existing.length;
-      const extended: FileVerificationResult[] = [
-        ...existing,
-        ...newFiles.map((file) => ({
-          status: "processing" as VerificationStatus,
-          fileName: file.name,
-        })),
-      ];
-      return { ...prev, [key]: extended };
-    });
-
-    // Run AI verification for each newly added file and show in the rich popup
-    const projectDescription = project?.P_Description || "";
-
-    newFiles.forEach((file, localIndex) => {
-      const globalIndex = baseIndex + localIndex;
-
-      // Choose a friendly label for logging/diagnostics
-      const analysisCategoryLabel =
-        key === "proposalDocument" ? "PROPOSAL QUALITY" : String(key);
-
-      // Open / update the rich popup for this file
-      setActiveVerification({
-        status: "processing",
-        fileName: file.name,
-        categoryKey: key,
-        fileIndex: globalIndex,
-      });
-      setVerificationDialogOpen(true);
-
-      (async () => {
-        try {
-          const extractedContent = await getFileContent(
-            file,
-            analysisCategoryLabel,
-          );
-          const analysis = await analyzeProposalDocuments(extractedContent, {
-            P_Description: projectDescription,
-          });
-
-          const score = analysis?.score ?? 0;
-          const aiSuggestion = analysis?.aiSuggestion ?? "";
-
-          // If score is too low, do not keep the file in the list
-          if (score <= 50) {
-            setFilesByCategory((prev) => {
-              const copy = { ...prev };
-              const list = [...(copy[key] ?? [])];
-              copy[key] = list.filter((_, i) => i !== globalIndex);
-              return copy;
-            });
-            setVerificationByCategory((prev) => {
-              const copy = { ...prev };
-              const list = [...(copy[key] ?? [])];
-              copy[key] = list.filter((_, i) => i !== globalIndex);
-              return copy as VerificationByCategory;
-            });
-
-            setActiveVerification({
-              status: "error",
-              fileName: file.name,
-              error: `This document scored ${Math.round(
-                score,
-              )}%, which is below the minimum required score of 50%. It was not added to the submission.`,
-              categoryKey: key,
-              fileIndex: globalIndex,
-            });
-            return;
-          }
-
-          // Update inline state for this specific file
-          setVerificationByCategory((prev) => {
-            const copy = { ...prev };
-            const list = [...(copy[key] ?? [])];
-            if (!list[globalIndex]) {
-              list[globalIndex] = { status: "success", fileName: file.name };
-            }
-            list[globalIndex] = {
-              status: "success",
-              score,
-              aiSuggestion,
-              fileName: file.name,
-              categoryKey: key,
-              fileIndex: globalIndex,
-            };
-            copy[key] = list;
-            return copy as VerificationByCategory;
-          });
-
-          // Update popup view
-          setActiveVerification({
-            status: "success",
-            score,
-            aiSuggestion,
-            fileName: file.name,
-            categoryKey: key,
-            fileIndex: globalIndex,
-          });
-        } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Verification failed.";
-
-          setVerificationByCategory((prev) => {
-            const copy = { ...prev };
-            const list = [...(copy[key] ?? [])];
-            if (!list[globalIndex]) {
-              list[globalIndex] = {
-                status: "error",
-                error: message,
-                fileName: file.name,
-              };
-            } else {
-              list[globalIndex] = {
-                ...list[globalIndex],
-                status: "error",
-                error: message,
-              };
-            }
-            copy[key] = list;
-            return copy as VerificationByCategory;
-          });
-
-          setActiveVerification({
-            status: "error",
-            error: message,
-            fileName: file.name,
-            categoryKey: key,
-            fileIndex: globalIndex,
-          });
-        }
-      })();
     });
 
     e.target.value = "";
@@ -295,38 +113,125 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
       ...prev,
       [key]: (prev[key] ?? []).filter((_, i) => i !== index),
     }));
-    setVerificationByCategory((prev) => ({
-      ...prev,
-      [key]: (prev[key] ?? []).filter((_, i) => i !== index),
-    }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmVerification = async () => {
+    if (saving) return;
+
+    const acceptedItems = verificationItems.filter((i) => i.status === "accepted");
+    // Build filtered category map with only accepted files
+    const filtered: VendorFilesByCategory = {
+      proposalDocument: [],
+      supportingDocuments: [],
+      costEstimation: [],
+      policyDocuments: [],
+      approvalDocuments: [],
+    };
+    acceptedItems.forEach((item) => {
+      const match = CATEGORY_LABELS.find((c) => c.label === item.category);
+      if (!match) return;
+      filtered[match.key] = [...(filtered[match.key] ?? []), item.file];
+    });
+
     setSaving(true);
     try {
-      await onSave(bidAmount.trim(), filesByCategory);
+      await onSave(bidAmount.trim(), filtered);
+      setVerificationOpen(false);
       onOpenChange(false);
-      navigate('/aianalyzie');
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (saving) return;
+
+    // Flatten new files for verification
+    const allFiles: VendorVerificationItem[] = [];
+    CATEGORY_LABELS.forEach(({ key, label }) => {
+      (filesByCategory[key] ?? []).forEach((file) => {
+        allFiles.push({
+          file,
+          category: label,
+          status: "processing",
+          description: "",
+        });
+      });
+    });
+
+    if (allFiles.length === 0) {
+      // No files to verify, save immediately
+      setSaving(true);
+      try {
+        await onSave(bidAmount.trim(), filesByCategory);
+        onOpenChange(false);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    setVerificationItems(allFiles);
+    setVerificationOpen(true);
+    setVerificationRunning(true);
+
+    const projectDescription = project?.P_Description || "";
+    const verified: VendorVerificationItem[] = [];
+
+    for (const item of allFiles) {
+      try {
+        const extractedContent = await getFileContent(item.file, item.category);
+        const analysis = await analyzeProposalDocuments(extractedContent, {
+          P_Description: projectDescription,
+        });
+        const score = analysis?.score ?? 0;
+        const description = analysis?.aiSuggestion || "No AI description available.";
+
+        verified.push({
+          ...item,
+          status: score > 49 ? "accepted" : "rejected",
+          description,
+          score,
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Verification failed for this file.";
+        verified.push({
+          ...item,
+          status: "error",
+          description: "",
+          error: message,
+        });
+      }
+    }
+
+    setVerificationItems(verified);
+    setVerificationRunning(false);
+  };
+
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Vendor submission — {project.P_Name}</DialogTitle>
+      <DialogContent className="sm:max-w-[1000px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border shadow-xl bg-[#F8FAFC]">
+        <DialogHeader className="shrink-0 px-6 py-5 pb-4 border-b bg-gradient-to-b from-[#EFF4FF] to-[#F8FAFC]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EBE4FF] text-[#5a3dd4]">
+              <Paperclip className="h-5 w-5" />
+            </div>
+            <div className="space-y-0.5">
+              <DialogTitle className="text-lg font-semibold tracking-tight">
+                Vendor submission — {project.P_Name}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground">
+                Upload documents and enter your bid amount. A folder for <strong>{vendorCompanyName}</strong> will be created under this project&apos;s Vendor folder.
+              </p>
+            </div>
+          </div>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          Upload documents and enter your bid amount. A folder for{" "}
-          <strong>{vendorCompanyName}</strong> will be created under this
-          project&apos;s Vendor folder.
-        </p>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0">
+          <ScrollArea className="flex-1 min-h-0 overflow-auto">
+          <div className="space-y-5 px-6 py-5">
             <div className="space-y-2">
               <Label htmlFor="vendor-bid-amount" className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -342,100 +247,71 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
               />
             </div>
 
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              Attachments (upload by category)
-            </div>
-            <ScrollArea className="max-h-[320px] overflow-y-auto rounded-lg border p-3 space-y-4">
-              {CATEGORY_LABELS.map(({ key, label }) => (
-                <div key={key} className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    {label}
-                  </Label>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <Input
-                      type="file"
-                      multiple
-                      className="h-9 text-sm max-w-[200px]"
-                      onChange={(e) => handleFileChange(key, e)}
-                      disabled={saving}
-                    />
-                    {(filesByCategory[key] ?? []).length > 0 && (
-                      <ul className="flex flex-col gap-1.5 list-none text-xs w-full">
-                        {(filesByCategory[key] ?? []).map((file, idx) => {
-                          const verification = verificationByCategory[key]?.[idx];
-                          return (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-2 text-sm font-medium text-foreground">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  Attachments (upload by category)
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  {Object.values(filesByCategory).reduce((sum, arr) => sum + (arr?.length || 0), 0)} file(s) selected
+                </span>
+              </div>
+              <ScrollArea className="max-h-[340px] overflow-y-auto rounded-lg border bg-muted/10 p-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {CATEGORY_LABELS.map(({ key, label }) => (
+                    <div
+                      key={key}
+                      className="rounded-xl bg-white border border-slate-100 px-3 py-3 flex flex-col gap-2 shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs font-semibold text-slate-700">
+                          {label}
+                        </Label>
+                        <span className="text-[10px] text-slate-400">
+                          {(filesByCategory[key] ?? []).length || 0} file(s)
+                        </span>
+                      </div>
+                      <label className="inline-flex items-center justify-center h-8 rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-600 cursor-pointer hover:border-[#5a3dd4]/50 hover:bg-[#F4F3FF] transition-colors">
+                        <span className="px-2">Choose files</span>
+                        <Input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => handleFileChange(key, e)}
+                          disabled={saving}
+                        />
+                      </label>
+                      {(filesByCategory[key] ?? []).length > 0 && (
+                        <ul className="space-y-1 list-none text-[11px] w-full">
+                          {(filesByCategory[key] ?? []).map((file, idx) => (
                             <li
                               key={`${file.name}-${idx}`}
-                              className="flex flex-col gap-1 rounded bg-muted px-2 py-1"
+                              className="flex items-center gap-2 rounded-lg bg-slate-50 px-2 py-1 border border-slate-100"
                             >
-                              <div className="flex items-center gap-1">
-                                <span className="truncate max-w-[120px]">
-                                  {file.name}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="text-destructive hover:underline"
-                                  onClick={() => removeFile(key, idx)}
-                                  disabled={saving}
-                                  aria-label={`Remove ${file.name}`}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                              {/* Inline AI verification status for this file */}
-                              {verification && (
-                                <div className="mt-0.5 text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                  {verification.status === "processing" && (
-                                    <>
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                      <span>
-                                        AI document verification in progress…
-                                      </span>
-                                    </>
-                                  )}
-                                  {verification.status === "success" && (
-                                    <span className="text-emerald-600">
-                                      Score:{" "}
-                                      <strong>
-                                        {Math.round(
-                                          verification.score ?? 0,
-                                        )}
-                                        %
-                                      </strong>
-                                      {verification.aiSuggestion && (
-                                        <>
-                                          {" "}
-                                          —{" "}
-                                          {verification.aiSuggestion.length >
-                                          120
-                                            ? `${verification.aiSuggestion.slice(
-                                                0,
-                                                120,
-                                              )}…`
-                                            : verification.aiSuggestion}
-                                        </>
-                                      )}
-                                    </span>
-                                  )}
-                                  {verification.status === "error" && (
-                                    <span className="text-destructive">
-                                      Verification failed.
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                              <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate flex-1">{file.name}</span>
+                              <button
+                                type="button"
+                                className="text-[12px] text-destructive hover:underline shrink-0"
+                                onClick={() => removeFile(key, idx)}
+                                disabled={saving}
+                                aria-label={`Remove ${file.name}`}
+                              >
+                                ×
+                              </button>
                             </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </ScrollArea>
+              </ScrollArea>
+            </section>
           </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="shrink-0 px-6 py-4 flex-row justify-end gap-2 bg-muted/20">
             <Button
               type="button"
               variant="outline"
@@ -444,7 +320,11 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button
+              type="submit"
+              disabled={saving}
+              className="bg-[#5a3dd4] hover:bg-[#4a30b5]"
+            >
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -459,240 +339,136 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
       </DialogContent>
     </Dialog>
 
-    {/* Rich document verification popup */}
-    <Dialog open={verificationDialogOpen} onOpenChange={setVerificationDialogOpen}>
-      <DialogContent
-        className="max-w-[100vw] sm:max-w-[100vw] w-[100vw] h-[100vh] bg-[#F8FAFC] border-0 shadow-2xl rounded-none p-0 overflow-hidden [&>button]:hidden"
-      >
-        <div
-          className="w-full h-full flex flex-col items-center justify-start px-4 pt-5 pb-10 md:px-8 md:pt-6 md:pb-12 font-sans"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px)
-            `,
-            backgroundSize: "60px 60px",
-          }}
-        >
-          {/* Top pill */}
-          <div className="mb-3">
-            <div className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-full shadow-sm border border-slate-100/50">
-              <div className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse relative">
-                <div className="absolute inset-0 rounded-full bg-violet-400 animate-ping opacity-75"></div>
-              </div>
-              <span className="text-[10px] font-bold tracking-[0.2em] text-violet-600 uppercase">
-                Nexus AI Intelligence
-              </span>
+    {/* Vendor attachment verification dialog (same style as project attachments) */}
+    <Dialog open={verificationOpen} onOpenChange={setVerificationOpen}>
+      <DialogContent className="sm:max-w-[720px] max-h-[90vh] flex flex-col gap-0 rounded-2xl border shadow-2xl bg-white p-0 overflow-hidden">
+        <div className="px-6 pt-5 pb-3 border-b bg-gradient-to-r from-[#F4F3FF] via-white to-[#F4F3FF] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-[#EBE4FF] flex items-center justify-center text-[#5a3dd4]">
+              <Paperclip className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">
+                Verifying vendor documents
+              </h2>
+              <p className="text-xs text-slate-500">
+                Our AI is reviewing your uploaded documents and describing how well they support this bid.
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Hero titles */}
-          <div className="text-center mb-4 px-4">
-            <h1 className="text-3xl md:text-[2.3rem] font-extrabold tracking-tight text-[#0F172A] mb-1.5">
-              Document{" "}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-500 to-[#7C3AED]">
-                Validation
-              </span>
-            </h1>
-            <p className="text-sm md:text-base text-slate-500 max-w-xl mx-auto font-medium leading-relaxed">
-              Our neural engine is analyzing{" "}
-              {activeVerification?.fileName ? (
-                <span className="font-semibold text-slate-700">
-                  {activeVerification.fileName}
-                </span>
-              ) : (
-                "your file"
-              )}{" "}
-              for authenticity, compliance, and structural integrity.
-            </p>
-          </div>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="px-6 py-4 space-y-4">
+            {verificationItems.map((item, index) => {
+              const isAccepted = item.status === "accepted";
+              const isRejected = item.status === "rejected";
+              const isError = item.status === "error";
+              const isProcessing = item.status === "processing";
 
-          {/* Main card */}
-          <div className="w-full max-w-lg bg-white rounded-[2rem] p-6 shadow-2xl shadow-indigo-500/5 border border-white/60 relative overflow-hidden mb-6">
-            {/* Header row */}
-            <div className="flex justify-between items-end mb-5">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold tracking-[0.25em] text-violet-500 uppercase">
-                  Document Verification
-                </span>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  AI Validation Progress
-                </h2>
-              </div>
-              <div className="text-2xl font-light text-violet-600 mb-[-2px]">
-                {Math.min(
-                  100,
-                  activeVerification?.status === "processing"
-                    ? 79
-                    : Math.max(5, Math.round(activeVerification?.score ?? 100))
-                )}
-                %
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="w-full h-3 bg-slate-100 rounded-full mb-6 overflow-hidden shadow-inner relative">
-              <div
-                className="h-full bg-gradient-to-r from-violet-500 to-[#7C3AED] rounded-full transition-all duration-200 ease-out relative"
-                style={{
-                  width: `${Math.min(
-                    100,
-                    activeVerification?.status === "processing"
-                      ? 79
-                      : Math.max(5, Math.round(activeVerification?.score ?? 100))
-                  )}%`,
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[progress-shimmer_1.5s_infinite]"></div>
-              </div>
-            </div>
-
-            {/* Steps */}
-            <div className="flex flex-col gap-2.5 mb-4">
-              {steps.map((step, index) => {
-                const progressValue =
-                  activeVerification?.status === "processing"
-                    ? 79
-                    : Math.min(100, Math.round(activeVerification?.score ?? 100));
-
-                const isCompleted = progressValue >= step.completedAt;
-                const prevThreshold = index === 0 ? 0 : steps[index - 1].completedAt;
-                const isCurrent =
-                  progressValue < step.completedAt && progressValue >= prevThreshold;
-
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between transition-all duration-500 ease-out"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all duration-500 ${
-                          isCompleted || isCurrent
-                            ? "bg-emerald-50/80 shadow-sm"
-                            : "bg-slate-50 grayscale opacity-50"
-                        }`}
-                      >
-                        {step.icon}
+              return (
+                <div
+                  key={`${item.file.name}-${index}`}
+                  className="rounded-xl border bg-slate-50/60 px-4 py-3 flex flex-col gap-1.5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center border border-slate-100">
+                        <FileText className="h-4 w-4 text-slate-500" />
                       </div>
-                      <span
-                        className={`text-[11px] font-semibold transition-colors duration-500 ${
-                          isCompleted
-                            ? "text-slate-700"
-                            : isCurrent
-                            ? "text-slate-900"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {step.label}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-slate-900 truncate max-w-[260px]">
+                          {item.file.name}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {item.category} · {Math.round((item.file.size || 0) / 1024)} KB
+                        </span>
+                      </div>
                     </div>
-                    <div className="w-8 flex items-center justify-end">
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" strokeWidth={2.5} />
-                      ) : isCurrent ? (
-                        <Loader2 className="w-4 h-4 text-violet-500 animate-spin opacity-80" strokeWidth={2.5} />
-                      ) : (
-                        <CircleDot className="w-4 h-4 text-slate-200" strokeWidth={2} />
+                    <div className="flex items-center gap-1.5">
+                      {isProcessing && (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-[#5a3dd4]" />
+                          <span className="text-[11px] font-medium text-slate-500">
+                            Analyzing…
+                          </span>
+                        </>
+                      )}
+                      {isAccepted && (
+                        <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                          <span className="text-[11px] font-medium text-emerald-700">
+                            Accepted
+                          </span>
+                        </div>
+                      )}
+                      {(isRejected || isError) && (
+                        <div className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5">
+                          <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+                          <span className="text-[11px] font-medium text-red-700">
+                            {isError ? "Error" : "Not eligible"}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Divider */}
-            <div className="h-px w-full bg-slate-100 mb-2.5" />
-
-            {/* Footer & status row */}
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center gap-2.5">
-                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                  <span
-                    className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      activeVerification?.status === "processing"
-                        ? "animate-ping bg-emerald-400"
-                        : "bg-violet-400"
-                    }`}
-                  ></span>
-                  <span
-                    className={`relative inline-flex rounded-full h-2 w-2 ${
-                      activeVerification?.status === "processing"
-                        ? "bg-emerald-500"
-                        : "bg-violet-500"
-                    }`}
-                  ></span>
-                </span>
-                <span
-                  className={`text-[10px] font-bold tracking-widest uppercase ${
-                    activeVerification?.status === "processing"
-                      ? "text-slate-400"
-                      : activeVerification?.status === "error"
-                      ? "text-red-500"
-                      : "text-violet-500"
-                  }`}
-                >
-                  {activeVerification?.status === "processing"
-                    ? "AI Engine Active"
-                    : activeVerification?.status === "error"
-                    ? "Validation Failed"
-                    : "Validation Complete"}
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">
-                ID: DOC-VAL-2024
-              </span>
-            </div>
-
-            {/* Detailed AI explanation block */}
-            <div className="mt-2.5">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">
-                  Summary
-                </span>
-                <span className="text-[10px] font-semibold text-slate-300 uppercase tracking-[0.16em]">
-                  Details
-                </span>
-              </div>
-
-              <div
-                className={`rounded-xl px-3 py-2.5 text-[11px] leading-relaxed overflow-y-auto ${
-                  activeVerification?.status === "error"
-                    ? "bg-red-50"
-                    : "bg-slate-50"
-                }`}
-                style={{ maxHeight: "3.6rem" }}  /* ~3 lines before scroll */
-              >
-                {activeVerification?.status === "processing" && (
-                  <p className="text-slate-700">
-                    Our AI is reading the document, extracting key sections and comparing them to
-                    the project description to compute a relevance score.
-                  </p>
-                )}
-                {activeVerification?.status === "success" &&
-                  activeVerification.aiSuggestion && (
-                    <p className="text-slate-700">
-                      {activeVerification.aiSuggestion}
-                    </p>
+                  {!isProcessing && (
+                    <div className="mt-1 rounded-lg bg-[#F3F6FF] px-3 py-2">
+                      <p className="text-[11px] leading-relaxed text-slate-600">
+                        {isError
+                          ? item.error
+                          : item.description || "No AI description available."}
+                      </p>
+                    </div>
                   )}
-                {activeVerification?.status === "error" && (
-                  <p className="text-red-600">
-                    We could not verify this document: {activeVerification.error}
-                  </p>
-                )}
-              </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
 
-              {/* Close / back button inside popup */}
-              <div className="mt-3.5 pt-1 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setVerificationDialogOpen(false)}
-                  className="inline-flex items-center justify-center rounded-lg bg-[#0F172A] text-white text-[11px] font-semibold px-4 py-1.5 shadow-sm hover:bg-[#111827] transition-colors"
-                >
-                  Back to document upload
-                </button>
-              </div>
-            </div>
+        <div className="px-6 py-3 border-t bg-slate-50 flex items-center justify-between gap-3">
+          <div className="text-[11px] text-slate-500">
+            {verificationRunning
+              ? "Verifying files…"
+              : (() => {
+                  const rejectedCount = verificationItems.filter(
+                    (i) => i.status === "rejected",
+                  ).length;
+                  if (rejectedCount === 0) {
+                    return "All documents look relevant. They will be attached to this submission.";
+                  }
+                  return `${rejectedCount} document(s) were rejected (score below 50) and will not be attached.`;
+                })()}
+          </div>
+          <div className="flex items-center gap-2">
+            {!verificationRunning && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setVerificationOpen(false)}
+              >
+                Back and change files
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              disabled={verificationRunning}
+              onClick={handleConfirmVerification}
+              className="bg-[#5a3dd4] hover:bg-[#4a30b5]"
+            >
+              {verificationRunning ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  Verifying…
+                </>
+              ) : (
+                "Confirm & save submission"
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>
