@@ -2,12 +2,7 @@ import React from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Sparkles, CheckCircle, Globe, Zap, FileText, DollarSign, ChevronRight, X, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { appConfig } from '../../config/appConfig';
@@ -39,75 +34,16 @@ export interface AiSummarizeProps {
   project?: any;
 }
 
-const defaultVendors: VendorDetails[] = [
-  {
-    name: "TechNova Inc.",
-    matchPercentage: 94,
-    location: "New York, USA",
-    website: "www.technovasolutions.com",
-    bidAmount: "125,000",
-    confidence: "High",
-    documentScores: [
-      { name: "PROPOSAL QUALITY", score: 95 },
-      { name: "COST ACCURACY", score: 92 },
-      { name: "POLICY COMPLIANCE", score: 100 },
-    ],
-    reasonsForMatch: [
-      "Perfect API alignment",
-      "Cost-effective model",
-      "High scalability"
-    ],
-  },
-  {
-    name: "Global Systems",
-    matchPercentage: 88,
-    location: "London, UK",
-    website: "www.globalsys.co.uk",
-    bidAmount: "140,000",
-    confidence: "High",
-    documentScores: [
-      { name: "PROPOSAL QUALITY", score: 85 },
-      { name: "COST ACCURACY", score: 89 },
-      { name: "POLICY COMPLIANCE", score: 90 },
-    ],
-    reasonsForMatch: [
-      "Strong enterprise exp.",
-      "High compliance scores",
-      "Global support"
-    ],
-  },
-  {
-    name: "AgileWorks LLC",
-    matchPercentage: 82,
-    location: "Austin, USA",
-    website: "www.agileworks.io",
-    bidAmount: "115,000",
-    confidence: "High",
-    documentScores: [
-      { name: "PROPOSAL QUALITY", score: 80 },
-      { name: "COST ACCURACY", score: 98 },
-      { name: "POLICY COMPLIANCE", score: 85 },
-    ],
-    reasonsForMatch: [
-      "Lowest bid amount",
-      "Fastest delivery timeline",
-      "Agile methodology"
-    ],
-  }
-];
-
 const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData, project }) => {
-    console.log("project", project);
-  
   // Loading state
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [progressValue, setProgressValue] = useState(0);
   const [analyzedVendors, setAnalyzedVendors] = useState<VendorDetails[]>([]);
   const [processingStatus, setProcessingStatus] = useState("Initializing AI Engine...");
 
-  const vendors = vendorsData || (analyzedVendors.length > 0 ? analyzedVendors : defaultVendors);
+  const vendors = vendorsData || analyzedVendors;
 
-  // Trigger fake loading when modal opens
+  // Trigger loading and analysis when modal opens
   useEffect(() => {
     if (isOpen) {
       setIsAnalyzing(true);
@@ -121,32 +57,22 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
           const containerId = appConfig.ContainerID;
           
           const vendorFolderId = await sharePointService.getVendorFolderId(token, containerId, String(project));
-          if (!vendorFolderId) return;
+          if (!vendorFolderId) {
+            setIsAnalyzing(false);
+            return;
+          }
 
-          // Fetch the full Project details to compare the vendor against
           setProcessingStatus("Fetching Full Project Details...");
-          console.log("Fetching Full Project Details...");
           const projectDetails = await sharePointService.fetchCustomDatas(token, containerId, String(project));
 
           setProcessingStatus("Reading Vendor Folders...");
           const companyFolders = await sharePointService.listFiles(token, containerId, vendorFolderId);
           
-          // Structured array to hold each vendor's files
-          const allVendors: {
-            vendorName: string;
-            documents: {
-              ProposalDocument?: { file: Blob; meta: FileItem; extractedContent?: any };
-              SupportingDocuments?: { file: Blob; meta: FileItem; extractedContent?: any }[];
-              CostEstimation?: { file: Blob; meta: FileItem; extractedContent?: any };
-              PolicyDocuments?: { file: Blob; meta: FileItem; extractedContent?: any }[];
-              ApprovalDocuments?: { file: Blob; meta: FileItem; extractedContent?: any }[];
-              Other?: { type: string; file: Blob; meta: FileItem; extractedContent?: any }[];
-            }
-          }[] = [];
+          const allVendors: any[] = [];
 
           for (const company of companyFolders) {
             if (company.folder) {
-              const vendorObj: typeof allVendors[0] = {
+              const vendorObj: any = {
                 vendorName: company.name,
                 documents: {}
               };
@@ -162,13 +88,9 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                         const fileBlob = new Blob([buffer], { type: f.file?.mimeType || 'application/octet-stream' });
                         
                         setProcessingStatus(`Extracting text from ${f.name}...`);
-                        console.log(`Extracting text from ${f.name} via Document Intelligence...`);
-                        // Cast to File as required by getFileContent, though Blob has arrayBuffer() too
                         const extractedContent = await getFileContent(fileBlob as any as File, f.name);
 
                         const docObj = { file: fileBlob, meta: f, extractedContent };
-
-                        // Map folder names to categories
                         const folderName = sub.name.toLowerCase();
                         if (folderName.includes("proposal")) {
                           vendorObj.documents.ProposalDocument = docObj;
@@ -188,7 +110,7 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                            vendorObj.documents.Other.push({ type: sub.name, ...docObj });
                         }
                       } catch (err) {
-                        console.error(`Failed to download content for file ${f.name} in ${company.name}:`, err);
+                        console.error(`Failed to download content for file ${f.name}:`, err);
                       }
                     }
                   }
@@ -197,15 +119,11 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
               allVendors.push(vendorObj);
             }
           }
-          console.log("Structured Vendor Data extracted:", allVendors);
 
-          // Now send each vendor to Azure OpenAI for final scoring
           const finalScoredVendors: VendorDetails[] = [];
-          
           for (const vendor of allVendors) {
             try {
-              setProcessingStatus(`Analyzing and scoring ${vendor.vendorName}...`);
-              console.log(`Sending ${vendor.vendorName} to Azure OpenAI for scoring...`);
+              setProcessingStatus(`Analyzing ${vendor.vendorName}...`);
               const openAiResult = await analyzeVendorDocuments(vendor, projectDetails || project);
               
               finalScoredVendors.push({
@@ -219,17 +137,12 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                 reasonsForMatch: openAiResult.reasonsForMatch || []
               });
             } catch (err) {
-              console.error(`Error scoring vendor ${vendor.vendorName} via OpenAI:`, err);
+              console.error(`Error scoring vendor ${vendor.vendorName}:`, err);
             }
           }
 
-          // Sort vendors by matchPercentage (highest first)
           const sortedVendors = [...finalScoredVendors].sort((a, b) => b.matchPercentage - a.matchPercentage);
-
-          console.log("Final Scored Vendors (Sorted):", sortedVendors);
           setAnalyzedVendors(sortedVendors);
-          
-          // Complete the internal loading state
           setIsAnalyzing(false);
 
         } catch (error) {
@@ -241,35 +154,20 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
       fetchVendorData();
 
       const interval = setInterval(() => {
-        setProgressValue((prev) => {
-          if (prev >= 95) {
-            // Stay at 95% until AI actually finishes
-            return 95;
-          }
-          return prev + 5;
-        });
+        setProgressValue((prev) => (prev >= 95 ? 95 : prev + 5));
       }, 500);
 
       return () => clearInterval(interval);
     }
-  }, [isOpen]);
+  }, [isOpen, project]);
 
-  const docScoreColors = [
-    'bg-[#5b45ff]', // Blueish purple
-    'bg-[#00c875]', // Green
-    'bg-[#ff9900]', // Orange
-  ];
+  const docScoreColors = ['bg-[#5b45ff]', 'bg-[#00c875]', 'bg-[#ff9900]'];
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      {/* Hide close button built into DialogContent to use our custom one, or style it. 
-          Standard shadcn DialogContent normally has a close X, we'll just layer ours if needed, 
-          or leave it. Radix handles it. */}
       <DialogContent className="sm:max-w-[1000px] bg-[#f4f5f7] border-0 text-slate-800 shadow-2xl overflow-hidden p-0 rounded-3xl font-[Inter,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] [&>button]:hidden">
         
-        {/* Header Section */}
         <div className="px-8 pt-6 pb-4 bg-[#f4f5f7]">
-          {/* Custom Close Button */}
           <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -289,7 +187,6 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
               </p>
             </div>
 
-            {/* Avatars & Count Pill */}
             {!isAnalyzing && (
               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm mt-1">
                 <div className="flex -space-x-2">
@@ -305,20 +202,15 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
           </div>
         </div>
 
-        {/* Divider above content */}
         <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent opacity-60" />
 
-        {/* Main Content Area */}
         <div className="px-8 py-6 bg-[#eaecf0] min-h-[400px] flex flex-col justify-center">
           
           {isAnalyzing ? (
-            // Loading State
             <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto py-12">
                <div className="relative w-16 h-16 mb-6 flex items-center justify-center">
-                 {/* Outer rotating ring */}
                  <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
                  <div className="absolute inset-0 rounded-full border-4 border-[#5b45ff] border-t-transparent animate-spin" />
-                 {/* Inner static icon */}
                  <Sparkles className="w-8 h-8 text-[#5b45ff] animate-pulse" />
                </div>
                <h3 className="text-xl font-bold text-[#1a1b25] mb-2">Analyzing documents...</h3>
@@ -326,7 +218,6 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                  Reviewing proposals, estimating costs, and checking policy alignment against your project criteria.
                </p>
                
-               {/* Progress Bar */}
                <div className="w-full relative">
                  <div className="flex justify-between items-end mb-2">
                    <span className="text-xs font-medium text-[#5b45ff] animate-pulse">
@@ -345,133 +236,125 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                </div>
             </div>
           ) : (
-            // Cards Grid
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {vendors.map((vendor, vIndex) => (
-                <div 
-                  key={vIndex} 
-                  className={`flex flex-col bg-white rounded-[24px] overflow-hidden relative shadow-sm transition-all duration-300
-                    ${vIndex === 0 ? 'ring-2 ring-[#5b45ff] shadow-[0_8px_30px_rgba(91,69,255,0.12)] scale-[1.02] z-10' : 'border border-gray-100'}`}
-                >
-                  
-                  {/* AI TOP PICK Pill (Floating top center) */}
-                  {vIndex === 0 && (
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-[#5b45ff] text-white text-[9px] font-[800] px-4 py-1.5 rounded-b-xl flex items-center gap-1.5 uppercase tracking-widest shadow-md">
-                      <Sparkles className="w-3 h-3" />
-                      AI Top Pick
-                    </div>
-                  )}
-                  
-                  {/* Card Header (Title & Circular Score) */}
-                  <div className="p-4 pt-6 pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="pt-0.5">
-                        <h3 className="text-[17px] font-bold text-[#1a1b25] leading-tight flex items-center gap-1.5">
-                          {vendor.name}
-                        </h3>
-                        <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-gray-400">
-                          <Globe className="w-3 h-3" />
-                          <span className="truncate max-w-[140px] hover:text-gray-600 transition-colors cursor-pointer">{vendor.website}</span>
-                        </div>
-                      </div>
-                      
-                      {/* Circular Gauge */}
-                      <div className="relative w-[44px] h-[44px] flex items-center justify-center shrink-0">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="44" fill="none" stroke="#f1f5f9" strokeWidth="8" />
-                          <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="8"
-                            strokeDasharray={`${vendor.matchPercentage * 2.76} 276`}
-                            strokeLinecap="round"
-                            className={vIndex === 0 ? "text-[#5b45ff]" : "text-[#00c875]"}
-                          />
-                        </svg>
-                        <div className="absolute flex flex-col items-center justify-center">
-                          <span className="text-[13px] font-[900] text-[#1a1b25]">{vendor.matchPercentage}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bid & Confidence Block */}
-                    <div className="mt-4 bg-[#f8f9fc] rounded-xl flex items-center">
-                      <div className="flex-1 p-2 px-3">
-                        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Bid Amount</div>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3 text-gray-400" />
-                          <span className="text-[14px] font-[900] text-[#1a1b25] tracking-tight">${vendor.bidAmount}</span>
-                        </div>
-                      </div>
-                      <div className="w-px h-8 bg-gray-200" />
-                      <div className="flex-1 p-2 px-3">
-                        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Confidence</div>
-                        <span className="text-[12px] font-[900] text-[#00c875]">{vendor.confidence}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Body Section (Analysis & Reasons) */}
-                  <div className="px-4 flex-1 flex flex-col">
-                    
-                    {/* Document Scores */}
-                    <div className="py-3">
-                      <h4 className="flex items-center gap-1.5 text-[9px] font-bold text-[#1a1b25] uppercase tracking-widest mb-2.5">
-                        <FileText className="w-3 h-3 text-[#5b45ff]" />
-                        Document Scores
-                      </h4>
-                      <div className="space-y-2.5">
-                        {vendor.documentScores.slice(0, 3).map((doc, index) => (
-                          <div key={index} className="space-y-1">
-                            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wide">
-                              <span className="text-gray-500">{doc.name}</span>
-                              <span className="text-gray-400">{doc.score}%</span>
-                            </div>
-                            <div className="h-[2px] w-full bg-gray-100 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${docScoreColors[index % docScoreColors.length]}`}
-                                style={{ width: `${doc.score}%` }} 
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-px w-full bg-gray-100 my-1" />
-
-                    {/* AI Insights & Buttons */}
-                    <div className="py-3 flex flex-col flex-1">
-                      <h4 className="flex items-center gap-1.5 text-[9px] font-bold text-[#1a1b25] uppercase tracking-widest mb-2">
-                        <Zap className="w-3 h-3 text-[#5b45ff]" />
-                        AI Insights
-                      </h4>
-                      <ul className="space-y-1.5 mb-4 flex-1">
-                        {vendor.reasonsForMatch.map((reason, index) => (
-                          <li key={index} className="flex gap-1.5 text-[11px] text-gray-600 items-center font-medium">
-                            <CheckCircle className="w-3 h-3 text-[#00c875] shrink-0" />
-                            <span>{reason}</span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      {/* Action Button */}
-                      <button className={`w-full py-2.5 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors
-                        ${vIndex === 0 
-                          ? 'bg-[#5b45ff] hover:bg-[#4a35ea] text-white shadow-md' 
-                          : 'bg-[#f4f5f7] hover:bg-[#e2e4e9] text-[#1a1b25]'}`}>
-                        View Details
-                        <ChevronRight className={`w-3.5 h-3.5 ${vIndex === 0 ? 'text-white' : 'text-gray-400'}`} />
-                      </button>
-                    </div>
-
-                  </div>
+              {vendors.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-gray-500 font-medium bg-white rounded-3xl">
+                  No vendors found or matched for this project.
                 </div>
-              ))}
+              ) : (
+                vendors.map((vendor, vIndex) => (
+                  <div 
+                    key={vIndex} 
+                    className={`flex flex-col bg-white rounded-[24px] overflow-hidden relative shadow-sm transition-all duration-300
+                      ${vIndex === 0 ? 'ring-2 ring-[#5b45ff] shadow-[0_8px_30px_rgba(91,69,255,0.12)] scale-[1.02] z-10' : 'border border-gray-100'}`}
+                  >
+                    {vIndex === 0 && (
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-[#5b45ff] text-white text-[9px] font-[800] px-4 py-1.5 rounded-b-xl flex items-center gap-1.5 uppercase tracking-widest shadow-md">
+                        <Sparkles className="w-3 h-3" />
+                        AI Top Pick
+                      </div>
+                    )}
+                    
+                    <div className="p-4 pt-6 pb-2">
+                      <div className="flex items-start justify-between">
+                        <div className="pt-0.5">
+                          <h3 className="text-[17px] font-bold text-[#1a1b25] leading-tight flex items-center gap-1.5">
+                            {vendor.name}
+                          </h3>
+                          <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-gray-400">
+                            <Globe className="w-3 h-3" />
+                            <span className="truncate max-w-[140px] hover:text-gray-600 transition-colors cursor-pointer">{vendor.website}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="relative w-[44px] h-[44px] flex items-center justify-center shrink-0">
+                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="44" fill="none" stroke="#f1f5f9" strokeWidth="8" />
+                            <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="8"
+                              strokeDasharray={`${vendor.matchPercentage * 2.76} 276`}
+                              strokeLinecap="round"
+                              className={vIndex === 0 ? "text-[#5b45ff]" : "text-[#00c875]"}
+                            />
+                          </svg>
+                          <div className="absolute flex flex-col items-center justify-center">
+                            <span className="text-[13px] font-[900] text-[#1a1b25]">{vendor.matchPercentage}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 bg-[#f8f9fc] rounded-xl flex items-center">
+                        <div className="flex-1 p-2 px-3">
+                          <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Bid Amount</div>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3 text-gray-400" />
+                            <span className="text-[14px] font-[900] text-[#1a1b25] tracking-tight">{typeof vendor.bidAmount === 'number' ? `$${vendor.bidAmount.toLocaleString()}` : vendor.bidAmount}</span>
+                          </div>
+                        </div>
+                        <div className="w-px h-8 bg-gray-200" />
+                        <div className="flex-1 p-2 px-3">
+                          <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Confidence</div>
+                          <span className="text-[12px] font-[900] text-[#00c875]">{vendor.confidence}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-4 flex-1 flex flex-col">
+                      <div className="py-3">
+                        <h4 className="flex items-center gap-1.5 text-[9px] font-bold text-[#1a1b25] uppercase tracking-widest mb-2.5">
+                          <FileText className="w-3 h-3 text-[#5b45ff]" />
+                          Document Scores
+                        </h4>
+                        <div className="space-y-2.5">
+                          {vendor.documentScores.slice(0, 3).map((doc, index) => (
+                            <div key={index} className="space-y-1">
+                              <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wide">
+                                <span className="text-gray-500">{doc.name}</span>
+                                <span className="text-gray-400">{doc.score}%</span>
+                              </div>
+                              <div className="h-[2px] w-full bg-gray-100 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full ${docScoreColors[index % docScoreColors.length]}`}
+                                  style={{ width: `${doc.score}%` }} 
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="h-px w-full bg-gray-100 my-1" />
+
+                      <div className="py-3 flex flex-col flex-1">
+                        <h4 className="flex items-center gap-1.5 text-[9px] font-bold text-[#1a1b25] uppercase tracking-widest mb-2">
+                          <Zap className="w-3 h-3 text-[#5b45ff]" />
+                          AI Insights
+                        </h4>
+                        <ul className="space-y-1.5 mb-4 flex-1">
+                          {vendor.reasonsForMatch.map((reason, index) => (
+                            <li key={index} className="flex gap-1.5 text-[11px] text-gray-600 items-center font-medium">
+                              <CheckCircle className="w-3 h-3 text-[#00c875] shrink-0" />
+                              <span>{reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <button className={`w-full py-2.5 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors
+                          ${vIndex === 0 
+                            ? 'bg-[#5b45ff] hover:bg-[#4a35ea] text-white shadow-md' 
+                            : 'bg-[#f4f5f7] hover:bg-[#e2e4e9] text-[#1a1b25]'}`}>
+                         Select Vendor
+                          <ChevronRight className={`w-3.5 h-3.5 ${vIndex === 0 ? 'text-white' : 'text-gray-400'}`} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
         </div>
 
-        {/* Footer Area */}
         <div className="bg-white px-8 py-3.5 flex items-center justify-between border-t border-gray-100">
           <div className="flex items-center gap-5">
             <div className="flex items-center gap-1.5 text-[10px] font-[800] text-[#00c875] uppercase tracking-widest">
