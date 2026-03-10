@@ -59,6 +59,7 @@ import Repository from "./pages/Repository";
 import Analytics from "./pages/Analytics";
 import Identity from "./pages/Identity";
 import ProjectDetail from "./pages/ProjectDetail";
+import VendorApprovals from "./pages/VendorApprovals";
 import { AdminLayout } from "./pages/AdminLayout";
 import Aianalyzie from "./components/Aianalyzie";
 
@@ -123,6 +124,14 @@ const App = () => {
                           element={(
                             <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
                               <Analytics />
+                            </ModuleGuard>
+                          )}
+                        />
+                        <Route
+                          path="vendor-approvals"
+                          element={(
+                            <ModuleGuard allowedRoles={['admin']}>
+                              <VendorApprovals />
                             </ModuleGuard>
                           )}
                         />

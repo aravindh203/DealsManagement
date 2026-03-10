@@ -1788,7 +1788,8 @@ export class SharePointService {
 
   /**
    * Validate vendor username/password against the SharePoint UserDetails list.
-   * Returns true when a matching list item exists, otherwise false.
+   * Only users with Status === "Approved" are allowed to sign in.
+   * Returns true when a matching approved list item exists, otherwise false.
    */
   async validateVendorCredentials(
     username: string,
@@ -1807,7 +1808,7 @@ export class SharePointService {
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
     const sitePath = "/sites/HackerthonDealsManagement";
 
-    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Password)`;
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Password,Status)`;
 
     console.log("Fetching all UserDetails list items for vendor validation:", {
       url,
@@ -1839,12 +1840,187 @@ export class SharePointService {
 
     const match = items.find((item: any) => {
       const fields = item.fields || {};
+      const status = (fields.Status ?? "").toString().trim();
       return (
-        fields.UserName === trimmedUsername && fields.Password === password
+        fields.UserName === trimmedUsername &&
+        fields.Password === password &&
+        status === "Approved"
       );
     });
 
     return !!match;
+  }
+
+  /**
+   * Create a new vendor signup entry in the UserDetails SharePoint list.
+   * New entries are created with Status = "Pending" so that M365 admins
+   * can review and approve them before the vendor can log in.
+   */
+  async createVendorSignupRequest(details: {
+    username: string;
+    password: string;
+    company?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    mobileNumber?: string;
+  }): Promise<void> {
+    const trimmedUsername = details.username.trim();
+    const trimmedPassword = details.password.trim();
+    if (!trimmedUsername || !trimmedPassword) {
+      throw new Error("Username and password are required.");
+    }
+
+    const token = await getAccessTokenByApp();
+    if (!token) {
+      throw new Error("Unable to acquire app token for vendor signup.");
+    }
+
+    const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
+    const sitePath = "/sites/HackerthonDealsManagement";
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items`;
+
+    const body = {
+      fields: {
+        Title: trimmedUsername,
+        UserName: trimmedUsername,
+        Password: trimmedPassword,
+        Company: details.company ?? "",
+        FirstName: details.firstName ?? "",
+        LastName: details.lastName ?? "",
+        Email: details.email ?? "",
+        MobileNumber: details.mobileNumber ?? "",
+        Status: "Pending",
+      },
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error creating vendor signup request:", errorText);
+      throw new Error(
+        `Failed to create vendor signup request: ${response.status} ${response.statusText}`,
+      );
+    }
+  }
+
+  /**
+   * List all vendor user entries from the UserDetails SharePoint list.
+   * Used by the vendor approval screen for M365 admins.
+   */
+  async listVendorUsers(): Promise<
+    {
+      id: string;
+      username: string;
+      company?: string;
+      email?: string;
+      mobileNumber?: string;
+      status?: string;
+      firstName?: string;
+      lastName?: string;
+      createdDateTime?: string;
+    }[]
+  > {
+    const token = await getAccessTokenByApp();
+    if (!token) {
+      throw new Error("Unable to acquire app token for listing vendor users.");
+    }
+
+    const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
+    const sitePath = "/sites/HackerthonDealsManagement";
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Company,Email,MobileNumber,Status,FirstName,LastName)&$orderby=createdDateTime desc`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error listing vendor users:", errorText);
+      throw new Error(
+        `Failed to list vendor users: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    const items = Array.isArray(data.value) ? data.value : [];
+
+    return items.map((item: any) => {
+      const fields = item.fields || {};
+      return {
+        id: String(item.id),
+        username: String(fields.UserName ?? "").trim(),
+        company:
+          fields.Company != null && String(fields.Company).trim() !== ""
+            ? String(fields.Company).trim()
+            : undefined,
+        email:
+          fields.Email != null && String(fields.Email).trim() !== ""
+            ? String(fields.Email).trim()
+            : undefined,
+        mobileNumber:
+          fields.MobileNumber != null &&
+          String(fields.MobileNumber).trim() !== ""
+            ? String(fields.MobileNumber).trim()
+            : undefined,
+        status:
+          fields.Status != null && String(fields.Status).trim() !== ""
+            ? String(fields.Status).trim()
+            : undefined,
+        firstName:
+          fields.FirstName != null && String(fields.FirstName).trim() !== ""
+            ? String(fields.FirstName).trim()
+            : undefined,
+        lastName:
+          fields.LastName != null && String(fields.LastName).trim() !== ""
+            ? String(fields.LastName).trim()
+            : undefined,
+        createdDateTime: item.createdDateTime ?? undefined,
+      };
+    });
+  }
+
+  /**
+   * Update the Status field for a vendor entry in the UserDetails list.
+   * Typical values: "Pending", "Approved", "Rejected".
+   */
+  async updateVendorStatus(
+    token: string,
+    itemId: string,
+    status: string,
+  ): Promise<void> {
+    const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
+    const sitePath = "/sites/HackerthonDealsManagement";
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items/${itemId}/fields`;
+
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ Status: status }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error updating vendor status:", errorText);
+      throw new Error(
+        `Failed to update vendor status: ${response.status} ${response.statusText}`,
+      );
+    }
   }
 
   /**

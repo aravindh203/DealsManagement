@@ -45,6 +45,7 @@ const navItems = [
     { to: '/directory', label: 'Directory', Icon: BriefcaseIcon },
     { to: '/repository', label: 'Repository', Icon: FolderIcon },
     { to: '/analytics', label: 'Analytics', Icon: AnalyticsIcon },
+    { to: '/vendor-approvals', label: 'Vendor approvals', Icon: IdentityIcon },
     { to: '/identity', label: 'Identity', Icon: IdentityIcon },
 ];
 
