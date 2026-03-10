@@ -1,13 +1,46 @@
 import React, { useState, useEffect } from "react";
 import { FileText, Search, FileCheck, ShieldCheck, CheckCircle2, Loader2, CircleDot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getFileContent } from "../services/aiFileService";
+import { analyzeProposalDocuments, analyzeVendorDocuments } from "@/services/aiSummary";
 
-export default function Aianalyzie() {
+interface AianalyzieProps {
+  projectDescription: string;
+  proposalDocument: File;
+  onClose: () => void;
+}
+
+export default function Aianalyzie({ projectDescription, proposalDocument, onClose }: AianalyzieProps) {
   const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Total animation time 5 seconds
+    const runAnalysis = async () => {
+      try {
+        const AiProcess = async (doc: any) => {
+          return await getFileContent(doc, "PROPOSAL QUALITY");
+        };
+
+        const AiAnalysiz = async (extractedContent: any, description: string) => {
+          return await analyzeProposalDocuments(extractedContent, { P_Description: description });
+        };
+
+        console.log("Starting AI Process...");
+        const extractedData = await AiProcess(proposalDocument);
+        console.log("Content extracted, starting analysis...");
+        
+        const analysisResult = await AiAnalysiz(extractedData, projectDescription);
+        console.log("Analysis Result:", analysisResult);
+        
+        // You can now use analysisResult to update state if needed
+      } catch (error) {
+        console.error("AI Analysis failed:", error);
+      }
+    };
+
+    runAnalysis();
+
+    // Total animation time 5 seconds    
     const duration = 5000;
     const interval = 50;
     const totalSteps = duration / interval;
@@ -20,10 +53,10 @@ export default function Aianalyzie() {
       if (currentStep >= totalSteps) {
         clearInterval(timer);
         
-        // Wait 30 seconds after completion, then go to directory
+        // Wait 3 seconds after completion, then call onClose to return to directory
         setTimeout(() => {
-          navigate('/directory');
-        }, 30000);
+          onClose();
+        }, 3000);
       }
     }, interval);
 
@@ -55,7 +88,7 @@ export default function Aianalyzie() {
 
   return (
     <div
-      className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 relative font-sans"
+      className="fixed inset-0 z-50 bg-[#F8FAFC] flex flex-col items-center justify-center p-6 font-sans overflow-auto"
       style={{
         backgroundImage: `
           linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
@@ -246,3 +279,4 @@ export default function Aianalyzie() {
     </div>
   );
 }
+

@@ -9,7 +9,7 @@ export const getFileContent = async (file: File, type: string) => {
   try {
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-
+debugger
     // Send file to Azure Document Intelligence
     const response = await axios.post(url, arrayBuffer, {
       headers: {
@@ -46,11 +46,12 @@ export const getFileContent = async (file: File, type: string) => {
         throw new Error("Document analysis failed");
       }
     }
-
+debugger
     return result;
     console.log("Extracted text:", result);
   } catch (error) {
     console.error("Error extracting text:", error);
     throw error;
   }
+  
 };
