@@ -24,7 +24,11 @@ import {
   X,
   Trash2,
   RotateCcw,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
+import { getFileContent } from '@/services/aiFileService';
+import { analyzeProposalDocuments } from '@/services/aiSummary';
 
 export interface ExistingAttachment {
   id: string;
@@ -90,6 +94,19 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   const [attachmentIdsToDelete, setAttachmentIdsToDelete] = useState<string[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
 
+  type VerificationStatus = 'idle' | 'processing' | 'accepted' | 'rejected' | 'error';
+  interface AttachmentVerificationItem {
+    file: File;
+    status: VerificationStatus;
+    description: string;
+    score?: number;
+    error?: string;
+  }
+
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationItems, setVerificationItems] = useState<AttachmentVerificationItem[]>([]);
+  const [verificationRunning, setVerificationRunning] = useState(false);
+
   useEffect(() => {
     if (open) {
       if (project) {
@@ -112,15 +129,61 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
     }
   }, [open, project, onLoadExistingAttachments]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isView || !onSave || saving) return;
     if (!form.P_Name?.trim()) return;
-    onSave(
-      form,
-      files.length > 0 ? files : null,
-      attachmentIdsToDelete.length > 0 ? attachmentIdsToDelete : undefined,
-    );
+
+    // If there are no new files, save immediately without verification
+    if (files.length === 0) {
+      onSave(
+        form,
+        null,
+        attachmentIdsToDelete.length > 0 ? attachmentIdsToDelete : undefined,
+      );
+      return;
+    }
+
+    // Run AI verification for newly added files before saving
+    const initialItems: AttachmentVerificationItem[] = files.map((file) => ({
+      file,
+      status: 'processing',
+      description: '',
+    }));
+    setVerificationItems(initialItems);
+    setVerificationOpen(true);
+    setVerificationRunning(true);
+
+    const results: AttachmentVerificationItem[] = [];
+    for (const file of files) {
+      try {
+        const extractedContent = await getFileContent(file, 'PROJECT ATTACHMENT');
+        const analysis = await analyzeProposalDocuments(extractedContent, {
+          P_Description: form.P_Description || '',
+        });
+        const score = analysis?.score ?? 0;
+        const description = analysis?.aiSuggestion || 'No AI description available.';
+
+        results.push({
+          file,
+          status: score > 49 ? 'accepted' : 'rejected',
+          description,
+          score,
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Verification failed for this file.';
+        results.push({
+          file,
+          status: 'error',
+          description: '',
+          error: message,
+        });
+      }
+    }
+
+    setVerificationItems(results);
+    setVerificationRunning(false);
   };
 
   const update = (key: keyof Omit<Project, 'id'>, value: string | null) => {
@@ -155,12 +218,25 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
     update(key, digitsOnly);
   };
 
+  const handleConfirmVerification = () => {
+    if (!onSave || saving) return;
+
+    const accepted = verificationItems.filter((i) => i.status === 'accepted').map((i) => i.file);
+    // Only allow accepted files to be persisted; rejected/error files are dropped
+    onSave(
+      form,
+      accepted.length > 0 ? accepted : null,
+      attachmentIdsToDelete.length > 0 ? attachmentIdsToDelete : undefined,
+    );
+    setVerificationOpen(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[640px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl border shadow-xl">
-        <DialogHeader className="shrink-0 px-6 py-5 pb-4 border-b bg-gradient-to-b from-muted/40 to-background">
+      <DialogContent className="sm:max-w-[1000px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border shadow-xl bg-[#F8FAFC]">
+        <DialogHeader className="shrink-0 px-6 py-5 pb-4 border-b bg-gradient-to-b from-[#EFF4FF] to-[#F8FAFC]">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EBE4FF] text-[#5a3dd4]">
               <Briefcase className="h-5 w-5" />
             </div>
             <div className="space-y-0.5">
@@ -179,16 +255,28 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0" noValidate>
           <ScrollArea className="flex-1 min-h-0 overflow-auto">
-            <div className="p-6 space-y-6">
-              {/* Project details */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  Project details
+            <div className="p-6 space-y-6 bg-[#F8FAFC]">
+              {/* Project layout */}
+              <section className="space-y-5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    Project details
+                  </div>
+                  {!isVendor && (
+                    <div className="inline-flex items-center gap-2 rounded-full bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+                      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      New project configuration
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                {/* Row 1 & 2: 7 fields in a single grid so widths stay consistent */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="P_Name" className="text-sm font-medium">Project name *</Label>
+                    <Label htmlFor="P_Name" className="text-sm font-medium">
+                      Project name *
+                    </Label>
                     <Input
                       id="P_Name"
                       value={form.P_Name || ''}
@@ -200,7 +288,9 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="P_Type" className="text-sm font-medium">Project type</Label>
+                    <Label htmlFor="P_Type" className="text-sm font-medium">
+                      Project type
+                    </Label>
                     <Input
                       id="P_Type"
                       value={form.P_Type || ''}
@@ -210,9 +300,105 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                       placeholder="e.g. Renovation, SPFX"
                     />
                   </div>
+                  {!isVendor && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="P_StartDate" className="text-sm font-medium">
+                          Start date
+                        </Label>
+                        <div className="relative flex items-stretch">
+                          <Input
+                            id="P_StartDate"
+                            type="date"
+                            value={formatDateForInput(form.P_StartDate)}
+                            onChange={(e) => !isView && handleDateChange('P_StartDate', e.target.value)}
+                            disabled={isView}
+                            className="h-10 pr-0 text-sm rounded-r-none"
+                          />
+                          <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                            <Calendar className="h-4 w-4" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="P_EndDate" className="text-sm font-medium">
+                          End date
+                        </Label>
+                        <div className="relative flex items-stretch">
+                          <Input
+                            id="P_EndDate"
+                            type="date"
+                            value={formatDateForInput(form.P_EndDate)}
+                            onChange={(e) => !isView && handleDateChange('P_EndDate', e.target.value)}
+                            disabled={isView}
+                            className="h-10 pr-0 text-sm rounded-r-none"
+                          />
+                          <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                            <Calendar className="h-4 w-4" />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {/* Bid start / end / budget */}
+                  <div className="space-y-2">
+                    <Label htmlFor="P_BidStartDate" className="text-sm font-medium">
+                      Bid start date
+                    </Label>
+                    <div className="relative flex items-stretch">
+                      <Input
+                        id="P_BidStartDate"
+                        type="date"
+                        value={formatDateForInput(form.P_BidStartDate)}
+                        onChange={(e) => !isView && handleDateChange('P_BidStartDate', e.target.value)}
+                        disabled={isView}
+                        className="h-10 pr-0 text-sm rounded-r-none"
+                      />
+                      <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="P_BidEndDate" className="text-sm font-medium">
+                      Bid end date
+                    </Label>
+                    <div className="relative flex items-stretch">
+                      <Input
+                        id="P_BidEndDate"
+                        type="date"
+                        value={formatDateForInput(form.P_BidEndDate)}
+                        onChange={(e) => !isView && handleDateChange('P_BidEndDate', e.target.value)}
+                        disabled={isView}
+                        className="h-10 pr-0 text-sm rounded-r-none"
+                      />
+                      <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </div>
+                  {!isVendor && (
+                    <div className="space-y-2">
+                      <Label htmlFor="P_Budget" className="text-sm font-medium">
+                        Budget
+                      </Label>
+                      <Input
+                        id="P_Budget"
+                        value={form.P_Budget || ''}
+                        onChange={(e) => !isView && handleDigitChange('P_Budget', e.target.value)}
+                        disabled={isView}
+                        placeholder="No decimals"
+                        className="h-10 w-full"
+                      />
+                    </div>
+                  )}
                 </div>
+
+                {/* Row 3: description */}
                 <div className="space-y-2">
-                    <Label htmlFor="P_Description" className="text-sm font-medium">Description</Label>
+                  <Label htmlFor="P_Description" className="text-sm font-medium">
+                    Description
+                  </Label>
                   <Textarea
                     id="P_Description"
                     value={form.P_Description || ''}
@@ -227,110 +413,22 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
 
               <Separator />
 
-              {!isVendor && (
-                <>
-                  {/* Schedule */}
-                  <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      Schedule
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="P_StartDate" className="text-sm font-medium">Start date</Label>
-                        <Input
-                          id="P_StartDate"
-                          type="date"
-                          value={formatDateForInput(form.P_StartDate)}
-                          onChange={(e) => !isView && handleDateChange("P_StartDate", e.target.value)}
-                          disabled={isView}
-                          className="h-10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="P_EndDate" className="text-sm font-medium">End date</Label>
-                        <Input
-                          id="P_EndDate"
-                          type="date"
-                          value={formatDateForInput(form.P_EndDate)}
-                          onChange={(e) => !isView && handleDateChange("P_EndDate", e.target.value)}
-                          disabled={isView}
-                          className="h-10"
-                        />
-                      </div>
-                    </div>
-                  </section>
-                  <Separator />
-                </>
-              )}
-
-              {/* Bid window */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  Bid start / end date
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="P_BidStartDate" className="text-sm font-medium">Bid start date</Label>
-                    <Input
-                      id="P_BidStartDate"
-                      type="date"
-                      value={formatDateForInput(form.P_BidStartDate)}
-                      onChange={(e) => !isView && handleDateChange("P_BidStartDate", e.target.value)}
-                      disabled={isView}
-                      className="h-10"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="P_BidEndDate" className="text-sm font-medium">Bid end date</Label>
-                    <Input
-                      id="P_BidEndDate"
-                      type="date"
-                      value={formatDateForInput(form.P_BidEndDate)}
-                      onChange={(e) => !isView && handleDateChange("P_BidEndDate", e.target.value)}
-                      disabled={isView}
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <Separator />
-
-              {!isVendor && (
-                <>
-                  {/* Budget */}
-                  <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      Budget
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="P_Budget" className="text-sm font-medium">Budget</Label>
-                        <Input
-                          id="P_Budget"
-                          value={form.P_Budget || ""}
-                          onChange={(e) => !isView && handleDigitChange("P_Budget", e.target.value)}
-                          disabled={isView}
-                          placeholder="No decimals"
-                          className="h-10 w-full"
-                        />
-                      </div>
-                    </div>
-                  </section>
-                  <Separator />
-                </>
-              )}
-
               {/* Attachments */}
               <section className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Paperclip className="h-4 w-4 text-muted-foreground" />
-                  Attachments
+                <div className="flex items-center justify-between gap-2 text-sm font-medium text-foreground">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="h-4 w-4 text-muted-foreground" />
+                    Attachments
+                  </div>
+                  {!isView && (
+                    <span className="text-[11px] text-muted-foreground">
+                      {files.length + existingAttachments.length > 0
+                        ? `${files.length + existingAttachments.length} file(s) linked`
+                        : 'No files yet'}
+                    </span>
+                  )}
                 </div>
-                <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+                <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
                   {project && (
                     <>
                       {loadingAttachments ? (
@@ -473,7 +571,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving}>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-[#5a3dd4] hover:bg-[#4a30b5]"
+                >
                   {saving ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -488,6 +590,151 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
           </DialogFooter>
         </form>
       </DialogContent>
+      {/* Hide native date picker icon so only custom button is visible */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            input[type="date"]::-webkit-calendar-picker-indicator {
+              opacity: 0;
+            }
+          `,
+        }}
+      />
+
+      {/* Attachment AI verification dialog */}
+      <Dialog open={verificationOpen} onOpenChange={setVerificationOpen}>
+        <DialogContent className="sm:max-w-[720px] max-h-[90vh] flex flex-col gap-0 rounded-2xl border shadow-2xl bg-white p-0 overflow-hidden">
+          <div className="px-6 pt-5 pb-3 border-b bg-gradient-to-r from-[#F4F3FF] via-white to-[#F4F3FF] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-[#EBE4FF] flex items-center justify-center text-[#5a3dd4]">
+                <Paperclip className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Verifying project attachments
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Our AI is reviewing your files and describing their relevance to this project.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-6 py-4 space-y-4">
+              {verificationItems.map((item, index) => {
+                const isAccepted = item.status === 'accepted';
+                const isRejected = item.status === 'rejected';
+                const isError = item.status === 'error';
+                const isProcessing = item.status === 'processing';
+
+                return (
+                  <div
+                    key={`${item.file.name}-${index}`}
+                    className="rounded-xl border bg-slate-50/60 px-4 py-3 flex flex-col gap-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center border border-slate-100">
+                          <FileText className="h-4 w-4 text-slate-500" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-900 truncate max-w-[260px]">
+                            {item.file.name}
+                          </span>
+                          {!verificationRunning && (
+                            <span className="text-[11px] text-slate-400">
+                              {Math.round((item.file.size || 0) / 1024)} KB
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isProcessing && (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin text-[#5a3dd4]" />
+                            <span className="text-[11px] font-medium text-slate-500">
+                              Analyzing…
+                            </span>
+                          </>
+                        )}
+                        {isAccepted && (
+                          <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span className="text-[11px] font-medium text-emerald-700">
+                              Accepted
+                            </span>
+                          </div>
+                        )}
+                        {(isRejected || isError) && (
+                          <div className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5">
+                            <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+                            <span className="text-[11px] font-medium text-red-700">
+                              {isError ? 'Error' : 'Not eligible'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isProcessing && (
+                      <p className="text-[11px] leading-relaxed text-slate-600 mt-1">
+                        {isError
+                          ? item.error
+                          : item.description || 'No AI description available.'}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          <div className="px-6 py-3 border-t bg-slate-50 flex items-center justify-between gap-3">
+            <div className="text-[11px] text-slate-500">
+              {verificationRunning
+                ? 'Verifying files…'
+                : (() => {
+                    const rejectedCount = verificationItems.filter(
+                      (i) => i.status === 'rejected',
+                    ).length;
+                    if (rejectedCount === 0) {
+                      return 'All files look relevant. They will be attached to this project.';
+                    }
+                    return `${rejectedCount} file(s) were rejected (score below 50) and will not be attached.`;
+                  })()}
+            </div>
+            <div className="flex items-center gap-2">
+              {!verificationRunning && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVerificationOpen(false)}
+                >
+                  Back and change files
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                disabled={verificationRunning}
+                onClick={handleConfirmVerification}
+                className="bg-[#5a3dd4] hover:bg-[#4a30b5]"
+              >
+                {verificationRunning ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    Verifying…
+                  </>
+                ) : (
+                  'Confirm & create project'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

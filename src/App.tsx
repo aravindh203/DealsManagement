@@ -61,7 +61,6 @@ import Identity from "./pages/Identity";
 import ProjectDetail from "./pages/ProjectDetail";
 import VendorApprovals from "./pages/VendorApprovals";
 import { AdminLayout } from "./pages/AdminLayout";
-import Aianalyzie from "./components/Aianalyzie";
 import ChatBot from "./components/AI/ChatBot";
 
 const App = () => {
@@ -145,7 +144,6 @@ const App = () => {
                             </ModuleGuard>
                           )}
                         />
-                        <Route path="aianalyzie" element={<Aianalyzie projectDescription="" proposalDocument={null} onClose={() => {}} />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
