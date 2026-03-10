@@ -62,6 +62,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import VendorApprovals from "./pages/VendorApprovals";
 import { AdminLayout } from "./pages/AdminLayout";
 import Aianalyzie from "./components/Aianalyzie";
+import ChatBot from "./components/AI/ChatBot";
 
 const App = () => {
   console.log('App component rendering');
@@ -78,6 +79,7 @@ const App = () => {
                   <Suspense fallback={<LoadingFallback />}>
                     <Toaster />
                     <Sonner />
+                    <ChatBot />
                     <Routes>
                       <Route path="/login" element={<Login />} />
                       <Route path="/admin" element={<Navigate to="/insights" replace />} />
@@ -143,7 +145,7 @@ const App = () => {
                             </ModuleGuard>
                           )}
                         />
-                        <Route path="aianalyzie" element={<Aianalyzie />} />
+                        <Route path="aianalyzie" element={<Aianalyzie projectDescription="" proposalDocument={null} onClose={() => {}} />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
