@@ -36,6 +36,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 10;
 
@@ -142,7 +143,7 @@ const Directory: React.FC = () => {
     const navigate = useNavigate();
     const isVendor = loginType === "vendor";
 
-    const { projects, addProject, updateProject, deleteProject, reloadProjects } =
+    const { projects, projectsLoading, addProject, updateProject, deleteProject, reloadProjects } =
         useProjects();
 
     const [searchProjects, setSearchProjects] = useState("");
@@ -327,11 +328,14 @@ const Directory: React.FC = () => {
         [],
     );
 
+    const [savingProject, setSavingProject] = useState(false);
+
     const handleSaveProject = async (
         data: Omit<Project, "id">,
         files?: File[] | null,
         attachmentIdsToDelete?: string[],
     ) => {
+        setSavingProject(true);
         try {
             let attachmentsFolderId: string | null = null;
 
@@ -431,6 +435,7 @@ const Directory: React.FC = () => {
                 variant: "destructive",
             });
         } finally {
+            setSavingProject(false);
             setFormOpen(false);
             setEditingProject(null);
         }
@@ -647,7 +652,20 @@ const Directory: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedProjects.map((project) => (
+                                {projectsLoading ? (
+                                    Array.from({ length: 6 }).map((_, i) => (
+                                        <tr key={`skeleton-${i}`}>
+                                            <td><Skeleton className={styles.skeletonCellName} /></td>
+                                            <td><Skeleton className={styles.skeletonCell} /></td>
+                                            <td><Skeleton className={styles.skeletonCell} /></td>
+                                            <td><Skeleton className={styles.skeletonCell} /></td>
+                                            <td><Skeleton className={styles.skeletonCell} /></td>
+                                            <td><Skeleton className={styles.skeletonCellPill} /></td>
+                                            <td><Skeleton className={styles.skeletonCellActions} /></td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                paginatedProjects.map((project) => (
                                     <tr key={project.id}>
                                         <td>
                                             <Link to={`/project/${project.id}`}>
@@ -750,7 +768,8 @@ const Directory: React.FC = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -762,6 +781,7 @@ const Directory: React.FC = () => {
                         mode={dialogMode}
                         isVendor={isVendor}
                         onSave={handleSaveProject}
+                        saving={savingProject}
                         onLoadExistingAttachments={loadExistingAttachments}
                     />
 

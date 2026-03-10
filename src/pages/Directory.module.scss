@@ -409,6 +409,31 @@
     }
 }
 
+/* Table skeleton loader */
+.skeletonCell {
+    height: 20px;
+    min-width: 60px;
+    max-width: 100%;
+}
+
+.skeletonCellName {
+    height: 20px;
+    min-width: 140px;
+    max-width: 220px;
+}
+
+.skeletonCellPill {
+    height: 24px;
+    width: 72px;
+    border-radius: 999px;
+}
+
+.skeletonCellActions {
+    height: 32px;
+    width: 80px;
+    border-radius: 8px;
+}
+
 /* Blink row when used budget exceeds budget */
 @keyframes overBudgetBlink {
 

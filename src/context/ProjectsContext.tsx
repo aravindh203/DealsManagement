@@ -19,6 +19,7 @@ export interface CreateProjectResult {
 
 interface ProjectsContextType {
   projects: Project[];
+  projectsLoading: boolean;
   addProject: (data: Project) => Promise<CreateProjectResult>;
   updateProject: (id: string | number, data: Project) => Promise<void>;
   deleteProject: (id: string | number) => Promise<void>;
@@ -40,6 +41,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [projectsLoading, setProjectsLoading] = useState<boolean>(true);
   const { user, vendorUser, loginType } = useAuth();
 
   const refetch = useCallback(async () => {
@@ -80,6 +82,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const reloadProjects = useCallback(async () => {
+    setProjectsLoading(true);
     try {
       const token: string | null = await getAccessTokenByApp();
       const containerId: string = appConfig.ContainerID;
@@ -112,6 +115,8 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
       setProjects(resData);
     } catch (error) {
       console.error("Error reloading projects from SharePoint:", error);
+    } finally {
+      setProjectsLoading(false);
     }
   }, []);
 
@@ -174,6 +179,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
     <ProjectsContext.Provider
       value={{
         projects,
+        projectsLoading,
         addProject,
         updateProject,
         deleteProject,

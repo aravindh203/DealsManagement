@@ -47,6 +47,8 @@ interface ProjectFormDialogProps {
     files?: File[] | null,
     attachmentIdsToDelete?: string[],
   ) => void;
+  /** When true, show loading state on submit button (parent sets while save is in progress). */
+  saving?: boolean;
   /** When editing/viewing, load existing files from the project Attachments folder. */
   onLoadExistingAttachments?: (projectId: string) => Promise<ExistingAttachment[]>;
 }
@@ -76,6 +78,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   mode: modeProp,
   isVendor = false,
   onSave,
+  saving = false,
   onLoadExistingAttachments,
 }) => {
   const mode: ProjectDialogMode = modeProp ?? (project ? 'edit' : 'create');
@@ -111,14 +114,13 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isView || !onSave) return;
+    if (isView || !onSave || saving) return;
     if (!form.P_Name?.trim()) return;
     onSave(
       form,
       files.length > 0 ? files : null,
       attachmentIdsToDelete.length > 0 ? attachmentIdsToDelete : undefined,
     );
-    onOpenChange(false);
   };
 
   const update = (key: keyof Omit<Project, 'id'>, value: string | null) => {
@@ -468,11 +470,18 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
               </Button>
             ) : (
               <>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
                   Cancel
                 </Button>
-                <Button type="submit">
-                  {project ? 'Save changes' : 'Create project'}
+                <Button type="submit" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      {project ? 'Saving…' : 'Creating project…'}
+                    </>
+                  ) : (
+                    project ? 'Save changes' : 'Create project'
+                  )}
                 </Button>
               </>
             )}

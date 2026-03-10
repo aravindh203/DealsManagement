@@ -16,6 +16,7 @@ import {
   PersonRegular,
   ArrowLeftRegular,
 } from "@fluentui/react-icons";
+import { sharePointService } from '../services/sharePointService';
 
 const useStyles = makeStyles({
   container: {
@@ -301,6 +302,62 @@ const useStyles = makeStyles({
       color: '#94a3b8',
     },
   },
+  vendorToggleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '8px',
+  },
+  vendorToggleButton: {
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#64748b',
+    backgroundColor: 'transparent',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    ':hover': {
+      color: '#5c5ce0',
+    },
+  },
+  vendorHelperText: {
+    fontSize: '12px',
+    color: '#94a3b8',
+    marginTop: '4px',
+  },
+  vendorSignupButton: {
+    width: '100%',
+    height: '52px',
+    backgroundColor: '#0f172a',
+    color: 'white',
+    ...shorthands.borderRadius('14px'),
+    fontSize: '15px',
+    fontWeight: '600',
+    marginTop: '8px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    columnGap: '10px',
+    cursor: 'pointer',
+    border: 'none',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 4px 14px rgba(15, 23, 42, 0.35)',
+    ':hover': {
+      backgroundColor: '#020617',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 6px 20px rgba(15, 23, 42, 0.45)',
+    },
+    ':active': {
+      transform: 'translateY(0)',
+    },
+    ':disabled': {
+      backgroundColor: '#1e293b',
+      cursor: 'not-allowed',
+      transform: 'none',
+      boxShadow: 'none',
+    },
+  },
 });
 
 const Login = () => {
@@ -309,10 +366,20 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showVendorForm, setShowVendorForm] = useState(false);
+  const [showVendorSignup, setShowVendorSignup] = useState(false);
   const [vendorUsername, setVendorUsername] = useState('');
   const [vendorPassword, setVendorPassword] = useState('');
   const [vendorLoading, setVendorLoading] = useState(false);
   const [vendorError, setVendorError] = useState<string | null>(null);
+  const [signupCompany, setSignupCompany] = useState('');
+  const [signupFirstName, setSignupFirstName] = useState('');
+  const [signupLastName, setSignupLastName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupMobile, setSignupMobile] = useState('');
+  const [signupUsername, setSignupUsername] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     try {
@@ -356,6 +423,54 @@ const Login = () => {
       });
     } finally {
       setVendorLoading(false);
+    }
+  };
+
+  const handleVendorSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSignupLoading(true);
+      setSignupError(null);
+
+      if (!signupUsername.trim() || !signupPassword.trim() || !signupCompany.trim()) {
+        setSignupError('Username, password and company are required.');
+        return;
+      }
+
+      await sharePointService.createVendorSignupRequest({
+        username: signupUsername.trim(),
+        password: signupPassword.trim(),
+        company: signupCompany.trim(),
+        firstName: signupFirstName.trim() || undefined,
+        lastName: signupLastName.trim() || undefined,
+        email: signupEmail.trim() || undefined,
+        mobileNumber: signupMobile.trim() || undefined,
+      });
+
+      toast({
+        title: "Request submitted",
+        description: "Your vendor signup request has been sent for approval. You will be able to sign in after an Office 365 admin approves you.",
+      });
+
+      // Reset signup form and switch back to sign-in
+      setSignupCompany('');
+      setSignupFirstName('');
+      setSignupLastName('');
+      setSignupEmail('');
+      setSignupMobile('');
+      setSignupUsername('');
+      setSignupPassword('');
+      setShowVendorSignup(false);
+    } catch (err) {
+      console.error('Vendor signup failed:', err);
+      setSignupError(err instanceof Error ? err.message : 'Could not submit signup request.');
+      toast({
+        title: "Vendor signup failed",
+        description: "There was a problem submitting your request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSignupLoading(false);
     }
   };
 
@@ -432,71 +547,225 @@ const Login = () => {
               </div>
             </div>
             <Text className={styles.vendorDescription}>
-              Sign in with your vendor credentials to access Directory and Repository.
+              {showVendorSignup
+                ? 'Request access as a new vendor. Your account will be activated after an Office 365 admin approves it.'
+                : 'Sign in with your vendor credentials to access Directory and Repository.'}
             </Text>
 
-            {vendorError && (
+            {(!showVendorSignup && vendorError) && (
               <div className={styles.errorAlert}>
                 {vendorError}
               </div>
             )}
 
-            <form className={styles.vendorForm} onSubmit={handleVendorLogin}>
-              <div className={styles.inputWrap}>
-                <label className={styles.inputLabel} htmlFor="vendor-username">
-                  Username
-                </label>
-                <Input
-                  id="vendor-username"
-                  type="text"
-                  className={styles.vendorInput}
-                  placeholder="Enter your username"
-                  value={vendorUsername}
-                  onChange={(e) => setVendorUsername(e.target.value)}
-                  autoComplete="username"
-                  disabled={vendorLoading}
-                />
+            {(showVendorSignup && signupError) && (
+              <div className={styles.errorAlert}>
+                {signupError}
               </div>
-              <div className={styles.inputWrap}>
-                <label className={styles.inputLabel} htmlFor="vendor-password">
-                  Password
-                </label>
-                <Input
-                  id="vendor-password"
-                  type="password"
-                  className={styles.vendorInput}
-                  placeholder="Enter your password"
-                  value={vendorPassword}
-                  onChange={(e) => setVendorPassword(e.target.value)}
-                  autoComplete="current-password"
-                  disabled={vendorLoading}
-                />
-              </div>
-              <button
-                type="submit"
-                className={styles.vendorSignInBtn}
-                disabled={vendorLoading || !vendorUsername.trim() || !vendorPassword}
-              >
-                {vendorLoading ? 'Signing in...' : (
-                  <>
-                    Sign in
-                    <ChevronRightRegular />
-                  </>
-                )}
-              </button>
-            </form>
+            )}
+
+            {!showVendorSignup ? (
+              <>
+                <form className={styles.vendorForm} onSubmit={handleVendorLogin}>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="vendor-username">
+                      Username
+                    </label>
+                    <Input
+                      id="vendor-username"
+                      type="text"
+                      className={styles.vendorInput}
+                      placeholder="Enter your username"
+                      value={vendorUsername}
+                      onChange={(e) => setVendorUsername(e.target.value)}
+                      autoComplete="username"
+                      disabled={vendorLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="vendor-password">
+                      Password
+                    </label>
+                    <Input
+                      id="vendor-password"
+                      type="password"
+                      className={styles.vendorInput}
+                      placeholder="Enter your password"
+                      value={vendorPassword}
+                      onChange={(e) => setVendorPassword(e.target.value)}
+                      autoComplete="current-password"
+                      disabled={vendorLoading}
+                    />
+                  </div>
+                  <div className={styles.vendorToggleRow}>
+                    <span className={styles.vendorHelperText}>
+                      Only approved vendors can sign in.
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.vendorToggleButton}
+                      onClick={() => {
+                        setShowVendorSignup(true);
+                        setSignupError(null);
+                      }}
+                    >
+                      Request vendor access
+                    </button>
+                  </div>
+                  <button
+                    type="submit"
+                    className={styles.vendorSignInBtn}
+                    disabled={vendorLoading || !vendorUsername.trim() || !vendorPassword}
+                  >
+                    {vendorLoading ? 'Signing in...' : (
+                      <>
+                        Sign in
+                        <ChevronRightRegular />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <form className={styles.vendorForm} onSubmit={handleVendorSignup}>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-company">
+                      Company name
+                    </label>
+                    <Input
+                      id="signup-company"
+                      type="text"
+                      className={styles.vendorInput}
+                      placeholder="Your company"
+                      value={signupCompany}
+                      onChange={(e) => setSignupCompany(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-firstname">
+                      First name
+                    </label>
+                    <Input
+                      id="signup-firstname"
+                      type="text"
+                      className={styles.vendorInput}
+                      placeholder="Optional"
+                      value={signupFirstName}
+                      onChange={(e) => setSignupFirstName(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-lastname">
+                      Last name
+                    </label>
+                    <Input
+                      id="signup-lastname"
+                      type="text"
+                      className={styles.vendorInput}
+                      placeholder="Optional"
+                      value={signupLastName}
+                      onChange={(e) => setSignupLastName(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-email">
+                      Email
+                    </label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      className={styles.vendorInput}
+                      placeholder="name@company.com"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-mobile">
+                      Mobile number
+                    </label>
+                    <Input
+                      id="signup-mobile"
+                      type="tel"
+                      className={styles.vendorInput}
+                      placeholder="Optional"
+                      value={signupMobile}
+                      onChange={(e) => setSignupMobile(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-username">
+                      Desired username
+                    </label>
+                    <Input
+                      id="signup-username"
+                      type="text"
+                      className={styles.vendorInput}
+                      placeholder="Usually your email"
+                      value={signupUsername}
+                      onChange={(e) => setSignupUsername(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-password">
+                      Password
+                    </label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      className={styles.vendorInput}
+                      placeholder="Choose a password"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className={styles.vendorSignupButton}
+                    disabled={
+                      signupLoading ||
+                      !signupUsername.trim() ||
+                      !signupPassword.trim() ||
+                      !signupCompany.trim()
+                    }
+                  >
+                    {signupLoading ? 'Submitting…' : 'Submit for approval'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.vendorToggleButton}
+                    style={{ marginTop: '8px' }}
+                    onClick={() => {
+                      setShowVendorSignup(false);
+                      setSignupError(null);
+                    }}
+                  >
+                    Back to vendor sign in
+                  </button>
+                </form>
+              </>
+            )}
 
             <button
               type="button"
               className={styles.vendorBackLink}
               onClick={() => {
                 setShowVendorForm(false);
+                setShowVendorSignup(false);
                 setVendorUsername('');
                 setVendorPassword('');
                 setVendorError(null);
               }}
             >
-              <ArrowLeftRegular size={16} />
+              <ArrowLeftRegular style={{ fontSize: 16 }} />
               Back to login options
             </button>
           </>
