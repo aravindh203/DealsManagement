@@ -210,3 +210,118 @@ ${JSON.stringify(vendorData, null, 2)}
   console.log("content", content);
   return JSON.parse(content);
 };
+
+
+
+export const CreateProjectbyDescription = async (projectDetails: any) => {
+  const systemPrompt = `You are an AI project analyzer.
+
+Input:
+Project Description: ${projectDetails?.P_Description || ""}
+
+Task:
+Analyze the project description and extract the following fields:
+
+projectName
+
+projectType
+
+startDate
+
+endDate
+
+bidStartDate
+
+bidEndDate
+
+budget
+
+currency
+
+projectBrief
+
+Instructions:
+
+Carefully analyze the project description and identify relevant details.
+
+Briefly summarize the project in projectBrief (2–3 sentences).
+Extract all available values from the project description.
+
+Generate projectBrief with 3–4 descriptive sentences explaining the project.
+
+The projectBrief must focus on the project purpose, type, goals, and expected functionality.
+
+Do NOT include budget, start date, end date, or bidding dates in projectBrief.
+
+If a field is missing in the description, add the field name inside missingFields.
+
+If budget is missing OR budget = 0, treat it as missing.
+
+If currency is not mentioned, automatically set "currency": "USD".
+
+Convert dates to YYYY-MM-DD format if possible.
+
+Do not guess unknown values — return null.
+
+Return only valid JSON.
+
+that projectBrief retun breifly explain the project not budget includes and not say the due date and startdate only explain the project type and projet explaines
+Do NOT guess unknown values. Use null for unavailable fields.
+
+
+Return only valid JSON with no extra text.
+
+Output JSON format:
+
+{
+"projectName": "",
+"projectType": "",
+"startDate": "",
+"endDate": "",
+"bidStartDate": "",
+"bidEndDate": "",
+"budget": null,
+"currency": "USD",
+"projectBrief": "",
+"missingFields": []
+}`
+
+  const userPrompt = `
+Project Details:
+${JSON.stringify(projectDetails, null, 2)}
+
+
+`;
+
+  const response = await fetch(
+    `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_DEPLOYMENT_NAME}/chat/completions?api-version=${AZURE_API_VERSION}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": AZURE_OPENAI_API_KEY,
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.2, // Low temperature for more analytical/consistent scoring
+        max_tokens: 1500,
+      }),
+    }
+  );
+
+  const json = await response.json();
+  let content = json.choices[0].message.content.trim();
+  
+  if (content.startsWith("```json")) {
+    content = content.substring(7);
+  }
+  if (content.endsWith("```")) {
+    content = content.substring(0, content.length - 3);
+  }
+
+  console.log("content", content);
+  return JSON.parse(content);
+};

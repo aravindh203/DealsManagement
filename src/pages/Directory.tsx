@@ -13,6 +13,16 @@ import AiSummarize from "../components/AI/AiSummarize";
 import { useAuth } from "../context/AuthContext";
 import { useProjects } from "../context/ProjectsContext";
 import { ProjectFormDialog, type ProjectDialogMode } from "../components/ProjectFormDialog";
+import { AiProjectCreationForm } from "../components/AiProjectCreationForm";
+import ChatBot from "../components/AI/ChatBot";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog as UiDialog, DialogContent as UiDialogContent } from "@/components/ui/dialog";
+import { FileText, Mic } from "lucide-react";
 import { VendorSubmissionDialog } from "../components/VendorSubmissionDialog";
 import {
     AlertDialog,
@@ -150,6 +160,7 @@ const Directory: React.FC = () => {
     const [searchProjects, setSearchProjects] = useState("");
     const [statusFilter, setStatusFilter] = useState<ProjectStatusValue | "all">("all");
     const [formOpen, setFormOpen] = useState(false);
+    const [aiCreateOpen, setAiCreateOpen] = useState(false);
     const [Aianalysis, setAianalysis] = useState(false);
     const [aiAnalysisData, setAiAnalysisData] = useState<{
         projectDescription: string;
@@ -567,14 +578,24 @@ const Directory: React.FC = () => {
                             <h1 className={styles.pageTitle}>Project</h1>
                         </div>
                         {!isVendor && (
-                            <button
-                                className={styles.registerBtn}
-                                type="button"
-                                onClick={handleOpenCreate}
-                            >
-                                <AddRegular />
-                                NEW PROJECT
-                            </button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className={styles.registerBtn} type="button">
+                                        <AddRegular />
+                                        NEW PROJECT
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-[200px]">
+                                    <DropdownMenuItem onClick={handleOpenCreate} className="cursor-pointer">
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Start from scratch
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setAiCreateOpen(true)} className="cursor-pointer text-[#5a3dd4] focus:text-[#4a30b5] focus:bg-[#5a3dd4]/10">
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Create with AI
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         )}
                     </div>
 
@@ -831,6 +852,19 @@ const Directory: React.FC = () => {
                         project={aiSummarizeProject}
                     />
 
+                    <UiDialog open={aiCreateOpen} onOpenChange={setAiCreateOpen}>
+                        <UiDialogContent className="sm:max-w-[700px] p-0 bg-transparent border-0 shadow-none">
+                            <AiProjectCreationForm
+                                onGenerated={(project) => {
+                                    setAiCreateOpen(false);
+                                    setDialogMode("create");
+                                    setEditingProject(project);
+                                    setFormOpen(true);
+                                }}
+                            />
+                        </UiDialogContent>
+                    </UiDialog>
+
                     <AlertDialog
                         open={deleteConfirmId !== null}
                         onOpenChange={(open) => !open && setDeleteConfirmId(null)}
@@ -905,6 +939,7 @@ const Directory: React.FC = () => {
                     </div>
                 </div>
             </main>
+            <ChatBot onCreateProjectClick={() => setAiCreateOpen(true)} />
         </div>
     );
 };
