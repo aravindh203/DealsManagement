@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
 import { sharePointService } from '../../services/sharePointService';
 import { getAccessTokenByApp } from '../../hooks/useClientCredentialsAuth';
 import { appConfig } from '../../config/appConfig';
@@ -12,9 +12,11 @@ interface ChatMessage {
   isSuggestion?: boolean;
 }
 
+interface ChatBotProps {
+  onCreateProjectClick?: () => void;
+}
 
-
-const ChatBot: React.FC = () => {
+const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMessage, setCurrentMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -105,18 +107,23 @@ const ChatBot: React.FC = () => {
       // Since AiChatBot handles JSON stringification we pass projectData
       const response = await AiChatBot(projectData, text);
       
-      let botResponseContent = response.answer || response.suggestion;
-      if (typeof botResponseContent === 'object') {
-        botResponseContent = JSON.stringify(botResponseContent, null, 2);
-      } else if (!botResponseContent) {
-        botResponseContent = "I'm sorry, I couldn't process your request.";
+      let botResponseContent: string = "";
+      let isSuggestionNode = false;
+
+      if (response && response.answer) {
+         botResponseContent = typeof response.answer === 'object' ? JSON.stringify(response.answer, null, 2) : String(response.answer);
+      } else if (response && response.suggestion) {
+         botResponseContent = typeof response.suggestion === 'object' ? JSON.stringify(response.suggestion, null, 2) : String(response.suggestion);
+         isSuggestionNode = true;
+      } else {
+         botResponseContent = "I'm sorry, I couldn't process your request.";
       }
 
       const botMsg: ChatMessage = { 
         id: (Date.now() + 1).toString(), 
         role: 'assistant', 
-        content: String(botResponseContent),
-        isSuggestion: !response.answer && !!response.suggestion
+        content: botResponseContent,
+        isSuggestion: isSuggestionNode
       };
       
       setMessages((prev) => [...prev, botMsg]);
@@ -132,7 +139,32 @@ const ChatBot: React.FC = () => {
     }
   };
 
-  const toggleChat = () => setIsOpen(!isOpen);
+  const toggleChat = () => {
+    if (isOpen) {
+      // Reset chat when closing
+      setMessages([{ id: 'initial', role: 'assistant', content: 'Hello! I am your AI assistant. How can I help you today?' }]);
+    }
+    setIsOpen(!isOpen);
+  };
+
+  const handleSuggestionClick = (type: 'create' | 'details') => {
+    if (type === 'create') {
+      if (onCreateProjectClick) {
+        // Toggle chat state locally
+        setIsOpen(false);
+        // Also perform the reset logic
+        setMessages([{ id: 'initial', role: 'assistant', content: 'Hello! I am your AI assistant. How can I help you today?' }]);
+        onCreateProjectClick();
+      }
+    } else if (type === 'details') {
+      const botMsg: ChatMessage = { 
+        id: Date.now().toString(), 
+        role: 'assistant', 
+        content: 'Sure! Please tell me which project you are looking for, or ask your specific question about its details.'
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    }
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -159,17 +191,17 @@ const ChatBot: React.FC = () => {
           </div>
 
           {/* Chat Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto bg-[#f8fafc] flex flex-col gap-4">
+          <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden bg-[#f8fafc] flex flex-col gap-4">
             
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex items-end gap-2 max-w-[85%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : ''}`}>
+              <div key={msg.id} className={`flex items-end gap-2 w-fit max-w-[90%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}>
                 <div className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 shadow-sm ${msg.role === 'user' ? 'bg-[#8b5cf6] border-[#7c3aed]' : 'bg-white border-gray-200'}`}>
                   {msg.role === 'user' 
                     ? <User className="w-4 h-4 text-white" /> 
                     : <Bot className="w-4 h-4 text-[#8b5cf6]" />
                   }
                 </div>
-                <div className={`text-[14px] p-3.5 rounded-2xl shadow-sm ${
+                <div className={`text-[14px] p-3.5 rounded-2xl shadow-sm whitespace-pre-wrap break-words ${
                   msg.role === 'user' 
                     ? 'bg-[#8b5cf6] text-white rounded-br-sm' 
                     : 'bg-white border border-gray-100 text-gray-700 rounded-bl-sm'
@@ -180,7 +212,7 @@ const ChatBot: React.FC = () => {
             ))}
 
             {isTyping && (
-              <div className="flex items-end gap-2 max-w-[85%]">
+              <div className="flex items-end gap-2 max-w-[85%] self-start">
                 <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
                   <Bot className="w-4 h-4 text-[#8b5cf6]" />
                 </div>
@@ -190,8 +222,24 @@ const ChatBot: React.FC = () => {
                 </div>
               </div>
             )}
-            
             <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick Suggestions - Sticky above input */}
+          <div className="px-4 py-3 flex flex-wrap gap-2 bg-[#f8fafc] border-t border-gray-100/50">
+            <button 
+              onClick={() => handleSuggestionClick('create')}
+              className="text-[12px] bg-indigo-50 hover:bg-indigo-100 text-[#6d28d9] border border-indigo-200 px-3 py-1.5 rounded-full transition-colors font-semibold whitespace-nowrap shadow-sm flex items-center gap-1.5 hover:scale-105 active:scale-95 duration-200"
+            >
+              <Sparkles className="w-3 h-3" />
+              Create a project
+            </button>
+            <button 
+              onClick={() => handleSuggestionClick('details')}
+              className="text-[12px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1.5 rounded-full transition-colors font-semibold whitespace-nowrap shadow-sm hover:scale-105 active:scale-95 duration-200"
+            >
+              All project details
+            </button>
           </div>
 
           {/* Input Area */}

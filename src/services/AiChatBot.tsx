@@ -10,9 +10,7 @@ const AZURE_API_VERSION = "2025-01-01-preview";
 
 export const AiChatBot = async (Projectdata: any,Question: any) => {
   const systemPrompt = `
-
-
-Your job is to analyze the provided Project Data and respond to the user's question based only on that information.
+Your job is to analyze the provided Project Data and respond to the user's question using only that information.
 
 Project Data: ${Projectdata}
 
@@ -24,7 +22,35 @@ Carefully read and analyze the Project Data.
 
 Answer the User Question using only the information available in the Project Data.
 
-If the answer exists in the data, provide a clear and concise response based on the information.
+The response should be written in a clear and natural paragraph format, similar to how an AI assistant explains information to users.
+
+When describing project information, include relevant details such as:
+
+Project Name
+
+Description
+
+Start Date
+
+End Date (if available)
+
+Status
+
+Company
+
+Created User
+
+Vendor names
+
+Available vendor documents or folders
+
+If the user asks for all project details, generate a complete project summary paragraph using all available fields.
+
+If the user asks for specific information (for example vendor list, status, timeline, cost estimation, or documents), respond with a focused paragraph explaining that information.
+
+When mentioning vendors, include only valid vendor company names and ignore generic folder labels like "Vendor".
+
+Do not return raw JSON project structures or field lists inside the answer. Convert the data into a readable paragraph.
 
 If the question cannot be answered from the provided data or is unrelated to the project, provide a helpful suggestion guiding the user to ask questions related to:
 
@@ -51,11 +77,13 @@ Return ONLY valid JSON using this exact structure:
 
 Rules:
 
-If the question can be answered, fill the "answer" field and leave "suggestion" empty.
+If the question can be answered, fill the "answer" field with a clear paragraph explanation and leave "suggestion" empty.
 
 If the question cannot be answered from the project data, leave "answer" empty and provide a helpful suggestion in "suggestion".
 
 Do not include markdown formatting.
+
+Do not return file paths unless they are part of the explanation.
 
 Only return valid JSON.`;
 
