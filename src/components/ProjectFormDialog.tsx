@@ -233,7 +233,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1000px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border shadow-xl bg-[#F8FAFC]">
+      <DialogContent
+        className="sm:max-w-[1000px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border shadow-xl bg-[#F8FAFC]"
+        onInteractOutside={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+      >
         <DialogHeader className="shrink-0 px-6 py-5 pb-4 border-b bg-gradient-to-b from-[#EFF4FF] to-[#F8FAFC]">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EBE4FF] text-[#5a3dd4]">
@@ -531,29 +535,29 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                         </label>
                       </div>
                       {files.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-muted-foreground">New files to upload</p>
-                      <ul className="space-y-1">
-                        {files.map((f, i) => (
-                          <li
-                            key={`${f.name}-${i}`}
-                            className="flex items-center gap-2 rounded-md bg-background px-3 py-2 text-sm border"
-                          >
-                            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <span className="truncate flex-1">{f.name}</span>
-                            <button
-                              type="button"
-                              className="shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                              onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                              aria-label={`Remove ${f.name}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-medium text-muted-foreground">New files to upload</p>
+                          <ul className="space-y-1">
+                            {files.map((f, i) => (
+                              <li
+                                key={`${f.name}-${i}`}
+                                className="flex items-center gap-2 rounded-md bg-background px-3 py-2 text-sm border"
+                              >
+                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <span className="truncate flex-1">{f.name}</span>
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                  onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                                  aria-label={`Remove ${f.name}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -603,7 +607,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
 
       {/* Attachment AI verification dialog */}
       <Dialog open={verificationOpen} onOpenChange={setVerificationOpen}>
-        <DialogContent className="sm:max-w-[720px] max-h-[90vh] flex flex-col gap-0 rounded-2xl border shadow-2xl bg-white p-0 overflow-hidden">
+        <DialogContent
+          className="sm:max-w-[720px] max-h-[90vh] flex flex-col gap-0 rounded-2xl border shadow-2xl bg-white p-0 overflow-hidden"
+          onInteractOutside={(event) => event.preventDefault()}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+        >
           <div className="px-6 pt-5 pb-3 border-b bg-gradient-to-r from-[#F4F3FF] via-white to-[#F4F3FF] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-[#EBE4FF] flex items-center justify-center text-[#5a3dd4]">
@@ -620,8 +628,8 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
             </div>
           </div>
 
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="px-6 py-4 space-y-4">
+          <ScrollArea className="flex-1 min-h-0 max-h-[60vh] overflow-hidden">
+            <div className="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
               {verificationItems.map((item, index) => {
                 const isAccepted = item.status === 'accepted';
                 const isRejected = item.status === 'rejected';
@@ -695,14 +703,14 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
               {verificationRunning
                 ? 'Verifying files…'
                 : (() => {
-                    const rejectedCount = verificationItems.filter(
-                      (i) => i.status === 'rejected',
-                    ).length;
-                    if (rejectedCount === 0) {
-                      return 'All files look relevant. They will be attached to this project.';
-                    }
-                    return `${rejectedCount} file(s) were rejected (score below 50) and will not be attached.`;
-                  })()}
+                  const rejectedCount = verificationItems.filter(
+                    (i) => i.status === 'rejected',
+                  ).length;
+                  if (rejectedCount === 0) {
+                    return 'All files look relevant. They will be attached to this project.';
+                  }
+                  return `${rejectedCount} file(s) were rejected (score below 50) and will not be attached.`;
+                })()}
             </div>
             <div className="flex items-center gap-2">
               {!verificationRunning && (
