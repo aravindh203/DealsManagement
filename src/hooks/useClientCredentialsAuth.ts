@@ -35,8 +35,9 @@ export const getAccessTokenByApp = async (): Promise<string | null> => {
 
     try {
         // Use the Vite proxy path instead of the direct Azure AD URL
-        const tokenUrl = `/api/token/${appConfig.tenantId}/oauth2/v2.0/token`;
-
+        //const tokenUrl = `/api/token/${appConfig.tenantId}/oauth2/v2.0/token`;
+const tokenUrl = `https://login.microsoftonline.com/${appConfig.tenantId}/oauth2/v2.0/token`;
+console.log(tokenUrl);
         const body = new URLSearchParams({
             grant_type: 'client_credentials',
             client_id: appConfig.clientId,
