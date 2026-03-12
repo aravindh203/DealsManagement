@@ -80,6 +80,7 @@ export const appConfig = {
   appName: "Sharepoint Embedded"
 };
 
+// ne one
 let cachedToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 
