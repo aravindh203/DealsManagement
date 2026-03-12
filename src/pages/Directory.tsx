@@ -47,7 +47,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import Aianalyzie from "@/components/Aianalyzie";
 
 const PAGE_SIZE = 10;
 
@@ -161,11 +160,6 @@ const Directory: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<ProjectStatusValue | "all">("all");
     const [formOpen, setFormOpen] = useState(false);
     const [aiCreateOpen, setAiCreateOpen] = useState(false);
-    const [Aianalysis, setAianalysis] = useState(false);
-    const [aiAnalysisData, setAiAnalysisData] = useState<{
-        projectDescription: string;
-        proposalDocument: File | null;
-    } | null>(null);
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode>("create");
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<
@@ -495,15 +489,6 @@ const Directory: React.FC = () => {
             }
             const containerId = appConfig.ContainerID;
 
-            setAiAnalysisData((prev)=>{return{
-                ...prev,
-                projectDescription: vendorSubmissionProject?.P_Description || "",
-                proposalDocument: filesByCategory.proposalDocument?.[0] || null,
-        }});
-            debugger
-            setAianalysis(true);
-
-            
             const vendorFolderId = await sharePointService.getVendorFolderId(
                 token,
                 containerId,
@@ -560,16 +545,6 @@ const Directory: React.FC = () => {
                     </button>
                 </div>
             </nav>
-            {Aianalysis && aiAnalysisData && (
-                <Aianalyzie 
-                    projectDescription={aiAnalysisData.projectDescription} 
-                    proposalDocument={aiAnalysisData.proposalDocument!} 
-                    onClose={() => setAianalysis(false)}
-                />
-            )}
-
-
-
             <main className={styles.main}>
                 <div className={styles.mainStatic}>
                     <div className={styles.pageHeader}>

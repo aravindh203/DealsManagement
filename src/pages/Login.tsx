@@ -146,6 +146,22 @@ const useStyles = makeStyles({
     alignItems: 'stretch',
     gap: '16px',
   },
+  vendorSignupForm: {
+    width: '100%',
+    marginTop: '8px',
+    marginBottom: '24px',
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    rowGap: '16px',
+    columnGap: '16px',
+    textAlign: 'left',
+    '@media (min-width: 768px)': {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  vendorSignupFullWidth: {
+    gridColumn: '1 / -1',
+  },
   inputWrap: {
     display: 'flex',
     flexDirection: 'column',
@@ -156,6 +172,7 @@ const useStyles = makeStyles({
     fontSize: '13px',
     fontWeight: '600',
     color: '#333',
+    textAlign: 'left',
   },
   input: {
     width: '100%',
@@ -189,6 +206,9 @@ const useStyles = makeStyles({
     borderLeft: '4px solid #5c5ce0',
     textAlign: 'left' as const,
     alignItems: 'stretch',
+  },
+  vendorSignupCard: {
+    maxWidth: '720px',
   },
   vendorHeader: {
     display: 'flex',
@@ -378,6 +398,7 @@ const Login = () => {
   const [signupMobile, setSignupMobile] = useState('');
   const [signupUsername, setSignupUsername] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
 
@@ -432,8 +453,13 @@ const Login = () => {
       setSignupLoading(true);
       setSignupError(null);
 
-      if (!signupUsername.trim() || !signupPassword.trim() || !signupCompany.trim()) {
-        setSignupError('Username, password and company are required.');
+      if (!signupFirstName.trim() || !signupEmail.trim() || !signupCompany.trim() || !signupUsername.trim() || !signupPassword.trim()) {
+        setSignupError('First name, email, company name, desired username and password are required.');
+        return;
+      }
+
+      if (signupPassword.trim() !== signupConfirmPassword.trim()) {
+        setSignupError('Password and confirm password must match.');
         return;
       }
 
@@ -460,6 +486,7 @@ const Login = () => {
       setSignupMobile('');
       setSignupUsername('');
       setSignupPassword('');
+      setSignupConfirmPassword('');
       setShowVendorSignup(false);
     } catch (err) {
       console.error('Vendor signup failed:', err);
@@ -482,19 +509,22 @@ const Login = () => {
 
   return (
     <div className={styles.container}>
-      <div className={`${styles.card} ${showVendorForm ? styles.vendorCard : ''}`}>
+      <div
+        className={`${styles.card} ${showVendorForm ? styles.vendorCard : ''
+          } ${showVendorForm && showVendorSignup ? styles.vendorSignupCard : ''}`}
+      >
         {!showVendorForm ? (
           <>
-        <div className={styles.iconBox}>
-          <ShieldCheckmarkRegular className={styles.icon} />
-        </div>
+            <div className={styles.iconBox}>
+              <ShieldCheckmarkRegular className={styles.icon} />
+            </div>
 
-        <Text className={styles.tagline}>Enterprise Core</Text>
-        <Text className={styles.title}>Nexus.</Text>
+            <Text className={styles.tagline}>Enterprise Core</Text>
+            <Text className={styles.title}>Nexus.</Text>
 
-        <Text className={styles.description}>
-          Identity-first workspace security for the next generation of cloud clusters.
-        </Text>
+            <Text className={styles.description}>
+              Identity-first workspace security for the next generation of cloud clusters.
+            </Text>
 
             {error && (
               <div className={styles.errorAlert}>
@@ -546,7 +576,7 @@ const Login = () => {
                 <Text className={styles.vendorTitle}>Vendor sign in</Text>
               </div>
             </div>
-            <Text className={styles.vendorDescription}>
+            <Text className={styles.vendorDescription} style={showVendorSignup ? { marginBottom: "10px" } : {}}>
               {showVendorSignup
                 ? 'Request access as a new vendor. Your account will be activated after an Office 365 admin approves it.'
                 : 'Sign in with your vendor credentials to access Directory and Repository.'}
@@ -628,30 +658,16 @@ const Login = () => {
               </>
             ) : (
               <>
-                <form className={styles.vendorForm} onSubmit={handleVendorSignup}>
-                  <div className={styles.inputWrap}>
-                    <label className={styles.inputLabel} htmlFor="signup-company">
-                      Company name
-                    </label>
-                    <Input
-                      id="signup-company"
-                      type="text"
-                      className={styles.vendorInput}
-                      placeholder="Your company"
-                      value={signupCompany}
-                      onChange={(e) => setSignupCompany(e.target.value)}
-                      disabled={signupLoading}
-                    />
-                  </div>
+                <form className={styles.vendorSignupForm} onSubmit={handleVendorSignup} style={{ marginBottom: 0 }}>
                   <div className={styles.inputWrap}>
                     <label className={styles.inputLabel} htmlFor="signup-firstname">
-                      First name
+                      First name <span style={{ color: '#c53030' }}>*</span>
                     </label>
                     <Input
                       id="signup-firstname"
                       type="text"
                       className={styles.vendorInput}
-                      placeholder="Optional"
+                      placeholder="First name"
                       value={signupFirstName}
                       onChange={(e) => setSignupFirstName(e.target.value)}
                       disabled={signupLoading}
@@ -673,7 +689,7 @@ const Login = () => {
                   </div>
                   <div className={styles.inputWrap}>
                     <label className={styles.inputLabel} htmlFor="signup-email">
-                      Email
+                      Email <span style={{ color: '#c53030' }}>*</span>
                     </label>
                     <Input
                       id="signup-email"
@@ -682,6 +698,20 @@ const Login = () => {
                       placeholder="name@company.com"
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-company">
+                      Company name <span style={{ color: '#c53030' }}>*</span>
+                    </label>
+                    <Input
+                      id="signup-company"
+                      type="text"
+                      className={styles.vendorInput}
+                      placeholder="Your company"
+                      value={signupCompany}
+                      onChange={(e) => setSignupCompany(e.target.value)}
                       disabled={signupLoading}
                     />
                   </div>
@@ -701,7 +731,7 @@ const Login = () => {
                   </div>
                   <div className={styles.inputWrap}>
                     <label className={styles.inputLabel} htmlFor="signup-username">
-                      Desired username
+                      Desired username <span style={{ color: '#c53030' }}>*</span>
                     </label>
                     <Input
                       id="signup-username"
@@ -715,7 +745,7 @@ const Login = () => {
                   </div>
                   <div className={styles.inputWrap}>
                     <label className={styles.inputLabel} htmlFor="signup-password">
-                      Password
+                      Password <span style={{ color: '#c53030' }}>*</span>
                     </label>
                     <Input
                       id="signup-password"
@@ -727,52 +757,75 @@ const Login = () => {
                       disabled={signupLoading}
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className={styles.vendorSignupButton}
-                    disabled={
-                      signupLoading ||
-                      !signupUsername.trim() ||
-                      !signupPassword.trim() ||
-                      !signupCompany.trim()
-                    }
-                  >
-                    {signupLoading ? 'Submitting…' : 'Submit for approval'}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.vendorToggleButton}
-                    style={{ marginTop: '8px' }}
-                    onClick={() => {
-                      setShowVendorSignup(false);
-                      setSignupError(null);
-                    }}
-                  >
-                    Back to vendor sign in
-                  </button>
+                  <div className={styles.inputWrap}>
+                    <label className={styles.inputLabel} htmlFor="signup-confirm-password">
+                      Confirm password <span style={{ color: '#c53030' }}>*</span>
+                    </label>
+                    <Input
+                      id="signup-confirm-password"
+                      type="password"
+                      className={styles.vendorInput}
+                      placeholder="Re-enter your password"
+                      value={signupConfirmPassword}
+                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                      disabled={signupLoading}
+                    />
+                  </div>
+                  <div className={styles.vendorSignupFullWidth}>
+                    <button
+                      type="submit"
+                      className={styles.vendorSignupButton}
+                      disabled={
+                        signupLoading ||
+                        !signupFirstName.trim() ||
+                        !signupEmail.trim() ||
+                        !signupCompany.trim() ||
+                        !signupUsername.trim() ||
+                        !signupPassword.trim() ||
+                        !signupConfirmPassword.trim()
+                      }
+                    >
+                      {signupLoading ? 'Submitting…' : 'Submit for approval'}
+                    </button>
+                    <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        className={styles.vendorToggleButton}
+                        onClick={() => {
+                          setShowVendorSignup(false);
+                          setSignupError(null);
+                        }}
+                      >
+                        Back to vendor sign in
+                      </button>
+                    </div>
+                  </div>
                 </form>
               </>
             )}
 
-            <button
-              type="button"
-              className={styles.vendorBackLink}
-              onClick={() => {
-                setShowVendorForm(false);
-                setShowVendorSignup(false);
-                setVendorUsername('');
-                setVendorPassword('');
-                setVendorError(null);
-              }}
-            >
-              <ArrowLeftRegular style={{ fontSize: 16 }} />
-              Back to login options
-            </button>
+            {!showVendorSignup && (
+              <button
+                style={{ marginTop: 0 }}
+                type="button"
+                className={styles.vendorBackLink}
+                onClick={() => {
+                  setShowVendorForm(false);
+                  setShowVendorSignup(false);
+                  setVendorUsername('');
+                  setVendorPassword('');
+                  setVendorError(null);
+                }}
+              >
+                <ArrowLeftRegular style={{ fontSize: 16 }} />
+                Back to login options
+              </button>
+            )}
           </>
         )}
 
       </div>
-    </div>
+    </div >
   );
 };
 
