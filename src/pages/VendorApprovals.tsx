@@ -479,6 +479,7 @@ const VendorApprovals: React.FC = () => {
                       </Button>
                       <Button
                         type="button"
+                        className="bg-green-600 hover:bg-green-700 text-white"
                         disabled={updatingId === selectedVendor.id}
                         onClick={async () => {
                           await handleChangeStatus(selectedVendor.id, "Approved");

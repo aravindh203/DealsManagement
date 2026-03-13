@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./Repository.module.scss";
 import { AddRegular, ArrowLeftRegular, FolderAddRegular } from "@fluentui/react-icons";
-import { LogOut, Download, Trash2, Eye, Share2, Globe2, Building2, Users2, Edit2 } from "lucide-react";
+import { LogOut, Download, Trash2, Eye, Share2, Globe2, Building2, Users2, Edit2, X, Share, FileText } from "lucide-react";
 import { useProjects } from "@/context/ProjectsContext";
 import { useAuth } from "@/context/AuthContext";
 import { getAccessTokenByApp } from "@/hooks/useClientCredentialsAuth";
@@ -604,7 +604,6 @@ const Repository: React.FC = () => {
           <div className={styles.tableFullWidth}>
             <div className={styles.registryHeader}>
               <span className={styles.registryTitle}>STORAGE REGISTRY</span>
-              <span className={styles.isolatedTag}>ISOLATED CONTAINER</span>
             </div>
             <div className={styles.assetList}>
               {isRoot ? (
@@ -693,7 +692,10 @@ const Repository: React.FC = () => {
                                   <FolderIcon />
                                 </span>
                               ) : (
-                                <span className={styles.iconFile}>
+                                <span 
+                                  className={`${styles.iconFile} cursor-pointer hover:opacity-80 transition-opacity`}
+                                  onClick={(e) => { e.stopPropagation(); handleViewFile(item); }}
+                                >
                                   <svg
                                     width="20"
                                     height="20"
@@ -706,7 +708,15 @@ const Repository: React.FC = () => {
                                 </span>
                               )}
                               <div>
-                                <span className={styles.assetName}>
+                                <span 
+                                  className={`${styles.assetName} ${!item.folder ? "cursor-pointer hover:text-[#6B47E5] transition-colors" : ""}`}
+                                  onClick={(e) => { 
+                                    if (!item.folder) {
+                                      e.stopPropagation();
+                                      handleViewFile(item);
+                                    }
+                                  }}
+                                >
                                   {item.name}
                                 </span>
                                 <span className={styles.assetMeta}>
@@ -734,28 +744,26 @@ const Repository: React.FC = () => {
                           >
                             {!item.folder ? (
                               <div className={styles.fileActions}>
+                                <button
+                                  type="button"
+                                  className={styles.fileActionBtn}
+                                  title="View"
+                                  disabled={actionItemId === item.id}
+                                  onClick={() => handleViewFile(item)}
+                                >
+                                  <Eye size={16} />
+                                  <span>View</span>
+                                </button>
                                 {!isVendor && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className={styles.fileActionBtn}
-                                      title="View"
-                                      disabled={actionItemId === item.id}
-                                      onClick={() => handleViewFile(item)}
-                                    >
-                                      <Eye size={16} />
-                                      <span>View</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={styles.fileActionBtn}
-                                      title="Share"
-                                      onClick={() => handleOpenShare(item)}
-                                    >
-                                      <Share2 size={16} />
-                                      <span>Share</span>
-                                    </button>
-                                  </>
+                                  <button
+                                    type="button"
+                                    className={styles.fileActionBtn}
+                                    title="Share"
+                                    onClick={() => handleOpenShare(item)}
+                                  >
+                                    <Share2 size={16} />
+                                    <span>Share</span>
+                                  </button>
                                 )}
                                 <button
                                   type="button"
@@ -912,7 +920,7 @@ const Repository: React.FC = () => {
 
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={(open) => { setIsPreviewOpen(open); if (!open) { setPreviewUrl(null); setPreviewItem(null); } }}>
-        <DialogContent className="sm:max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+        <DialogContent className="sm:max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl [&>button]:hidden">
           <DialogHeader className="p-0 border-none">
             <div className="bg-[#6B47E5] text-white p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -924,14 +932,27 @@ const Repository: React.FC = () => {
                   {previewItem && <span className="text-xs text-purple-100 opacity-90">{previewItem.name}</span>}
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white hover:bg-white/10" 
-                onClick={() => setIsPreviewOpen(false)}
-              >
-                <LogOut size={18} className="rotate-90" />
-              </Button>
+              <div className="flex items-center gap-3">
+                {!isVendor && previewItem && (["docx", "xlsx", "pptx", "doc", "xls", "ppt"].includes((previewItem.name.split(".").pop() || "").toLowerCase())) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-white hover:bg-white/10 flex items-center gap-2 px-4 h-9 border border-white/20 rounded-full transition-all"
+                    onClick={() => previewItem.webUrl && window.open(previewItem.webUrl, "_blank")}
+                  >
+                    <Edit2 size={14} />
+                    <span className="font-medium">Open in Office</span>
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white hover:bg-white/10 rounded-full h-9 w-9" 
+                  onClick={() => setIsPreviewOpen(false)}
+                >
+                  <X size={18} />
+                </Button>
+              </div>
             </div>
           </DialogHeader>
           <div className="flex-1 bg-white relative">
@@ -962,8 +983,13 @@ const Repository: React.FC = () => {
               <Share2 size={24} className="text-[#6B47E5]" strokeWidth={2} /> Share
             </DialogTitle>
             {sharingItem && (
-               <div className="text-sm text-muted-foreground ml-[28px] truncate">
-                 {sharingItem.name}
+               <div className="text-sm text-muted-foreground ml-[2px] flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                 <div className="flex-shrink-0">
+                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {getFileIcon(sharingItem.name)}
+                   </svg>
+                 </div>
+                 <span className="truncate font-medium">{sharingItem.name}</span>
                </div>
             )}
           </DialogHeader>
@@ -1052,7 +1078,7 @@ const Repository: React.FC = () => {
             {/* Result Area */}
             {shareLinkResult && shareScope !== "users" && (
                <div className="p-4 bg-green-50 border border-green-200 rounded-lg mt-2">
-                 <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully:</Label>
+                 <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully</Label>
                  <div className="flex items-center gap-2">
                     <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
                     <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({title:"Copied", description:"Link copied to clipboard."}) }}>Copy</Button>
