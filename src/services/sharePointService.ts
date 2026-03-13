@@ -281,17 +281,17 @@ export class SharePointService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          description: "V_CompanyBidAmount ",
-          displayName: "V_CompanyBidAmount ",
+          description: "Conversation",
+          displayName: "Conversation",
           enforceUniqueValues: false,
           hidden: false,
           indexed: false,
-          name: "V_CompanyBidAmount ",
+          name: "Conversation",
           text: {
-            allowMultipleLines: false,
+            allowMultipleLines: true,
             appendChangesToExistingText: false,
             linesForEditing: 0,
-            maxLength: 255,
+            maxLength: 50000,
           },
         }),
       });
@@ -310,6 +310,69 @@ export class SharePointService {
       return data;
     } catch (error) {
       console.error("Error creating column:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a custom column from a fileStorage container by its internal name.
+   * This first lists all columns on the container, then deletes the matching one if found.
+   */
+  async deleteColumnByName(
+    token: string,
+    containerId: string,
+    internalName: string,
+  ): Promise<void> {
+    try {
+      const baseUrl = `https://graph.microsoft.com/beta/storage/fileStorage/containers/${containerId}/columns`;
+
+      const listResponse = await fetch(baseUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!listResponse.ok) {
+        const text = await listResponse.text();
+        console.error("Error listing columns before delete:", text);
+        throw new Error(
+          `Failed to list columns: ${listResponse.status} ${listResponse.statusText} - ${text}`,
+        );
+      }
+
+      const data = await listResponse.json();
+      const target = (data.value ?? []).find(
+        (col: any) =>
+          col?.name === internalName || col?.displayName === internalName,
+      );
+
+      if (!target?.id) {
+        console.warn(
+          `Column "${internalName}" not found on container ${containerId}. Nothing to delete.`,
+        );
+        return;
+      }
+
+      const deleteUrl = `${baseUrl}/${target.id}`;
+      const deleteResponse = await fetch(deleteUrl, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!deleteResponse.ok && deleteResponse.status !== 204) {
+        const errorText = await deleteResponse.text();
+        console.error("Error deleting column:", errorText);
+        throw new Error(
+          `Failed to delete column: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
+        );
+      }
+    } catch (error) {
+      console.error("deleteColumnByName error:", error);
       throw error;
     }
   }
@@ -478,9 +541,7 @@ export class SharePointService {
 
         start = end;
         end = Math.min(start + chunkSize, file.size);
-        progressCallback(
-          Math.min(100, Math.round((start / file.size) * 100)),
-        );
+        progressCallback(Math.min(100, Math.round((start / file.size) * 100)));
       }
 
       progressCallback(100);
@@ -564,6 +625,40 @@ export class SharePointService {
     }
   }
 
+  /**
+   * Delete all top-level project folders/items in a given container.
+   * This is used by admin tools to quickly clear a project container.
+   */
+  async deleteAllProjectsInContainer(
+    token: string,
+    containerId: string,
+  ): Promise<void> {
+    try {
+      const rootFolders = await this.fetchRootFolders(token, containerId);
+      if (!Array.isArray(rootFolders) || rootFolders.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        rootFolders.map(async (item: any) => {
+          const id = item?.id;
+          if (!id) return;
+          try {
+            await this.deleteFolderAndItem(token, containerId, id);
+          } catch (err) {
+            console.error(
+              "Error deleting project folder while clearing container:",
+              { id, err },
+            );
+          }
+        }),
+      );
+    } catch (error) {
+      console.error("Error deleting all projects in container:", error);
+      throw error;
+    }
+  }
+
   async fetchSubFolders(
     token: string,
     containerId: string,
@@ -597,7 +692,6 @@ export class SharePointService {
           };
         }),
       );
-      debugger;
 
       return preparedData ?? [];
     } catch (error) {
@@ -816,6 +910,25 @@ export class SharePointService {
   }
 
   /**
+   * Returns true if the project's Vendor folder has at least one company submission (subfolder).
+   * Used by 365 users to distinguish "Open" (no submissions) vs "Assign vendor" (has submissions).
+   */
+  async hasAnyVendorSubmission(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+  ): Promise<boolean> {
+    const vendorFolderId = await this.getVendorFolderId(
+      token,
+      containerId,
+      projectFolderId,
+    );
+    if (!vendorFolderId) return false;
+    const children = await this.listFiles(token, containerId, vendorFolderId);
+    return children.some((item) => item.folder);
+  }
+
+  /**
    * Patch list item fields on a drive item (e.g. set V_BidAmount on company folder).
    */
   async patchListItemFields(
@@ -843,12 +956,15 @@ export class SharePointService {
   }
 
   /**
-   * Create company folder under Vendor, create 5 subfolders, upload files to each, set bid amount on company folder.
-   * filesByCategory keys must match VENDOR_SUBFOLDER_NAMES order: proposalDocument, supportingDocuments, costEstimation, policyDocuments, approvalDocuments.
+   * Create company folder under Vendor, create 5 subfolders, upload files to each,
+   * and set bid amount on both the company folder and the parent project metadata (V_BidAmount).
+   * filesByCategory keys must match VENDOR_SUBFOLDER_NAMES order:
+   * proposalDocument, supportingDocuments, costEstimation, policyDocuments, approvalDocuments.
    */
   async createCompanySubmission(
     token: string,
     containerId: string,
+    projectFolderId: string,
     vendorFolderId: string,
     companyName: string,
     bidAmount: string,
@@ -899,13 +1015,26 @@ export class SharePointService {
       }
     }
 
+    const normalizedBidAmount = (bidAmount ?? "").trim() || "";
+
     try {
       await this.patchListItemFields(token, containerId, companyFolderId, {
-        V_BidAmount: (bidAmount ?? "").trim() || "",
+        V_BidAmount: normalizedBidAmount,
       });
     } catch (err) {
       console.warn(
         "Could not set V_BidAmount on company folder (column may not exist):",
+        err,
+      );
+    }
+
+    try {
+      await this.patchListItemFields(token, containerId, projectFolderId, {
+        V_BidAmount: normalizedBidAmount,
+      });
+    } catch (err) {
+      console.warn(
+        "Could not set V_BidAmount on project metadata (column may not exist):",
         err,
       );
     }
@@ -968,6 +1097,8 @@ export class SharePointService {
           P_BidEndDate: data?.P_BidEndDate ?? null,
           P_Company: data?.P_Company ?? "",
           P_CreatedUserEmail: data?.P_CreatedUserEmail ?? "",
+          // Ensure finalized vendor column exists with empty value on create
+          //P_FinilizedVendor: "",
         }),
       });
 
@@ -1207,7 +1338,6 @@ export class SharePointService {
 
   async getColumns(token: string): Promise<ArrayBuffer> {
     try {
-      debugger;
       // const url = `https://graph.microsoft.com/beta/storage/fileStorage/containers/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/columns`
       // const url = `https://graph.microsoft.com/beta/drives//b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/root/children`
       // const url = `https://graph.microsoft.com/beta/drives/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/items/01R2P44ADQAX4IFHRZLND3XS4FTYQOZUS2/listitem/fields$expand=listitem($expand=fields)`
@@ -1454,7 +1584,7 @@ export class SharePointService {
     try {
       // Use the SharePoint Embedded containers endpoint
       const url = `${appConfig.endpoints.graphBaseUrl}/storage/fileStorage/containers`;
-      debugger;
+
       console.log("Creating container:", { displayName, description });
 
       const response = await fetch(url, {
@@ -1469,7 +1599,6 @@ export class SharePointService {
           containerTypeId: appConfig.containerTypeId,
         }),
       });
-      debugger;
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error creating container:", errorText);
@@ -1568,7 +1697,6 @@ export class SharePointService {
   }
 
   // async listContainersUsingSearch(token: string): Promise<Array<{ id: string; name: string; webUrl?: string; createdDateTime?: string; description?: string; containerTypeId?: string }>> {
-  //   debugger
 
   //   try {
   //     const url = `${appConfig.endpoints.graphBaseUrl}/search/query`;
@@ -1879,7 +2007,7 @@ export class SharePointService {
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
     const sitePath = "/sites/HackerthonDealsManagement";
     // const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items`;
-      const url = `https://graph.microsoft.com/v1.0/sites/chandrudemo.sharepoint.com:/sites/HackerthonDealsManagement:/lists/UserDetails/items`
+    const url = `https://graph.microsoft.com/v1.0/sites/chandrudemo.sharepoint.com:/sites/HackerthonDealsManagement:/lists/UserDetails/items`;
     const body = {
       fields: {
         Title: trimmedUsername,

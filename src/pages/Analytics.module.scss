@@ -201,72 +201,97 @@
 
 .reportGrid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 20px;
 }
 
 .reportCard {
     background-color: #fff;
     border-radius: 18px;
-    padding: 28px 24px;
+    padding: 20px 18px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-
-    &:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
-    }
-}
-
-.reportCardIconWrap {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background-color: #fff;
-    border: 2px solid #c4b5fd;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.reportCardIcon {
-    color: #5b21b6;
-    width: 24px;
-    height: 24px;
 }
 
 .reportCardTitle {
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 700;
     color: #1A202C;
     margin: 0 0 8px 0;
 }
 
 .reportCardDesc {
-    font-size: 13px;
+    font-size: 12px;
     color: #64748b;
     margin: 0 0 18px 0;
 }
 
-.generateLink {
-    background: none;
-    border: none;
-    font-size: 12px;
-    font-weight: 700;
-    color: #5b21b6;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    padding: 0;
-    text-transform: uppercase;
+.progressTrack {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background-color: #eef2ff;
+    overflow: hidden;
+}
 
-    &:hover {
-        text-decoration: underline;
-    }
+.progressBarPrimary {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4f46e5, #22c55e);
 }
 
 .customQuery {
     margin-bottom: 36px;
+}
+
+.waveRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: center;
+}
+
+.waveLabelGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.waveLabel {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.waveValue {
+    font-size: 16px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.waveChart {
+    width: 100%;
+}
+
+.waveTrack {
+    width: 100%;
+    height: 14px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 0 0, #e0f2fe 0, #e0f2fe 40%, transparent 70%), #eff6ff;
+    overflow: hidden;
+}
+
+.waveFillBudget {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #0ea5e9, #6366f1);
+}
+
+.waveFillBid {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
 }
 
 .queryRow {
@@ -327,6 +352,49 @@
 
 .historicalSection {
     margin-bottom: 24px;
+}
+
+.vendorPieRow {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.2fr);
+    gap: 24px;
+    align-items: center;
+}
+
+.vendorPieLegend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vendorLegendItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    color: #111827;
+}
+
+.vendorLegendSwatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+}
+
+.vendorLegendLabel {
+    flex: 1;
+    margin-left: 4px;
+}
+
+.vendorLegendValue {
+    font-variant-numeric: tabular-nums;
+    color: #4b5563;
+}
+
+.vendorPieChart {
+    width: 180px;
+    height: 180px;
 }
 
 .historicalTableWrap {

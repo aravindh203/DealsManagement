@@ -22,25 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const LineGraphIcon = () => (
-  <svg
-    width="14"
-    height="10"
-    viewBox="0 0 14 10"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={styles.badgeChartIcon}
-  >
-    <path
-      d="M1 8L4 5L6 6L9 2L13 4"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const BellIcon = () => (
   <svg
     width="20"
@@ -459,10 +440,6 @@ const Repository: React.FC = () => {
       <nav className={styles.topNav}>
         <div className={styles.navLeft}>
           <span className={styles.logo}>Repository</span>
-          <div className={styles.badge}>
-            <LineGraphIcon />
-            <span>REAL-TIME ACTIVE</span>
-          </div>
         </div>
         <div className={styles.navRight}>
           <button

@@ -63,6 +63,13 @@ import VendorApprovals from "./pages/VendorApprovals";
 import { AdminLayout } from "./pages/AdminLayout";
 import ChatBot from "./components/AI/ChatBot";
 
+// Chat button is only shown to M365 users, not vendor users
+const ChatBotForM365 = () => {
+  const { loginType } = useAuth();
+  if (loginType !== 'm365') return null;
+  return <ChatBot />;
+};
+
 const App = () => {
   console.log('App component rendering');
 
@@ -73,83 +80,83 @@ const App = () => {
           <Router>
             <AuthProvider>
               <ProjectsProvider>
-              <ConfigProvider>
-                <ApiCallsProvider>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <Toaster />
-                    <Sonner />
-                    <ChatBot />
-                    <Routes>
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/admin" element={<Navigate to="/insights" replace />} />
-                      <Route path="/admin/directory" element={<Navigate to="/directory" replace />} />
-                      <Route path="/admin/repository" element={<Navigate to="/repository" replace />} />
-                      <Route path="/admin/analytics" element={<Navigate to="/analytics" replace />} />
-                      <Route path="/admin/identity" element={<Navigate to="/identity" replace />} />
-                      <Route path="/" element={<ProtectedRouteStandalone><AdminLayout /></ProtectedRouteStandalone>}>
-                        <Route index element={<DefaultRedirect />} />
-                        <Route
-                          path="insights"
-                          element={(
-                            <ModuleGuard allowedRoles={['admin']}>
-                              <Insights />
-                            </ModuleGuard>
-                          )}
-                        />
-                        <Route
-                          path="directory"
-                          element={(
-                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
-                              <Directory />
-                            </ModuleGuard>
-                          )}
-                        />
-                        <Route
-                          path="project/:id"
-                          element={(
-                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
-                              <ProjectDetail />
-                            </ModuleGuard>
-                          )}
-                        />
-                        <Route
-                          path="repository"
-                          element={(
-                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
-                              <Repository />
-                            </ModuleGuard>
-                          )}
-                        />
-                        <Route
-                          path="analytics"
-                          element={(
-                            <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
-                              <Analytics />
-                            </ModuleGuard>
-                          )}
-                        />
-                        <Route
-                          path="vendor-approvals"
-                          element={(
-                            <ModuleGuard allowedRoles={['admin']}>
-                              <VendorApprovals />
-                            </ModuleGuard>
-                          )}
-                        />
-                        <Route
-                          path="identity"
-                          element={(
-                            <ModuleGuard allowedRoles={['admin']}>
-                              <Identity />
-                            </ModuleGuard>
-                          )}
-                        />
-                      </Route>
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Suspense>
-                </ApiCallsProvider>
-              </ConfigProvider>
+                <ConfigProvider>
+                  <ApiCallsProvider>
+                    <Suspense fallback={<LoadingFallback />}>
+                      <Toaster />
+                      <Sonner />
+                      <ChatBotForM365 />
+                      <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/admin" element={<Navigate to="/insights" replace />} />
+                        <Route path="/admin/directory" element={<Navigate to="/directory" replace />} />
+                        <Route path="/admin/repository" element={<Navigate to="/repository" replace />} />
+                        <Route path="/admin/analytics" element={<Navigate to="/analytics" replace />} />
+                        <Route path="/admin/identity" element={<Navigate to="/identity" replace />} />
+                        <Route path="/" element={<ProtectedRouteStandalone><AdminLayout /></ProtectedRouteStandalone>}>
+                          <Route index element={<DefaultRedirect />} />
+                          <Route
+                            path="insights"
+                            element={(
+                              <ModuleGuard allowedRoles={['admin']}>
+                                <Insights />
+                              </ModuleGuard>
+                            )}
+                          />
+                          <Route
+                            path="directory"
+                            element={(
+                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
+                                <Directory />
+                              </ModuleGuard>
+                            )}
+                          />
+                          <Route
+                            path="project/:id"
+                            element={(
+                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
+                                <ProjectDetail />
+                              </ModuleGuard>
+                            )}
+                          />
+                          <Route
+                            path="repository"
+                            element={(
+                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
+                                <Repository />
+                              </ModuleGuard>
+                            )}
+                          />
+                          <Route
+                            path="analytics"
+                            element={(
+                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                                <Analytics />
+                              </ModuleGuard>
+                            )}
+                          />
+                          <Route
+                            path="vendor-approvals"
+                            element={(
+                              <ModuleGuard allowedRoles={['admin']}>
+                                <VendorApprovals />
+                              </ModuleGuard>
+                            )}
+                          />
+                          <Route
+                            path="identity"
+                            element={(
+                              <ModuleGuard allowedRoles={['admin']}>
+                                <Identity />
+                              </ModuleGuard>
+                            )}
+                          />
+                        </Route>
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </ApiCallsProvider>
+                </ConfigProvider>
               </ProjectsProvider>
             </AuthProvider>
           </Router>

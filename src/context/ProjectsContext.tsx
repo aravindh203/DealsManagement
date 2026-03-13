@@ -74,7 +74,6 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
         }) ?? [],
       );
 
-      debugger;
       console.log("resData: ", resData);
     } catch (error) {
       console.error("Error reloading projects from SharePoint:", error);

@@ -46,7 +46,6 @@ const navItems = [
     { to: '/repository', label: 'Repository', Icon: FolderIcon },
     { to: '/analytics', label: 'Analytics', Icon: AnalyticsIcon },
     { to: '/vendor-approvals', label: 'Vendor approvals', Icon: IdentityIcon },
-    { to: '/identity', label: 'Identity', Icon: IdentityIcon },
 ];
 
 const clusterName = 'Workspace Alpha';
@@ -99,17 +98,6 @@ export const Sidenav: React.FC = () => {
                     </NavLink>
                 ))}
             </nav>
-
-            <div className={styles.nodeHealth}>
-                <div className={styles.nodeHealthHeader}>
-                    <span className={styles.nodeHealthLabel}>NODE HEALTH</span>
-                    <span className={styles.nodeHealthDot} />
-                </div>
-                <div className={styles.nodeHealthCard}>
-                    <ShieldCheckIcon />
-                    <span className={styles.nodeHealthContext}>Isolated Context</span>
-                </div>
-            </div>
         </aside>
     );
 };

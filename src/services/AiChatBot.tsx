@@ -8,7 +8,7 @@ const AZURE_API_VERSION = "2025-01-01-preview";
 
 
 
-export const AiChatBot = async (Projectdata: any,Question: any) => {
+export const AiChatBot = async (Projectdata: any, Question: any) => {
   const systemPrompt = `
 Your job is to analyze the provided Project Data and respond to the user's question using only that information.
 
@@ -19,6 +19,16 @@ User Question: ${Question}
 Instructions:
 
 Carefully read and analyze the Project Data.
+
+Data Interpretation Rules:
+
+1. Each top-level object represents a PROJECT.
+2. The field "name" represents the Project Name.
+3. Ignore any generic folder labels such as "Document Library" and "Invoice".
+4. The "children" array contains items related to that project.
+5. Each item inside "children" represents a VENDOR.
+6. The vendor name should be taken from child.name.
+7. Ignore folders named "Vendor" or other generic grouping folders.
 
 Answer the User Question using only the information available in the Project Data.
 
@@ -40,7 +50,7 @@ Company
 
 Created User
 
-Vendor names
+Vendor names (taken from children.name)
 
 Available vendor documents or folders
 
@@ -116,7 +126,7 @@ ${JSON.stringify(Question, null, 2)}
 
   const json = await response.json();
   let content = json.choices[0].message.content.trim();
-  
+
   if (content.startsWith("```json")) {
     content = content.substring(7);
   }

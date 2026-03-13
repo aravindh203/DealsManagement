@@ -41,44 +41,188 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
       try {
         const token = await getAccessTokenByApp();
         if (!token) return;
-        
+
+        // const containerId = appConfig.ContainerID;
+        // const rootFolders = await sharePointService.fetchRootFolders(token, containerId);
+
+        // // Recursive function to fetch child files and folders
+        // const buildFolderTree = async (folderId: string): Promise<any[]> => {
+        //   try {
+        //     const children = await sharePointService.listFiles(token, containerId, folderId);
+        //     const tree = await Promise.all(
+        //       children.map(async (child) => {
+        //         if (child.isFolder) {
+        //           return {
+        //             ...child,
+        //             children: await buildFolderTree(child.id)
+        //           };
+        //         }
+        //         return child;
+        //       })
+        //     );
+        //     return tree;
+        //   } catch (err) {
+        //     console.error(`Error fetching children for folder ${folderId}:`, err);
+        //     return [];
+        //   }
+        // };
+
+        // const combinedData = await Promise.all(
+        //   (rootFolders ?? []).map(async (folder: any) => {
+        //     const metaData = await sharePointService.fetchCustomDatas(token, containerId, folder.id);
+        //     const childTree = await buildFolderTree(folder.id);
+        //     return {
+        //       folder,
+        //       metaData,
+        //       children: childTree
+        //     };
+        //   })
+        // );
+
+        // const containerId = appConfig.ContainerID;
+
+        // const rootFolders = await sharePointService.fetchRootFolders(token, containerId);
+
+        // // Recursive function to fetch subfolders and files
+        // const buildFolderTree = async (folderId: string): Promise<any[]> => {
+        //   try {
+        //     const children = await sharePointService.listFiles(token, containerId, folderId);
+
+        //     if (!children || children.length === 0) {
+        //       return [];
+        //     }
+
+        //     const tree = await Promise.all(
+        //       children.map(async (child: any) => {
+
+        //         const isFolder = !!child.folder;
+
+        //         if (isFolder) {
+        //           return {
+        //             id: child.id,
+        //             name: child.name,
+        //             type: "folder",
+        //             children: await buildFolderTree(child.id)
+        //           };
+        //         }
+
+        //         return {
+        //           id: child.id,
+        //           name: child.name,
+        //           type: "file"
+        //         };
+        //       })
+        //     );
+
+        //     return tree;
+
+        //   } catch (err) {
+        //     console.error(`Error fetching children for folder ${folderId}:`, err);
+        //     return [];
+        //   }
+        // };
+
+
+        // // Combine project folder + metadata + child tree
+        // const combinedData = await Promise.all(
+        //   (rootFolders ?? []).map(async (folder: any) => {
+
+        //     const metaData = await sharePointService.fetchCustomDatas(
+        //       token,
+        //       containerId,
+        //       folder.id
+        //     );
+
+        //     const childTree = await buildFolderTree(folder.id);
+
+        //     return {
+        //       id: folder.id,
+        //       name: folder.name,
+        //       metaData: metaData ?? {},
+        //       children: childTree
+        //     };
+
+        //   })
+        // );
+
+
         const containerId = appConfig.ContainerID;
+
         const rootFolders = await sharePointService.fetchRootFolders(token, containerId);
-        
-        // Recursive function to fetch child files and folders
+
+        // Recursive function to fetch folder tree + metadata
         const buildFolderTree = async (folderId: string): Promise<any[]> => {
           try {
+
             const children = await sharePointService.listFiles(token, containerId, folderId);
+
+            if (!children || children.length === 0) {
+              return [];
+            }
+
             const tree = await Promise.all(
-              children.map(async (child) => {
-                if (child.isFolder) {
+              children.map(async (child: any) => {
+
+                const isFolder = !!child.folder;
+
+                if (isFolder) {
+
+                  // 🔹 fetch metadata for each child folder
+                  const childMetaData = await sharePointService.fetchCustomDatas(
+                    token,
+                    containerId,
+                    child.id
+                  );
+
                   return {
-                    ...child,
+                    id: child.id,
+                    name: child.name,
+                    metaData: childMetaData ?? {},
                     children: await buildFolderTree(child.id)
                   };
                 }
-                return child;
+
+                return {
+                  id: child.id,
+                  name: child.name,
+                  type: "file"
+                };
+
               })
             );
+
             return tree;
+
           } catch (err) {
             console.error(`Error fetching children for folder ${folderId}:`, err);
             return [];
           }
         };
 
+
+        // Root project folders
         const combinedData = await Promise.all(
           (rootFolders ?? []).map(async (folder: any) => {
-            const metaData = await sharePointService.fetchCustomDatas(token, containerId, folder.id);
+
+            const metaData = await sharePointService.fetchCustomDatas(
+              token,
+              containerId,
+              folder.id
+            );
+
             const childTree = await buildFolderTree(folder.id);
+
             return {
-              folder,
-              metaData,
+              id: folder.id,
+              name: folder.name,
+              metaData: metaData ?? {},
               children: childTree
             };
+
           })
         );
-        
+
+
         if (isMounted) {
           setProjectData(combinedData);
           console.log("ChatBot loaded complete container tree:", combinedData);
@@ -106,32 +250,32 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
       // Formulate minimalist query data (sending all raw stringified folders may exceed tokens)
       // Since AiChatBot handles JSON stringification we pass projectData
       const response = await AiChatBot(projectData, text);
-      
+
       let botResponseContent: string = "";
       let isSuggestionNode = false;
 
       if (response && response.answer) {
-         botResponseContent = typeof response.answer === 'object' ? JSON.stringify(response.answer, null, 2) : String(response.answer);
+        botResponseContent = typeof response.answer === 'object' ? JSON.stringify(response.answer, null, 2) : String(response.answer);
       } else if (response && response.suggestion) {
-         botResponseContent = typeof response.suggestion === 'object' ? JSON.stringify(response.suggestion, null, 2) : String(response.suggestion);
-         isSuggestionNode = true;
+        botResponseContent = typeof response.suggestion === 'object' ? JSON.stringify(response.suggestion, null, 2) : String(response.suggestion);
+        isSuggestionNode = true;
       } else {
-         botResponseContent = "I'm sorry, I couldn't process your request.";
+        botResponseContent = "I'm sorry, I couldn't process your request.";
       }
 
-      const botMsg: ChatMessage = { 
-        id: (Date.now() + 1).toString(), 
-        role: 'assistant', 
+      const botMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
         content: botResponseContent,
         isSuggestion: isSuggestionNode
       };
-      
+
       setMessages((prev) => [...prev, botMsg]);
 
     } catch (error) {
       console.error("AI ChatBot Error:", error);
       setMessages((prev) => [
-        ...prev, 
+        ...prev,
         { id: (Date.now() + 1).toString(), role: 'assistant', content: "An error occurred while connecting to the AI service. Please try again later." }
       ]);
     } finally {
@@ -157,9 +301,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
         onCreateProjectClick();
       }
     } else if (type === 'details') {
-      const botMsg: ChatMessage = { 
-        id: Date.now().toString(), 
-        role: 'assistant', 
+      const botMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
         content: 'Sure! Please tell me which project you are looking for, or ask your specific question about its details.'
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -182,7 +326,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
                 <span className="text-[11px] text-white/80 font-medium">Always active</span>
               </div>
             </div>
-            <button 
+            <button
               onClick={toggleChat}
               className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
             >
@@ -192,20 +336,19 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
 
           {/* Chat Messages Area */}
           <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden bg-[#f8fafc] flex flex-col gap-4">
-            
+
             {messages.map((msg) => (
               <div key={msg.id} className={`flex items-end gap-2 w-fit max-w-[90%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}>
                 <div className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 shadow-sm ${msg.role === 'user' ? 'bg-[#8b5cf6] border-[#7c3aed]' : 'bg-white border-gray-200'}`}>
-                  {msg.role === 'user' 
-                    ? <User className="w-4 h-4 text-white" /> 
+                  {msg.role === 'user'
+                    ? <User className="w-4 h-4 text-white" />
                     : <Bot className="w-4 h-4 text-[#8b5cf6]" />
                   }
                 </div>
-                <div className={`text-[14px] p-3.5 rounded-2xl shadow-sm whitespace-pre-wrap break-words ${
-                  msg.role === 'user' 
-                    ? 'bg-[#8b5cf6] text-white rounded-br-sm' 
+                <div className={`text-[14px] p-3.5 rounded-2xl shadow-sm whitespace-pre-wrap break-words ${msg.role === 'user'
+                    ? 'bg-[#8b5cf6] text-white rounded-br-sm'
                     : 'bg-white border border-gray-100 text-gray-700 rounded-bl-sm'
-                }`}>
+                  }`}>
                   {msg.content}
                 </div>
               </div>
@@ -227,14 +370,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
 
           {/* Quick Suggestions - Sticky above input */}
           <div className="px-4 py-3 flex flex-wrap gap-2 bg-[#f8fafc] border-t border-gray-100/50">
-            <button 
+            <button
               onClick={() => handleSuggestionClick('create')}
               className="text-[12px] bg-indigo-50 hover:bg-indigo-100 text-[#6d28d9] border border-indigo-200 px-3 py-1.5 rounded-full transition-colors font-semibold whitespace-nowrap shadow-sm flex items-center gap-1.5 hover:scale-105 active:scale-95 duration-200"
             >
               <Sparkles className="w-3 h-3" />
               Create a project
             </button>
-            <button 
+            <button
               onClick={() => handleSuggestionClick('details')}
               className="text-[12px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1.5 rounded-full transition-colors font-semibold whitespace-nowrap shadow-sm hover:scale-105 active:scale-95 duration-200"
             >
@@ -252,12 +395,12 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyDown={(e) => {
-                   if (e.key === 'Enter') {
-                     handleSendMessage();
-                   }
+                  if (e.key === 'Enter') {
+                    handleSendMessage();
+                  }
                 }}
               />
-              <button 
+              <button
                 className="w-9 h-9 bg-[#a78bfa] hover:bg-[#8b5cf6] flex items-center justify-center rounded-lg shadow-sm transition-colors shrink-0 disabled:opacity-50"
                 onClick={handleSendMessage}
                 disabled={isTyping}

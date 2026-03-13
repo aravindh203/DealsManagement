@@ -1,15 +1,16 @@
 import axios from "axios";
 
 export const getFileContent = async (file: File, type: string) => {
-  const endpoint = "https://documentintelligenceroca.cognitiveservices.azure.com";
-  const apiKey = "7Lb5CA8I8fsAhwQkGXXjTzAQOj5ed1Al0aEefXJZU19jiSTrxqouJQQJ99BGACYeBjFXJ3w3AAALACOGHtGK";
+  const endpoint =
+    "https://documentintelligenceroca.cognitiveservices.azure.com";
+  const apiKey =
+    "7Lb5CA8I8fsAhwQkGXXjTzAQOj5ed1Al0aEefXJZU19jiSTrxqouJQQJ99BGACYeBjFXJ3w3AAALACOGHtGK";
 
   const url = `${endpoint}/documentintelligence/documentModels/prebuilt-read:analyze?api-version=2024-11-30`;
 
   try {
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-debugger
     // Send file to Azure Document Intelligence
     const response = await axios.post(url, arrayBuffer, {
       headers: {
@@ -41,17 +42,15 @@ debugger
         result = data.analyzeResult?.content || "";
         break;
       }
-      
+
       if (data.status === "failed") {
         throw new Error("Document analysis failed");
       }
     }
-debugger
     return result;
     console.log("Extracted text:", result);
   } catch (error) {
     console.error("Error extracting text:", error);
     throw error;
   }
-  
 };

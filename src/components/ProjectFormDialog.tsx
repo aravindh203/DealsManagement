@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,8 @@ interface ProjectFormDialogProps {
   mode?: ProjectDialogMode;
   /** When true (e.g. vendor viewing), hide Budget and Project Start/End date sections. */
   isVendor?: boolean;
+  /** When true, show a simple project status dropdown (P_Status) inside this popup. */
+  showStatusField?: boolean;
   /** (formData, newFiles?, attachmentIdsToDelete?) – attachmentIdsToDelete are removed when user saves. Not used when mode is 'view'. */
   onSave?: (
     data: Extract<Omit<Project, 'id'>, object>,
@@ -55,6 +57,8 @@ interface ProjectFormDialogProps {
   saving?: boolean;
   /** When editing/viewing, load existing files from the project Attachments folder. */
   onLoadExistingAttachments?: (projectId: string) => Promise<ExistingAttachment[]>;
+  /** Optional external error message passed from parent (eg. duplicate project). */
+  externalError?: string | null;
 }
 
 const emptyForm: Omit<Project, 'id'> = {
@@ -81,9 +85,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   project,
   mode: modeProp,
   isVendor = false,
+  showStatusField = false,
   onSave,
   saving = false,
   onLoadExistingAttachments,
+  externalError,
 }) => {
   const mode: ProjectDialogMode = modeProp ?? (project ? 'edit' : 'create');
   const isView = mode === 'view';
@@ -93,6 +99,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
   const [attachmentIdsToDelete, setAttachmentIdsToDelete] = useState<string[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const startDateRef = useRef<HTMLInputElement | null>(null);
+  const endDateRef = useRef<HTMLInputElement | null>(null);
+  const bidStartDateRef = useRef<HTMLInputElement | null>(null);
+  const bidEndDateRef = useRef<HTMLInputElement | null>(null);
 
   type VerificationStatus = 'idle' | 'processing' | 'accepted' | 'rejected' | 'error';
   interface AttachmentVerificationItem {
@@ -126,13 +137,47 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
       }
       setFiles([]);
       setAttachmentIdsToDelete([]);
+      setValidationError(null);
     }
   }, [open, project, onLoadExistingAttachments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isView || !onSave || saving) return;
-    if (!form.P_Name?.trim()) return;
+
+    const missing: string[] = [];
+
+    if (!form.P_Name?.trim()) missing.push('Project name');
+    if (!form.P_Type?.trim()) missing.push('Project type');
+    if (form.P_BidStartDate == null || String(form.P_BidStartDate).trim() === '') {
+      missing.push('Bid start date');
+    }
+    if (form.P_BidEndDate == null || String(form.P_BidEndDate).trim() === '') {
+      missing.push('Bid end date');
+    }
+    if (!isVendor) {
+      if (form.P_StartDate == null || String(form.P_StartDate).trim() === '') {
+        missing.push('Start date');
+      }
+      if (form.P_EndDate == null || String(form.P_EndDate).trim() === '') {
+        missing.push('End date');
+      }
+      if (!form.P_Budget || String(form.P_Budget).trim() === '') {
+        missing.push('Budget');
+      }
+    }
+    if (!form.P_Description?.trim()) {
+      missing.push('Description');
+    }
+
+    if (missing.length > 0) {
+      setValidationError(
+        `Please fill all required fields: ${missing.join(', ')}. Attachments are optional.`
+      );
+      return;
+    }
+
+    setValidationError(null);
 
     // If there are no new files, save immediately without verification
     if (files.length === 0) {
@@ -218,6 +263,17 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
     update(key, digitsOnly);
   };
 
+  const openDatePicker = (ref: React.RefObject<HTMLInputElement>) => {
+    if (!ref.current || isView) return;
+    const anyInput = ref.current as HTMLInputElement & { showPicker?: () => void };
+    if (typeof anyInput.showPicker === 'function') {
+      anyInput.showPicker();
+    } else {
+      anyInput.focus();
+      anyInput.click();
+    }
+  };
+
   const handleConfirmVerification = () => {
     if (!onSave || saving) return;
 
@@ -260,6 +316,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0" noValidate>
           <ScrollArea className="flex-1 min-h-0 overflow-auto">
             <div className="p-6 space-y-6 bg-[#F8FAFC]">
+              {(!isView && (validationError || externalError)) && (
+                <div className="mb-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  {validationError || externalError}
+                </div>
+              )}
               {/* Project layout */}
               <section className="space-y-5">
                 <div className="flex items-center justify-between gap-2">
@@ -278,8 +339,9 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                 {/* Row 1 & 2: 7 fields in a single grid so widths stay consistent */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="P_Name" className="text-sm font-medium">
-                      Project name *
+                    <Label htmlFor="P_Name" className="text-sm font-medium flex items-center gap-1">
+                      <span>Project name</span>
+                      <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="P_Name"
@@ -292,8 +354,9 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="P_Type" className="text-sm font-medium">
-                      Project type
+                    <Label htmlFor="P_Type" className="text-sm font-medium flex items-center gap-1">
+                      <span>Project type</span>
+                      <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="P_Type"
@@ -307,11 +370,13 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                   {!isVendor && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="P_StartDate" className="text-sm font-medium">
-                          Start date
+                        <Label htmlFor="P_StartDate" className="text-sm font-medium flex items-center gap-1">
+                          <span>Start date</span>
+                          <span className="text-red-500">*</span>
                         </Label>
                         <div className="relative flex items-stretch">
                           <Input
+                            ref={startDateRef}
                             id="P_StartDate"
                             type="date"
                             value={formatDateForInput(form.P_StartDate)}
@@ -319,17 +384,24 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                             disabled={isView}
                             className="h-10 pr-0 text-sm rounded-r-none"
                           />
-                          <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                          <button
+                            type="button"
+                            onClick={() => openDatePicker(startDateRef)}
+                            className="flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input"
+                            aria-label="Open start date picker"
+                          >
                             <Calendar className="h-4 w-4" />
-                          </div>
+                          </button>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="P_EndDate" className="text-sm font-medium">
-                          End date
+                        <Label htmlFor="P_EndDate" className="text-sm font-medium flex items-center gap-1">
+                          <span>End date</span>
+                          <span className="text-red-500">*</span>
                         </Label>
                         <div className="relative flex items-stretch">
                           <Input
+                            ref={endDateRef}
                             id="P_EndDate"
                             type="date"
                             value={formatDateForInput(form.P_EndDate)}
@@ -337,20 +409,27 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                             disabled={isView}
                             className="h-10 pr-0 text-sm rounded-r-none"
                           />
-                          <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                          <button
+                            type="button"
+                            onClick={() => openDatePicker(endDateRef)}
+                            className="flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input"
+                            aria-label="Open end date picker"
+                          >
                             <Calendar className="h-4 w-4" />
-                          </div>
+                          </button>
                         </div>
                       </div>
                     </>
                   )}
                   {/* Bid start / end / budget */}
                   <div className="space-y-2">
-                    <Label htmlFor="P_BidStartDate" className="text-sm font-medium">
-                      Bid start date
+                    <Label htmlFor="P_BidStartDate" className="text-sm font-medium flex items-center gap-1">
+                      <span>Bid start date</span>
+                      <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative flex items-stretch">
                       <Input
+                        ref={bidStartDateRef}
                         id="P_BidStartDate"
                         type="date"
                         value={formatDateForInput(form.P_BidStartDate)}
@@ -358,17 +437,24 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                         disabled={isView}
                         className="h-10 pr-0 text-sm rounded-r-none"
                       />
-                      <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                      <button
+                        type="button"
+                        onClick={() => openDatePicker(bidStartDateRef)}
+                        className="flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input"
+                        aria-label="Open bid start date picker"
+                      >
                         <Calendar className="h-4 w-4" />
-                      </div>
+                      </button>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="P_BidEndDate" className="text-sm font-medium">
-                      Bid end date
+                    <Label htmlFor="P_BidEndDate" className="text-sm font-medium flex items-center gap-1">
+                      <span>Bid end date</span>
+                      <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative flex items-stretch">
                       <Input
+                        ref={bidEndDateRef}
                         id="P_BidEndDate"
                         type="date"
                         value={formatDateForInput(form.P_BidEndDate)}
@@ -376,32 +462,60 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                         disabled={isView}
                         className="h-10 pr-0 text-sm rounded-r-none"
                       />
-                      <div className="pointer-events-none flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input">
+                      <button
+                        type="button"
+                        onClick={() => openDatePicker(bidEndDateRef)}
+                        className="flex items-center justify-center w-9 rounded-r-md bg-[#5a3dd4] text-white border border-l-0 border-input"
+                        aria-label="Open bid end date picker"
+                      >
                         <Calendar className="h-4 w-4" />
-                      </div>
+                      </button>
                     </div>
                   </div>
                   {!isVendor && (
-                    <div className="space-y-2">
-                      <Label htmlFor="P_Budget" className="text-sm font-medium">
-                        Budget
-                      </Label>
-                      <Input
-                        id="P_Budget"
-                        value={form.P_Budget || ''}
-                        onChange={(e) => !isView && handleDigitChange('P_Budget', e.target.value)}
-                        disabled={isView}
-                        placeholder="No decimals"
-                        className="h-10 w-full"
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="P_Budget" className="text-sm font-medium flex items-center gap-1">
+                          <span>Budget</span>
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="P_Budget"
+                          value={form.P_Budget || ''}
+                          onChange={(e) => !isView && handleDigitChange('P_Budget', e.target.value)}
+                          disabled={isView}
+                          placeholder="No decimals"
+                          className="h-10 w-full"
+                        />
+                      </div>
+                      {showStatusField && (
+                        <div className="space-y-2">
+                          <Label htmlFor="P_Status" className="text-sm font-medium flex items-center gap-1">
+                            <span>Status</span>
+                          </Label>
+                          <select
+                            id="P_Status"
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                            value={form.P_Status || 'Open'}
+                            disabled={isView}
+                            onChange={(e) => !isView && update('P_Status', e.target.value)}
+                          >
+                            <option value="Open">Open</option>
+                            <option value="Yet to start">Yet to start</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                          </select>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
                 {/* Row 3: description */}
                 <div className="space-y-2">
-                  <Label htmlFor="P_Description" className="text-sm font-medium">
-                    Description
+                  <Label htmlFor="P_Description" className="text-sm font-medium flex items-center gap-1">
+                    <span>Description</span>
+                    <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="P_Description"

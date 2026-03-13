@@ -20,13 +20,14 @@ import { appConfig } from '../config/appConfig';
 import { sharePointService } from '../services/sharePointService';
 import { toast } from '../hooks/use-toast';
 import type { Project } from './projectsData';
-
-// Line graph icon for REAL-TIME ACTIVE badge (matches design)
-const LineGraphIcon = () => (
-    <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.badgeChartIcon}>
-        <path d="M1 8L4 5L6 6L9 2L13 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-);
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 // Bell icon for notifications (with red dot)
 const BellIcon = () => (
@@ -59,9 +60,14 @@ const Insights: React.FC = () => {
         error,
         refetch,
     } = useAdminStats();
-    const { projects } = useProjects();
+    const { projects, reloadProjects } = useProjects();
     const [companiesFromUserDetails, setCompaniesFromUserDetails] = useState<string[]>([]);
     const [loadingCompanies, setLoadingCompanies] = useState(true);
+    const [creatingColumn, setCreatingColumn] = useState(false);
+    const [deletingOldVendorColumn, setDeletingOldVendorColumn] = useState(false);
+    const [deletingAllProjects, setDeletingAllProjects] = useState(false);
+    const [columnDialogOpen, setColumnDialogOpen] = useState(false);
+    const [columnAction, setColumnAction] = useState<'create' | 'delete' | 'deleteAllProjects'>('create');
 
     const loadCompanies = useCallback(async () => {
         setLoadingCompanies(true);
@@ -108,14 +114,24 @@ const Insights: React.FC = () => {
         [projects]
     );
 
-    /** Top Vendors: companies from UserDetails; project count static (0) for now, will be dynamic later. */
+    /** Top Vendors: count projects where this company is the finalized vendor (stored in V_BidDescription). */
     const topVendors = useMemo(
-        () =>
-            companiesFromUserDetails.map((company) => ({
-                company,
-                count: 0,
-            })),
-        [companiesFromUserDetails]
+        () => {
+            if (!companiesFromUserDetails.length) return [];
+
+            return companiesFromUserDetails
+                .map((company) => {
+                    const normalizedCompany = company.trim().toLowerCase();
+                    const count = projects.filter((project) => {
+                        const finalized = (project.V_BidDescription ?? '').toString().trim().toLowerCase();
+                        return finalized !== '' && finalized === normalizedCompany;
+                    }).length;
+
+                    return { company, count };
+                })
+                .sort((a, b) => b.count - a.count);
+        },
+        [companiesFromUserDetails, projects]
     );
 
     // Format storage for display
@@ -125,21 +141,124 @@ const Insights: React.FC = () => {
         ? Math.round((totalStorageUsedBytes / totalStorageTotalBytes) * 100)
         : 0;
 
+    const handleCreateColumn = async () => {
+        if (creatingColumn) return;
+        setCreatingColumn(true);
+        try {
+            const token = await getAccessTokenByApp();
+            if (!token) {
+                toast({
+                    title: 'Column creation failed',
+                    description: 'Could not get access token.',
+                    variant: 'destructive',
+                });
+                return;
+            }
+            await sharePointService.CreateColumn(token, appConfig.ContainerID);
+            toast({
+                title: 'Column created',
+                description: 'New column was created in the SharePoint embedded container.',
+            });
+        } catch (err) {
+            console.error('Create column error:', err);
+            toast({
+                title: 'Column creation failed',
+                description: 'See console for details. The column might already exist or permissions may be missing.',
+                variant: 'destructive',
+            });
+        } finally {
+            setCreatingColumn(false);
+        }
+    };
+
+    const handleDeleteOldFinilizedVendorColumn = async () => {
+        if (deletingOldVendorColumn) return;
+        setDeletingOldVendorColumn(true);
+        try {
+            const token = await getAccessTokenByApp();
+            if (!token) {
+                toast({
+                    title: 'Column deletion failed',
+                    description: 'Could not get access token.',
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            // Use the helper to remove the legacy P_FinilizedVendor column from the embedded container
+            await sharePointService.deleteColumnByName(token, appConfig.ContainerID, 'P_FinilizedVendor');
+
+            toast({
+                title: 'Column removed',
+                description: 'The legacy P_FinilizedVendor column has been removed from the container (if it existed).',
+            });
+        } catch (err) {
+            console.error('Delete column error:', err);
+            toast({
+                title: 'Column deletion failed',
+                description: 'Could not delete the P_FinilizedVendor column. Check the console for details.',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeletingOldVendorColumn(false);
+        }
+    };
+
+    const handleDeleteAllProjectsInContainer = async () => {
+        if (deletingAllProjects) return;
+
+        const confirmed = window.confirm(
+            'This will permanently delete all projects (top-level folders) in the current SharePoint container. This action cannot be undone. Do you want to continue?',
+        );
+        if (!confirmed) return;
+
+        setDeletingAllProjects(true);
+        try {
+            const token = await getAccessTokenByApp();
+            if (!token) {
+                toast({
+                    title: 'Delete projects failed',
+                    description: 'Could not get access token.',
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            await sharePointService.deleteAllProjectsInContainer(token, appConfig.ContainerID);
+            await reloadProjects();
+
+            toast({
+                title: 'Projects deleted',
+                description: 'All projects in the container have been deleted.',
+            });
+        } catch (err) {
+            console.error('Delete all projects error:', err);
+            toast({
+                title: 'Delete projects failed',
+                description: 'Could not delete all projects in the container. Check the console for details.',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeletingAllProjects(false);
+        }
+    };
+
     return (
         <div className={styles.page}>
             {/* ── Top Navigation ── */}
             <nav className={styles.topNav}>
                 <div className={styles.navLeft}>
                     <span className={styles.logo}>Insights</span>
-                    <div className={styles.badge}>
-                        <LineGraphIcon />
-                        <span>REAL-TIME ACTIVE</span>
-                    </div>
                 </div>
 
                 <div className={styles.navRight}>
-                    <button className={styles.navIconBtn} onClick={refetch} title="Refresh stats">
-                        <ArrowUploadRegular />
+                    <button
+                        type="button"
+                        className={styles.logoutBtn}
+                        onClick={() => setColumnDialogOpen(true)}
+                        title="Manage vendor columns"
+                    >
+                        <span>Manage Columns</span>
                     </button>
                     <button
                         type="button"
@@ -413,6 +532,84 @@ const Insights: React.FC = () => {
                 </div>
             </main>
 
+            <Dialog open={columnDialogOpen} onOpenChange={(open) => {
+                if (!creatingColumn && !deletingOldVendorColumn && !deletingAllProjects) {
+                    setColumnDialogOpen(open);
+                }
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Vendor column actions</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <p className="text-sm text-muted-foreground">
+                            Choose what you want to do with the vendor columns in the embedded SharePoint container.
+                        </p>
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    type="radio"
+                                    name="columnAction"
+                                    value="create"
+                                    checked={columnAction === 'create'}
+                                    onChange={() => setColumnAction('create')}
+                                />
+                                <span>Create new vendor column</span>
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    type="radio"
+                                    name="columnAction"
+                                    value="deleteAllProjects"
+                                    checked={columnAction === 'deleteAllProjects'}
+                                    onChange={() => setColumnAction('deleteAllProjects')}
+                                />
+                                <span>Delete all projects in container</span>
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    type="radio"
+                                    name="columnAction"
+                                    value="delete"
+                                    checked={columnAction === 'delete'}
+                                    onChange={() => setColumnAction('delete')}
+                                />
+                                <span>Delete old vendor column</span>
+                            </label>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setColumnDialogOpen(false)}
+                            disabled={creatingColumn || deletingOldVendorColumn || deletingAllProjects}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={async () => {
+                                if (columnAction === 'create') {
+                                    await handleCreateColumn();
+                                } else if (columnAction === 'delete') {
+                                    await handleDeleteOldFinilizedVendorColumn();
+                                } else {
+                                    await handleDeleteAllProjectsInContainer();
+                                }
+                                setColumnDialogOpen(false);
+                            }}
+                            disabled={creatingColumn || deletingOldVendorColumn || deletingAllProjects}
+                        >
+                            {columnAction === 'create'
+                                ? (creatingColumn ? 'Creating…' : 'Create column')
+                                : columnAction === 'delete'
+                                    ? (deletingOldVendorColumn ? 'Deleting…' : 'Delete column')
+                                    : (deletingAllProjects ? 'Deleting…' : 'Delete all projects')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

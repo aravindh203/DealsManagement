@@ -39,35 +39,9 @@ import { getAccessTokenByApp } from "../hooks/useClientCredentialsAuth";
 import { appConfig } from "../config/appConfig";
 import { sharePointService } from "../services/sharePointService";
 import { toast } from "@/hooks/use-toast";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 10;
-
-const LineGraphIcon = () => (
-    <svg
-        width="14"
-        height="10"
-        viewBox="0 0 14 10"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={styles.badgeChartIcon}
-    >
-        <path
-            d="M1 8L4 5L6 6L9 2L13 4"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-    </svg>
-);
 
 const BellIcon = () => (
     <svg
@@ -123,13 +97,10 @@ const getProjectStatus = (project: Project): ProjectStatusValue => {
     return project.P_Status ?? "Open";
 };
 
-const PROJECT_STATUS_OPTIONS: { value: ProjectStatusValue | "all"; label: string }[] = [
-    { value: "all", label: "All statuses" },
-    { value: "Open", label: "Open" },
-    { value: "Yet to start", label: "Yet to start" },
-    { value: "Pending", label: "Pending" },
-    { value: "Completed", label: "Completed" },
-];
+/** Tab for 365: all, open (unsubmitted), assignVendor (unassigned with submissions), assigned (vendor assigned). */
+export type DirectoryTab365 = "all" | "open" | "assignVendor" | "assigned";
+/** Tab for vendor: open (not submitted), myRequest (submitted), myAssigned (assigned to this vendor). */
+export type DirectoryTabVendor = "open" | "myRequest" | "myAssigned";
 
 /** CSS class suffix from P_Status (no spaces). */
 const getStatusPillClass = (status: ProjectStatusValue): string => {
@@ -157,9 +128,11 @@ const Directory: React.FC = () => {
         useProjects();
 
     const [searchProjects, setSearchProjects] = useState("");
-    const [statusFilter, setStatusFilter] = useState<ProjectStatusValue | "all">("all");
+    const [directoryTab365, setDirectoryTab365] = useState<DirectoryTab365>("all");
+    const [directoryTabVendor, setDirectoryTabVendor] = useState<DirectoryTabVendor>("open");
     const [formOpen, setFormOpen] = useState(false);
     const [aiCreateOpen, setAiCreateOpen] = useState(false);
+    const [newProjectModeOpen, setNewProjectModeOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode>("create");
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<
@@ -169,10 +142,12 @@ const Directory: React.FC = () => {
     const [vendorCompanyName, setVendorCompanyName] = useState<string | null>(null);
     const [projectHasVendorSubmission, setProjectHasVendorSubmission] = useState<Record<string, boolean>>({});
     const [projectVendorBidAmountMap, setProjectVendorBidAmountMap] = useState<Record<string, string | null>>({});
+    const [projectHasAnyVendorSubmission, setProjectHasAnyVendorSubmission] = useState<Record<string, boolean>>({});
     const [vendorSubmissionOpen, setVendorSubmissionOpen] = useState(false);
     const [vendorSubmissionProject, setVendorSubmissionProject] = useState<Project | null>(null);
     const [aiSummarizeOpen, setAiSummarizeOpen] = useState(false);
     const [aiSummarizeProject, setAiSummarizeProject] = useState<string | null>("");
+    const [projectFormError, setProjectFormError] = useState<string | null>(null);
 
     const totalProjects = projects.length;
 
@@ -186,6 +161,23 @@ const Directory: React.FC = () => {
         [projects],
     );
 
+    /** Project is "assigned" when V_BidDescription (finalized vendor) is set. */
+    const isProjectAssigned = useCallback((project: Project) => {
+        const assigned = (project.V_BidDescription ?? "").toString().trim();
+        return assigned !== "";
+    }, []);
+
+    /** True when this project is assigned to the logged-in vendor (V_BidDescription matches vendor company). */
+    const isProjectAssignedToCurrentVendor = useCallback(
+        (project: Project) => {
+            if (!vendorCompanyName) return false;
+            const assigned = (project.V_BidDescription ?? "").toString().trim().toLowerCase();
+            const company = vendorCompanyName.trim().toLowerCase();
+            return assigned !== "" && assigned === company;
+        },
+        [vendorCompanyName],
+    );
+
     const filteredProjects = useMemo(() => {
         let list = projects;
         const q = searchProjects.trim().toLowerCase();
@@ -197,11 +189,48 @@ const Directory: React.FC = () => {
                     (p.P_Description && p.P_Description.toLowerCase().includes(q)),
             );
         }
-        if (statusFilter !== "all") {
-            list = list.filter((p) => getProjectStatus(p) === statusFilter);
+        if (isVendor) {
+            const tab = directoryTabVendor;
+            if (tab === "open") {
+                list = list.filter((p) => getProjectStatus(p) === "Open" && !projectHasVendorSubmission[String(p.id)]);
+            } else if (tab === "myRequest") {
+                list = list.filter(
+                    (p) => getProjectStatus(p) === "Open" && projectHasVendorSubmission[String(p.id)],
+                );
+            } else {
+                list = list.filter((p) => isProjectAssignedToCurrentVendor(p));
+            }
+        } else {
+            const tab = directoryTab365;
+            if (tab === "all") {
+                // no extra filter; show all projects
+            } else if (tab === "open") {
+                list = list.filter(
+                    (p) => getProjectStatus(p) === "Open" && !projectHasAnyVendorSubmission[String(p.id)],
+                );
+            } else if (tab === "assignVendor") {
+                list = list.filter(
+                    (p) =>
+                        getProjectStatus(p) === "Open" &&
+                        projectHasAnyVendorSubmission[String(p.id)] &&
+                        !isProjectAssigned(p),
+                );
+            } else {
+                list = list.filter((p) => isProjectAssigned(p));
+            }
         }
         return list;
-    }, [projects, searchProjects, statusFilter]);
+    }, [
+        projects,
+        searchProjects,
+        isVendor,
+        directoryTab365,
+        directoryTabVendor,
+        projectHasVendorSubmission,
+        projectHasAnyVendorSubmission,
+        isProjectAssigned,
+        isProjectAssignedToCurrentVendor,
+    ]);
 
     const totalPages = Math.max(
         1,
@@ -214,7 +243,7 @@ const Directory: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchProjects, statusFilter]);
+    }, [searchProjects, isVendor ? directoryTabVendor : directoryTab365]);
 
     useEffect(() => {
         if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -288,9 +317,37 @@ const Directory: React.FC = () => {
         return () => { cancelled = true; };
     }, [isVendor, vendorUser?.username, projects]);
 
+    useEffect(() => {
+        if (isVendor || !projects.length) {
+            setProjectHasAnyVendorSubmission({});
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            const token = await getAccessTokenByApp();
+            if (!token || cancelled) return;
+            const containerId = appConfig.ContainerID;
+            const map: Record<string, boolean> = {};
+            for (const project of projects) {
+                if (cancelled) break;
+                const pid = String(project.id);
+                try {
+                    map[pid] = await sharePointService.hasAnyVendorSubmission(
+                        token,
+                        containerId,
+                        pid,
+                    );
+                } catch {
+                    map[pid] = false;
+                }
+            }
+            if (!cancelled) setProjectHasAnyVendorSubmission(map);
+        })();
+        return () => { cancelled = true; };
+    }, [isVendor, projects]);
+
     const handleRefresh = () => {
         setSearchProjects("");
-        setStatusFilter("all");
         setCurrentPage(1);
         reloadProjects();
     };
@@ -298,6 +355,7 @@ const Directory: React.FC = () => {
     const handleOpenCreate = () => {
         setEditingProject(null);
         setDialogMode("create");
+        setProjectFormError(null);
         setFormOpen(true);
     };
 
@@ -310,6 +368,7 @@ const Directory: React.FC = () => {
     const handleOpenEdit = (project: Project) => {
         setEditingProject(project);
         setDialogMode("edit");
+        setProjectFormError(null);
         setFormOpen(true);
     };
 
@@ -347,7 +406,29 @@ const Directory: React.FC = () => {
         attachmentIdsToDelete?: string[],
     ) => {
         setSavingProject(true);
+        let shouldClose = false;
         try {
+            setProjectFormError(null);
+            const trimmedName = data.P_Name?.trim().toLowerCase() || "";
+            if (!trimmedName) {
+                setProjectFormError("Please fill all required fields: Project name. Attachments are optional.");
+                return;
+            }
+
+            const hasDuplicate = projects.some((p) => {
+                if (!p.P_Name) return false;
+                const sameName = p.P_Name.trim().toLowerCase() === trimmedName;
+                if (!editingProject) {
+                    return sameName;
+                }
+                return sameName && String(p.id) !== String(editingProject.id);
+            });
+
+            if (hasDuplicate) {
+                setProjectFormError("A project with this name already exists. Please choose a different project name.");
+                return;
+            }
+
             let attachmentsFolderId: string | null = null;
 
             if (editingProject) {
@@ -392,6 +473,7 @@ const Directory: React.FC = () => {
                 const result = await addProject(data);
                 if (files?.length) attachmentsFolderId = result.attachmentsFolderId;
             }
+            shouldClose = true;
 
             if (files?.length && attachmentsFolderId) {
                 const token = await getAccessTokenByApp();
@@ -447,8 +529,11 @@ const Directory: React.FC = () => {
             });
         } finally {
             setSavingProject(false);
-            setFormOpen(false);
-            setEditingProject(null);
+            if (shouldClose) {
+                setFormOpen(false);
+                setEditingProject(null);
+                setProjectFormError(null);
+            }
         }
     };
 
@@ -501,6 +586,7 @@ const Directory: React.FC = () => {
             await sharePointService.createCompanySubmission(
                 token,
                 containerId,
+                projectId,
                 vendorFolderId,
                 vendorCompanyName,
                 bidAmount,
@@ -528,10 +614,6 @@ const Directory: React.FC = () => {
             <nav className={styles.topNav}>
                 <div className={styles.navLeft}>
                     <span className={styles.logo}>Directory</span>
-                    <div className={styles.badge}>
-                        <LineGraphIcon />
-                        <span>REAL-TIME ACTIVE</span>
-                    </div>
                 </div>
                 <div className={styles.navRight}>
                     <button
@@ -553,24 +635,14 @@ const Directory: React.FC = () => {
                             <h1 className={styles.pageTitle}>Project</h1>
                         </div>
                         {!isVendor && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className={styles.registerBtn} type="button">
-                                        <AddRegular />
-                                        NEW PROJECT
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-[200px]">
-                                    <DropdownMenuItem onClick={handleOpenCreate} className="cursor-pointer">
-                                        <FileText className="mr-2 h-4 w-4" />
-                                        Start from scratch
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setAiCreateOpen(true)} className="cursor-pointer text-[#5a3dd4] focus:text-[#4a30b5] focus:bg-[#5a3dd4]/10">
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        Create with AI
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <button
+                                className={styles.registerBtn}
+                                type="button"
+                                onClick={() => setNewProjectModeOpen(true)}
+                            >
+                                <AddRegular />
+                                NEW PROJECT
+                            </button>
                         )}
                     </div>
 
@@ -613,36 +685,79 @@ const Directory: React.FC = () => {
 
                 <div className={styles.mainScroll}>
                     <div className={styles.filtersRow}>
-                        <div className={styles.searchCustomers}>
-                            <SearchRegular className={styles.searchIcon} />
-                            <input
-                                type="text"
-                                placeholder="Search projects..."
-                                value={searchProjects}
-                                onChange={(e) => setSearchProjects(e.target.value)}
-                            />
+                        <div className={styles.tabsRow}>
+                            {isVendor ? (
+                                <>
+                                    <button
+                                        type="button"
+                                        className={directoryTabVendor === "open" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTabVendor("open")}
+                                    >
+                                        Open
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={directoryTabVendor === "myRequest" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTabVendor("myRequest")}
+                                    >
+                                        My Submitted
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={directoryTabVendor === "myAssigned" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTabVendor("myAssigned")}
+                                    >
+                                        My Assigned
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        className={directoryTab365 === "all" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTab365("all")}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={directoryTab365 === "assigned" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTab365("assigned")}
+                                    >
+                                        Assigned
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={directoryTab365 === "assignVendor" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTab365("assignVendor")}
+                                    >
+                                        Un Assigned
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={directoryTab365 === "open" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTab365("open")}
+                                    >
+                                        Un Submitted
+                                    </button>
+                                </>
+                            )}
                         </div>
                         <div className={styles.filterGroup}>
-                            <Select
-                                value={statusFilter}
-                                onValueChange={(v) => setStatusFilter(v as ProjectStatusValue | "all")}
-                            >
-                                <SelectTrigger className="w-[180px] h-9 border-input bg-background">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {PROJECT_STATUS_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <div className={styles.searchCustomers}>
+                                <SearchRegular className={styles.searchIcon} />
+                                <input
+                                    type="text"
+                                    placeholder="Search projects..."
+                                    value={searchProjects}
+                                    onChange={(e) => setSearchProjects(e.target.value)}
+                                />
+                            </div>
                             <button
                                 type="button"
                                 className={styles.refreshBtn}
                                 onClick={handleRefresh}
-                                title="Refresh filters"
+                                title="Refresh"
                             >
                                 <ArrowSyncRegular className={styles.refreshIcon} />
                             </button>
@@ -666,6 +781,7 @@ const Directory: React.FC = () => {
                                             <th>START DATE</th>
                                             <th>END DATE</th>
                                             <th>BUDGET</th>
+                                            {directoryTab365 === "assigned" && <th>VENDOR</th>}
                                         </>
                                     )}
                                     <th>STATUS</th>
@@ -686,110 +802,119 @@ const Directory: React.FC = () => {
                                         </tr>
                                     ))
                                 ) : (
-                                paginatedProjects.map((project) => (
-                                    <tr key={project.id}>
-                                        <td>
-                                            <Link to={`/project/${project.id}`}>
-                                                <strong>{project.P_Name}</strong>
-                                            </Link>
-                                            <span className={styles.idHint}> (ID: {project.id})</span>
-                                        </td>
-                                        <td>{project.P_Type || "-"}</td>
-                                        {isVendor ? (
-                                            <>
-                                                <td>
-                                                    {project.P_BidStartDate
-                                                        ? new Date(project.P_BidStartDate).toLocaleDateString()
-                                                        : "-"}
-                                                </td>
-                                                <td>
-                                                    {project.P_BidEndDate
-                                                        ? new Date(project.P_BidEndDate).toLocaleDateString()
-                                                        : "-"}
-                                                </td>
-                                                <td>
-                                                    {(() => {
-                                                        const amount = projectVendorBidAmountMap[String(project.id)];
-                                                        return amount != null && amount !== "" ? `$${amount}` : "-";
-                                                    })()}
-                                                </td>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <td>
-                                                    {project.P_StartDate
-                                                        ? new Date(project.P_StartDate).toLocaleDateString()
-                                                        : "-"}
-                                                </td>
-                                                <td>
-                                                    {project.P_EndDate
-                                                        ? new Date(project.P_EndDate).toLocaleDateString()
-                                                        : "-"}
-                                                </td>
-                                                <td>{project.P_Budget ? `$${project.P_Budget}` : "-"}</td>
-                                            </>
-                                        )}
-                                        <td>
-                                            <span
-                                                className={`${styles.statusPill} ${styles[`status${getStatusPillClass(getProjectStatus(project))}`]}`}
-                                            >
-                                                {getProjectStatus(project)}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className={styles.actionsCell}>
-                                                <button
-                                                    type="button"
-                                                    className={styles.actionBtn}
-                                                    onClick={() => handleOpenView(project)}
-                                                    title="View"
-                                                    aria-label={`View ${project.P_Name || "project"}`}
+                                    paginatedProjects.map((project) => (
+                                        <tr key={project.id}>
+                                            <td>
+                                                <Link to={`/project/${project.id}`}>
+                                                    <strong>{project.P_Name}</strong>
+                                                </Link>
+                                                <span className={styles.idHint}> (ID: {project.id})</span>
+                                            </td>
+                                            <td>{project.P_Type || "-"}</td>
+                                            {isVendor ? (
+                                                <>
+                                                    <td>
+                                                        {project.P_BidStartDate
+                                                            ? new Date(project.P_BidStartDate).toLocaleDateString()
+                                                            : "-"}
+                                                    </td>
+                                                    <td>
+                                                        {project.P_BidEndDate
+                                                            ? new Date(project.P_BidEndDate).toLocaleDateString()
+                                                            : "-"}
+                                                    </td>
+                                                    <td>
+                                                        {(() => {
+                                                            const amount = projectVendorBidAmountMap[String(project.id)];
+                                                            return amount != null && amount !== "" ? `$${amount}` : "-";
+                                                        })()}
+                                                    </td>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td>
+                                                        {project.P_StartDate
+                                                            ? new Date(project.P_StartDate).toLocaleDateString()
+                                                            : "-"}
+                                                    </td>
+                                                    <td>
+                                                        {project.P_EndDate
+                                                            ? new Date(project.P_EndDate).toLocaleDateString()
+                                                            : "-"}
+                                                    </td>
+                                                    <td>{project.P_Budget ? `$${project.P_Budget}` : "-"}</td>
+                                                    {directoryTab365 === "assigned" && (
+                                                        <td>{project.V_BidDescription || "-"}</td>
+                                                    )}
+                                                </>
+                                            )}
+                                            <td>
+                                                <span
+                                                    className={`${styles.statusPill} ${styles[`status${getStatusPillClass(getProjectStatus(project))}`]}`}
                                                 >
-                                                    <Eye size={16} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={styles.actionBtn}
-                                                    onClick={() => handleOpenAiSummarize(project)}
-                                                    title="AI Suggested Vendor"
-                                                >
-                                                    <Sparkles size={16} className="text-emerald-500" />
-                                                </button>
-                                                {isVendor ? (
-                                                    !projectHasVendorSubmission[String(project.id)] && (
+                                                    {getProjectStatus(project)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className={styles.actionsCell}>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.actionBtn}
+                                                        onClick={() => handleOpenView(project)}
+                                                        title="View"
+                                                        aria-label={`View ${project.P_Name || "project"}`}
+                                                    >
+                                                        <Eye size={16} />
+                                                    </button>
+                                                    {!isVendor && directoryTab365 === "assignVendor" && (
                                                         <button
                                                             type="button"
                                                             className={styles.actionBtn}
-                                                            onClick={() => handleOpenVendorSubmission(project)}
-                                                            title="Submit (create company folder and upload documents)"
+                                                            onClick={() => handleOpenAiSummarize(project)}
+                                                            title="AI Suggested Vendor"
                                                         >
-                                                            <EditRegular />
+                                                            <Sparkles size={16} className="text-emerald-500" />
                                                         </button>
-                                                    )
-                                                ) : (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            className={styles.actionBtn}
-                                                            onClick={() => handleOpenEdit(project)}
-                                                            title="Edit"
-                                                        >
-                                                            <EditRegular />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className={styles.actionBtnDanger}
-                                                            onClick={() => setDeleteConfirmId(project.id)}
-                                                            title="Delete"
-                                                        >
-                                                            <DeleteRegular />
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                                    )}
+                                                    {isVendor ? (
+                                                        !projectHasVendorSubmission[String(project.id)] && (
+                                                            <button
+                                                                type="button"
+                                                                className={styles.actionBtn}
+                                                                onClick={() => handleOpenVendorSubmission(project)}
+                                                                title="Submit (create company folder and upload documents)"
+                                                            >
+                                                                <EditRegular />
+                                                            </button>
+                                                        )
+                                                    ) : (
+                                                        <>
+                                                            {!((directoryTab365 === "assigned" || directoryTab365 === "all") && getProjectStatus(project) === "Completed") && (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        className={styles.actionBtn}
+                                                                        onClick={() => handleOpenEdit(project)}
+                                                                        title="Edit"
+                                                                    >
+                                                                        <EditRegular />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className={styles.actionBtnDanger}
+                                                                        onClick={() => setDeleteConfirmId(project.id)}
+                                                                        title="Delete"
+                                                                    >
+                                                                        <DeleteRegular />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
                                 )}
                             </tbody>
                         </table>
@@ -801,9 +926,11 @@ const Directory: React.FC = () => {
                         project={editingProject}
                         mode={dialogMode}
                         isVendor={isVendor}
+                        showStatusField={!isVendor && directoryTab365 === "assigned"}
                         onSave={handleSaveProject}
                         saving={savingProject}
                         onLoadExistingAttachments={loadExistingAttachments}
+                        externalError={projectFormError}
                     />
 
                     {isVendor && vendorSubmissionProject && (
@@ -839,6 +966,85 @@ const Directory: React.FC = () => {
                             />
                         </UiDialogContent>
                     </UiDialog>
+
+                    {!isVendor && (
+                        <UiDialog open={newProjectModeOpen} onOpenChange={setNewProjectModeOpen}>
+                            <UiDialogContent className="sm:max-w-[680px] border-0 shadow-2xl p-0 bg-transparent">
+                                <div className="rounded-3xl bg-white shadow-xl overflow-hidden">
+                                    <div className="px-6 pt-5 pb-4 border-b bg-gradient-to-r from-[#F4F3FF] via-white to-[#F4F3FF] flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-2xl bg-[#5a3dd4]/10 flex items-center justify-center text-[#5a3dd4]">
+                                                <AddRegular />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-sm font-semibold text-slate-900">
+                                                    How would you like to create this project?
+                                                </h2>
+                                                <p className="text-xs text-slate-500">
+                                                    Choose a creation mode that best fits your workflow.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="px-6 py-5 bg-[#F8FAFC]">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setNewProjectModeOpen(false);
+                                                    handleOpenCreate();
+                                                }}
+                                                className="group text-left rounded-2xl border border-slate-200 bg-white px-4 py-4 flex flex-col gap-3 hover:border-[#5a3dd4] hover:shadow-[0_10px_30px_rgba(90,61,212,0.18)] transition-all"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-[#5a3dd4] group-hover:text-white transition-colors">
+                                                        <FileText className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-semibold text-slate-900">
+                                                            Start from scratch
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">
+                                                            Manually configure all project details and timelines.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[11px] font-medium text-slate-400">
+                                                    Best when you already know the full scope and requirements.
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setNewProjectModeOpen(false);
+                                                    setAiCreateOpen(true);
+                                                }}
+                                                className="group text-left rounded-2xl border border-[#5a3dd4]/40 bg-gradient-to-br from-[#F4F3FF] via-white to-[#F4F3FF] px-4 py-4 flex flex-col gap-3 hover:border-[#5a3dd4] hover:shadow-[0_12px_35px_rgba(90,61,212,0.25)] transition-all"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-9 w-9 rounded-xl bg-[#5a3dd4] flex items-center justify-center text-white shadow-md">
+                                                        <Sparkles className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-semibold text-slate-900">
+                                                            Create with AI
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">
+                                                            Describe your idea and let AI draft the project for you.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[11px] font-medium text-[#4b3ac9]">
+                                                    Ideal for quick setup, suggestions and discovering missing details.
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </UiDialogContent>
+                        </UiDialog>
+                    )}
 
                     <AlertDialog
                         open={deleteConfirmId !== null}
@@ -914,7 +1120,9 @@ const Directory: React.FC = () => {
                     </div>
                 </div>
             </main>
-            <ChatBot onCreateProjectClick={() => setAiCreateOpen(true)} />
+            {!isVendor && (
+                <ChatBot onCreateProjectClick={() => setAiCreateOpen(true)} />
+            )}
         </div>
     );
 };
