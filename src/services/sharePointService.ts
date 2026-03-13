@@ -2228,6 +2228,82 @@ export class SharePointService {
       return null;
     }
   }
+  /**
+   * Creates an advanced sharing link using specified scope and permissions.
+   * If scope is 'users', uses the /invite endpoint to send emails and grant specific access.
+   * Otherwise, uses /createLink to generate a shareable URL.
+   */
+  async createAdvancedSharingLink(
+    token: string,
+    containerId: string,
+    itemId: string,
+    options: {
+      scope: "anonymous" | "organization" | "users";
+      role: "read" | "write";
+      recipients?: string[];
+      message?: string;
+      sendInvitation?: boolean;
+      retainInheritedPermissions?: boolean;
+    }
+  ): Promise<string> {
+    const { scope, role, recipients, message, sendInvitation = true, retainInheritedPermissions = false } = options;
+    const type = role === "write" ? "edit" : "view";
+
+    if (scope === "users") {
+      if (!recipients || recipients.length === 0) {
+        throw new Error("Recipients are required for 'users' scope.");
+      }
+      const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${itemId}/invite`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requireSignIn: true,
+          sendInvitation,
+          roles: [role],
+          recipients: recipients.map((email) => ({ email })),
+          message: message || "",
+          retainInheritedPermissions,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error creating invite:", errorText);
+        throw new Error(`Failed to invite users: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return "Invitation sent successfully";
+    } else {
+      // anonymous or organization
+      const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${itemId}/createLink`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type,
+          scope,
+          retainInheritedPermissions,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error creating link:", errorText);
+        throw new Error(`Failed to create link: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.link.webUrl;
+    }
+  }
 }
 
 export const sharePointService = new SharePointService();
