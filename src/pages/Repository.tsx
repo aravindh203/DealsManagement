@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./Repository.module.scss";
 import { AddRegular, ArrowLeftRegular, FolderAddRegular } from "@fluentui/react-icons";
-import { LogOut, Download, Trash2 } from "lucide-react";
+import { LogOut, Download, Trash2, Eye, Share2 } from "lucide-react";
 import { useProjects } from "@/context/ProjectsContext";
 import { useAuth } from "@/context/AuthContext";
 import { getAccessTokenByApp } from "@/hooks/useClientCredentialsAuth";
@@ -107,6 +107,13 @@ const Repository: React.FC = () => {
   const [currentFolderCreatedBy, setCurrentFolderCreatedBy] = useState<string | null>(null);
   const [actionItemId, setActionItemId] = useState<string | null>(null);
   const [vendorCompanyName, setVendorCompanyName] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<FileItem | null>(null);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [sharingItem, setSharingItem] = useState<FileItem | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     refetch();
@@ -407,6 +414,56 @@ const Repository: React.FC = () => {
     }
   };
 
+  const handleViewFile = async (item: FileItem) => {
+    const token = await getAccessTokenByApp();
+    if (!token) return;
+    setActionItemId(item.id);
+    setPreviewItem(item);
+    try {
+      const url = await sharePointService.getFilePreview(token, appConfig.ContainerID, item.id);
+      setPreviewUrl(url);
+      setIsPreviewOpen(true);
+    } catch (err) {
+      console.error("Preview failed:", err);
+      toast({ 
+        title: "Preview failed", 
+        description: "Could not load file preview.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setActionItemId(null);
+    }
+  };
+
+  const handleOpenShare = (item: FileItem) => {
+    setSharingItem(item);
+    setShareEmail("");
+    setIsShareOpen(true);
+  };
+
+  const handleShareSubmit = async () => {
+    if (!sharingItem || !shareEmail.trim()) return;
+    const token = await getAccessTokenByApp();
+    if (!token) return;
+    setSharing(true);
+    try {
+      await sharePointService.shareFile(
+        token,
+        appConfig.ContainerID,
+        sharingItem.id,
+        [shareEmail.trim()],
+        "read"
+      );
+      toast({ title: "Shared successfully", description: `File shared with ${shareEmail}` });
+      setIsShareOpen(false);
+    } catch (err) {
+      console.error("Sharing failed:", err);
+      toast({ title: "Sharing failed", description: "Could not share the file.", variant: "destructive" });
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const isRoot = navStack.length === 0;
   const PROJECT_SUBFOLDER_NAME = "Project";
   const VENDOR_FOLDER_NAME = "Vendor";
@@ -648,6 +705,29 @@ const Repository: React.FC = () => {
                           >
                             {!item.folder ? (
                               <div className={styles.fileActions}>
+                                {!isVendor && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className={styles.fileActionBtn}
+                                      title="View"
+                                      disabled={actionItemId === item.id}
+                                      onClick={() => handleViewFile(item)}
+                                    >
+                                      <Eye size={16} />
+                                      <span>View</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.fileActionBtn}
+                                      title="Share"
+                                      onClick={() => handleOpenShare(item)}
+                                    >
+                                      <Share2 size={16} />
+                                      <span>Share</span>
+                                    </button>
+                                  </>
+                                )}
                                 <button
                                   type="button"
                                   className={styles.fileActionBtn}
@@ -658,7 +738,7 @@ const Repository: React.FC = () => {
                                   <Download size={16} />
                                   <span>Download</span>
                                 </button>
-                                {showUploadOption && (
+                                {!isVendor && showUploadOption && (
                                   <button
                                     type="button"
                                     className={`${styles.fileActionBtn} ${styles.fileActionBtnDanger}`}
@@ -796,6 +876,88 @@ const Repository: React.FC = () => {
               disabled={selectedFiles.length === 0 || uploading}
             >
               {uploading ? "Uploading…" : `Upload ${selectedFiles.length} file(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={(open) => { setIsPreviewOpen(open); if (!open) { setPreviewUrl(null); setPreviewItem(null); } }}>
+        <DialogContent className="sm:max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="p-0 border-none">
+            <div className="bg-[#6B47E5] text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <Eye className="text-white" size={20} />
+                </div>
+                <div className="flex flex-col">
+                  <DialogTitle className="text-lg font-semibold text-white">Document Preview</DialogTitle>
+                  {previewItem && <span className="text-xs text-purple-100 opacity-90">{previewItem.name}</span>}
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/10" 
+                onClick={() => setIsPreviewOpen(false)}
+              >
+                <LogOut size={18} className="rotate-90" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-white relative">
+            {previewUrl ? (
+              <iframe
+                src={previewUrl}
+                className="w-full h-full border-none shadow-inner"
+                title="Document Viewer"
+                allow="autoplay; camera; microphone; fullscreen"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#6B47E5]"></div>
+                  <span className="text-slate-500 font-medium">Preparing document...</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share File</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="share-email">Recipient Email</Label>
+              <Input
+                id="share-email"
+                type="email"
+                value={shareEmail}
+                onChange={(e) => setShareEmail(e.target.value)}
+                placeholder="Enter email address"
+                onKeyDown={(e) => e.key === "Enter" && handleShareSubmit()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsShareOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleShareSubmit}
+              disabled={!shareEmail.trim() || sharing}
+            >
+              {sharing ? "Sharing…" : "Share"}
             </Button>
           </DialogFooter>
         </DialogContent>
