@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./Repository.module.scss";
 import { AddRegular, ArrowLeftRegular, FolderAddRegular } from "@fluentui/react-icons";
-import { LogOut, Download, Trash2, Eye, Share2 } from "lucide-react";
+import { LogOut, Download, Trash2, Eye, Share2, Globe2, Building2, Users2, Edit2 } from "lucide-react";
 import { useProjects } from "@/context/ProjectsContext";
 import { useAuth } from "@/context/AuthContext";
 import { getAccessTokenByApp } from "@/hooks/useClientCredentialsAuth";
@@ -20,6 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const BellIcon = () => (
@@ -111,9 +113,15 @@ const Repository: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<FileItem | null>(null);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [shareEmail, setShareEmail] = useState("");
   const [sharingItem, setSharingItem] = useState<FileItem | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [shareScope, setShareScope] = useState<"anonymous" | "organization" | "users">("organization");
+  const [shareRole, setShareRole] = useState<"read" | "write">("read");
+  const [shareEmails, setShareEmails] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
+  const [shareNotify, setShareNotify] = useState(true);
+  const [shareRetain, setShareRetain] = useState(true);
+  const [shareLinkResult, setShareLinkResult] = useState<string | null>(null);
 
   useEffect(() => {
     refetch();
@@ -437,28 +445,49 @@ const Repository: React.FC = () => {
 
   const handleOpenShare = (item: FileItem) => {
     setSharingItem(item);
-    setShareEmail("");
+    setShareScope("organization");
+    setShareRole("read");
+    setShareEmails("");
+    setShareMessage("");
+    setShareNotify(true);
+    setShareRetain(true);
+    setShareLinkResult(null);
     setIsShareOpen(true);
   };
 
-  const handleShareSubmit = async () => {
-    if (!sharingItem || !shareEmail.trim()) return;
+  const handleShareSubmitAdvanced = async () => {
+    if (!sharingItem) return;
+    if (shareScope === "users" && !shareEmails.trim()) {
+       toast({ title: "Email required", description: "Please enter at least one email address for Specific people.", variant: "destructive" });
+       return;
+    }
     const token = await getAccessTokenByApp();
     if (!token) return;
     setSharing(true);
     try {
-      await sharePointService.shareFile(
+      const recipients = shareEmails.split(",").map(e => e.trim()).filter(e => e);
+      const result = await sharePointService.createAdvancedSharingLink(
         token,
         appConfig.ContainerID,
         sharingItem.id,
-        [shareEmail.trim()],
-        "read"
+        {
+          scope: shareScope,
+          role: shareRole,
+          recipients: shareScope === "users" ? recipients : undefined,
+          message: shareMessage,
+          sendInvitation: shareNotify,
+          retainInheritedPermissions: shareRetain,
+        }
       );
-      toast({ title: "Shared successfully", description: `File shared with ${shareEmail}` });
-      setIsShareOpen(false);
+      setShareLinkResult(result);
+      if (shareScope === "users") {
+          toast({ title: "Shared successfully", description: "Invitation sent." });
+      } else {
+          toast({ title: "Link created", description: "Share link is ready to copy." });
+      }
     } catch (err) {
       console.error("Sharing failed:", err);
-      toast({ title: "Sharing failed", description: "Could not share the file.", variant: "destructive" });
+      toast({ title: "Sharing failed", description: "Could not share the file or generate link.", variant: "destructive" });
     } finally {
       setSharing(false);
     }
@@ -927,38 +956,126 @@ const Repository: React.FC = () => {
 
       {/* Share Dialog */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Share File</DialogTitle>
+        <DialogContent className="sm:max-w-[600px] gap-0 p-6">
+          <DialogHeader className="mb-6 space-y-1">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Share2 size={24} className="text-[#6B47E5]" strokeWidth={2} /> Share
+            </DialogTitle>
+            {sharingItem && (
+               <div className="text-sm text-muted-foreground ml-[28px] truncate">
+                 {sharingItem.name}
+               </div>
+            )}
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="share-email">Recipient Email</Label>
-              <Input
-                id="share-email"
-                type="email"
-                value={shareEmail}
-                onChange={(e) => setShareEmail(e.target.value)}
-                placeholder="Enter email address"
-                onKeyDown={(e) => e.key === "Enter" && handleShareSubmit()}
-              />
+          
+          <div className="flex flex-col gap-6">
+            {/* Scope Selection */}
+            <div className="space-y-3">
+               <Label className="text-[15px] font-semibold text-slate-900">Scope</Label>
+               <div className="grid grid-cols-3 gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => { setShareScope("anonymous"); setShareLinkResult(null); }}
+                    className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "anonymous" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                  >
+                     <Globe2 className="mb-2" size={24} strokeWidth={1.5} />
+                     <span className="font-semibold text-[13px] mb-0.5">Anyone</span>
+                     <span className="text-[11px] opacity-70">Anyone with the link</span>
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setShareScope("organization"); setShareLinkResult(null); }}
+                    className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "organization" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                  >
+                     <Building2 className="mb-2" size={24} strokeWidth={1.5} />
+                     <span className="font-semibold text-[13px] mb-0.5">Organization</span>
+                     <span className="text-[11px] opacity-70">People in your org</span>
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setShareScope("users"); setShareLinkResult(null); }}
+                    className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "users" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                  >
+                     <Users2 className="mb-2" size={24} strokeWidth={1.5} />
+                     <span className="font-semibold text-[13px] mb-0.5">Specific people</span>
+                     <span className="text-[11px] opacity-70">Only recipients</span>
+                  </button>
+               </div>
             </div>
+
+            {/* Permission Selection */}
+            <div className="space-y-3">
+               <Label className="text-[15px] font-semibold text-slate-900">Permission</Label>
+               <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => { setShareRole("read"); setShareLinkResult(null); }}
+                    className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "read" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                  >
+                     <Eye className="mr-3" size={20} strokeWidth={1.5} />
+                     <div className="flex flex-col text-left">
+                       <span className="font-semibold text-[13px]">View</span>
+                       <span className="text-[11px] opacity-70">Can view only</span>
+                     </div>
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setShareRole("write"); setShareLinkResult(null); }}
+                    className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "write" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                  >
+                     <Edit2 className="mr-3" size={20} strokeWidth={1.5} />
+                     <div className="flex flex-col text-left">
+                       <span className="font-semibold text-[13px]">Edit</span>
+                       <span className="text-[11px] opacity-70">Can view & edit</span>
+                     </div>
+                  </button>
+               </div>
+            </div>
+
+            {/* Users Input (only for Specific people) */}
+            {shareScope === "users" && (
+                <div className="space-y-3">
+                   <Label htmlFor="share-emails" className="text-[15px] font-semibold text-slate-900">Recipients (comma separated)</Label>
+                   <Input
+                      id="share-emails"
+                      type="text"
+                      value={shareEmails}
+                      onChange={(e) => setShareEmails(e.target.value)}
+                      placeholder="Add people via email..."
+                      className="rounded-lg border-slate-200"
+                   />
+                </div>
+            )}
+
+            {/* Toggles removed per user request */}
+
+            {/* Result Area */}
+            {shareLinkResult && shareScope !== "users" && (
+               <div className="p-4 bg-green-50 border border-green-200 rounded-lg mt-2">
+                 <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully:</Label>
+                 <div className="flex items-center gap-2">
+                    <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
+                    <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({title:"Copied", description:"Link copied to clipboard."}) }}>Copy</Button>
+                 </div>
+               </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsShareOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleShareSubmit}
-              disabled={!shareEmail.trim() || sharing}
-            >
-              {sharing ? "Sharing…" : "Share"}
-            </Button>
+
+          <DialogFooter className="mt-8 flex justify-end gap-3 sm:justify-end">
+             <Button 
+               variant="outline" 
+               className="rounded-lg px-6 font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200" 
+               onClick={() => setIsShareOpen(false)}
+             >
+               Cancel
+             </Button>
+             <Button 
+               onClick={handleShareSubmitAdvanced} 
+               disabled={sharing || (shareScope === "users" && !shareEmails.trim())}
+               className="bg-[#6B47E5] hover:bg-[#5A3DD4] text-white rounded-lg px-6 font-medium border border-transparent shadow-sm"
+             >
+               {sharing ? "Processing..." : shareScope === "users" ? "Send" : "Create Link"}
+             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
