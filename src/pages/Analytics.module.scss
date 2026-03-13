@@ -5,7 +5,7 @@
 .page {
     height: 100%;
     width: 100%;
-    background-color: #F8F9FA;
+    background: radial-gradient(circle at top left, #e0f2fe 0, #f5f7ff 35%, #f8fafc 70%, #eef2ff 100%);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     display: flex;
     flex-direction: column;
@@ -17,9 +17,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 48px;
-    background-color: #F8F9FA;
-    border-bottom: 1px solid #ebebf0;
+    padding: 16px 40px;
+    background: linear-gradient(90deg, #1e3a8a, #2563eb, #38bdf8);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.35);
     flex-shrink: 0;
 }
 
@@ -30,10 +30,10 @@
 }
 
 .logo {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 900;
     letter-spacing: -0.5px;
-    color: #1A202C;
+    color: #f9fafb;
 }
 
 .badge {
@@ -114,15 +114,15 @@
     gap: 6px;
     padding: 8px 14px;
     border-radius: 10px;
-    background-color: #ededf3;
-    color: #444;
+    background-color: rgba(15, 23, 42, 0.16);
+    color: #f9fafb;
     font-size: 13px;
     font-weight: 500;
     border: none;
     cursor: pointer;
 
     &:hover {
-        background-color: #dfe0eb;
+        background-color: rgba(15, 23, 42, 0.28);
     }
 }
 
@@ -155,7 +155,7 @@
 
 .mainStatic {
     flex-shrink: 0;
-    padding: 36px 48px 24px;
+    padding: 28px 48px 16px;
 }
 
 .titleGroup {
@@ -169,14 +169,14 @@
     font-weight: 800;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #5b21b6;
+    color: #3b82f6;
 }
 
 .pageTitle {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 900;
     letter-spacing: -0.5px;
-    color: #1A202C;
+    color: #020617;
     margin: 0;
     line-height: 1.1;
 }
@@ -188,10 +188,137 @@
     padding: 0 48px 48px;
 }
 
+.kpiRow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.kpiCard {
+    position: relative;
+    background: linear-gradient(135deg, #eff6ff, #ffffff);
+    border: 1px solid rgba(191, 219, 254, 0.9);
+    border-radius: 18px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 30px rgba(148, 163, 184, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.kpiCard::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 55%),
+                radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.15), transparent 55%);
+    opacity: 1;
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+
+.kpiCard > * {
+    position: relative;
+    z-index: 1;
+}
+
+.kpiCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 40px rgba(148, 163, 184, 0.45);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.kpiLabel {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin: 0;
+}
+
+.kpiValue {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+}
+
+.kpiDelta {
+    font-size: 11px;
+    font-weight: 500;
+    color: #16a34a;
+    margin: 0;
+}
+
+.middleRow,
+.bottomRow {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.statusCard,
+.vendorCard,
+.budgetCard,
+.projectTypesCard {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 20px 20px 22px;
+    box-shadow: 0 12px 40px rgba(148, 163, 184, 0.3);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.statusChart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    height: 210px;
+}
+
+.statusColumn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.statusBarTrack {
+    width: 24px;
+    height: 120px;
+    border-radius: 999px;
+    background-color: #eef2ff;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+
+.statusBarFill {
+    width: 100%;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #4f46e5, #22c55e);
+}
+
+.statusCount {
+    font-size: 12px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.statusLabel {
+    font-size: 11px;
+    color: #6b7280;
+}
+
 .sectionTitle {
     font-size: 16px;
     font-weight: 800;
-    color: #1A202C;
+    color: #111827;
     margin: 0 0 20px 0;
 }
 
@@ -395,6 +522,110 @@
 .vendorPieChart {
     width: 180px;
     height: 180px;
+}
+
+.budgetLegend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.legendItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legendSwatchPrimary,
+.legendSwatchSecondary {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+}
+
+.legendSwatchPrimary {
+    background: linear-gradient(90deg, #0ea5e9, #6366f1);
+}
+
+.legendSwatchSecondary {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.lineChart {
+    width: 100%;
+    height: 160px;
+}
+
+.lineAllocated {
+    stroke: #38bdf8;
+}
+
+.lineActual {
+    stroke: #22c55e;
+}
+
+.dotAllocated {
+    fill: #38bdf8;
+}
+
+.dotActual {
+    fill: #22c55e;
+}
+
+.budgetAxis {
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+}
+
+.projectTypesList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.projectTypeItem {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.projectTypeHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #111827;
+}
+
+.projectTypeLabel {
+    font-weight: 600;
+}
+
+.projectTypeValue {
+    font-variant-numeric: tabular-nums;
+    color: #4b5563;
+}
+
+.projectTypeTrack {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background-color: #e5e7eb;
+    overflow: hidden;
+}
+
+.projectTypeFill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4f46e5, #a855f7);
 }
 
 .historicalTableWrap {
