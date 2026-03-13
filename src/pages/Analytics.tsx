@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Analytics.module.scss';
-import { LogOut } from 'lucide-react';
+import { LogOut, Folder, Users, DollarSign, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProjects } from '../context/ProjectsContext';
 import type { Project } from './projectsData';
@@ -125,24 +125,49 @@ const Analytics: React.FC = () => {
 
             <main className={styles.main}>
                 <div className={styles.mainStatic}>
-                    <div className={styles.titleGroup}>
-                        <span className={styles.overline}>Analytics</span>
-                        <h1 className={styles.pageTitle}>Project performance overview</h1>
+                    <div className={styles.headerRow}>
+                        <div className={styles.titleGroup}>
+                            <span className={styles.overline}>Analytics &amp; Reporting</span>
+                            <h1 className={styles.pageTitle}>Project Performance Overview</h1>
+                        </div>
+                        <div className={styles.headerActions}>
+                            <button type="button" className={styles.rangeButton}>
+                                Last 30 days
+                            </button>
+                            <button type="button" className={styles.primaryButton}>
+                                Export Report
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div className={styles.mainScroll}>
                     <section className={styles.kpiRow}>
-                        <div className={styles.kpiCard}>
+                        <div className={`${styles.kpiCard} ${styles.kpiCardPrimary}`}>
+                            <div className={styles.kpiHeader}>
+                                <div className={styles.kpiIcon}>
+                                    <Folder size={18} />
+                                </div>
+                            </div>
                             <p className={styles.kpiLabel}>Total Projects</p>
                             <p className={styles.kpiValue}>{totalProjects}</p>
-                            <p className={styles.kpiDelta}>+12.5% vs last period</p>
+                            <p className={styles.kpiDelta}>+3 vs last month</p>
                         </div>
                         <div className={styles.kpiCard}>
+                            <div className={styles.kpiHeader}>
+                                <div className={styles.kpiIcon}>
+                                    <Users size={18} />
+                                </div>
+                            </div>
                             <p className={styles.kpiLabel}>Active Vendors</p>
                             <p className={styles.kpiValue}>{activeVendors}</p>
-                            <p className={styles.kpiDelta}>+8.3% vs last period</p>
+                            <p className={styles.kpiDelta}>Across all projects</p>
                         </div>
                         <div className={styles.kpiCard}>
+                            <div className={styles.kpiHeader}>
+                                <div className={styles.kpiIcon}>
+                                    <DollarSign size={18} />
+                                </div>
+                            </div>
                             <p className={styles.kpiLabel}>Total Budget</p>
                             <p className={styles.kpiValue}>
                                 {budgetVsBid.totalBudget.toLocaleString('en-US', {
@@ -151,123 +176,39 @@ const Analytics: React.FC = () => {
                                     maximumFractionDigits: 0,
                                 })}
                             </p>
-                            <p className={styles.kpiDelta}>+15.2% vs last period</p>
+                            <p className={styles.kpiDelta}>
+                                {budgetVsBid.totalBid > 0
+                                    ? `${Math.round((budgetVsBid.totalBid / budgetVsBid.totalBudget) * 100) || 0}% spent`
+                                    : '0% spent'}
+                            </p>
                         </div>
                         <div className={styles.kpiCard}>
+                            <div className={styles.kpiHeader}>
+                                <div className={styles.kpiIcon}>
+                                    <Star size={18} />
+                                </div>
+                            </div>
                             <p className={styles.kpiLabel}>Avg Vendor Rating</p>
                             <p className={styles.kpiValue}>4.6</p>
-                            <p className={styles.kpiDelta}>+5.1% vs last period</p>
+                            <p className={styles.kpiDelta}>Based on 42 reviews</p>
                         </div>
                     </section>
 
                     <section className={styles.middleRow}>
                         <div className={styles.statusCard}>
-                            <h2 className={styles.sectionTitle}>Project Status Overview</h2>
-                            <div className={styles.statusChart}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={Object.entries(statusBuckets).map(([status, count]) => ({
-                                            status,
-                                            count,
-                                        }))}
-                                        margin={{ top: 10, right: 10, bottom: 0, left: 0 }}
-                                    >
-                                        <CartesianGrid vertical={false} stroke="#e5e7eb" />
-                                        <XAxis
-                                            dataKey="status"
-                                            tick={{ fontSize: 11, fill: '#6b7280' }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                        />
-                                        <YAxis
-                                            tick={{ fontSize: 11, fill: '#9ca3af' }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                            allowDecimals={false}
-                                        />
-                                        <Tooltip
-                                            cursor={{ fill: 'rgba(37, 99, 235, 0.06)' }}
-                                            formatter={(value: number) => [`${value} projects`, 'Count']}
-                                        />
-                                        <Bar dataKey="count" radius={[8, 8, 0, 0]} fill="#4f46e5" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                        <div className={styles.vendorCard}>
-                            <h2 className={styles.sectionTitle}>Vendor Distribution</h2>
-                            {vendorShare.total === 0 ? (
-                                <p className={styles.reportCardDesc}>
-                                    No finalized vendors yet. Assign vendors from the Directory to see this chart.
-                                </p>
-                            ) : (
-                                <div className={styles.vendorPieRow}>
-                                    <div className={styles.vendorPieLegend}>
-                                        {vendorShare.entries.map(([vendor, count], idx) => {
-                                            const pct = Math.round((count / vendorShare.total) * 100);
-                                            const color = ['#4F46E5', '#EC4899', '#10B981', '#F97316'][idx % 4];
-                                            return (
-                                                <div key={vendor} className={styles.vendorLegendItem}>
-                                                    <span
-                                                        className={styles.vendorLegendSwatch}
-                                                        style={{ backgroundColor: color }}
-                                                    />
-                                                    <span className={styles.vendorLegendLabel}>{vendor}</span>
-                                                    <span className={styles.vendorLegendValue}>{pct}%</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className={styles.vendorPieChart}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Tooltip
-                                                    formatter={(value: number, _name, entry) => [
-                                                        `${value} projects`,
-                                                        (entry.payload as any).vendor,
-                                                    ]}
-                                                />
-                                                <Pie
-                                                    data={vendorShare.entries.map(([vendor, count]) => ({
-                                                        vendor,
-                                                        value: count,
-                                                    }))}
-                                                    dataKey="value"
-                                                    nameKey="vendor"
-                                                    innerRadius="55%"
-                                                    outerRadius="80%"
-                                                    paddingAngle={3}
-                                                >
-                                                    {vendorShare.entries.map((_, idx) => (
-                                                        <Cell
-                                                            key={idx}
-                                                            fill={['#4F46E5', '#EC4899', '#10B981', '#F97316'][idx % 4]}
-                                                        />
-                                                    ))}
-                                                </Pie>
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    <section className={styles.bottomRow}>
-                        <div className={styles.budgetCard}>
-                            <h2 className={styles.sectionTitle}>Budget vs. Actual Bids</h2>
+                            <h2 className={styles.sectionTitle}>Budget Trends</h2>
+                            <p className={styles.sectionSubtitle}>Monthly budget allocation and spending</p>
                             <div className={styles.budgetLegend}>
                                 <div className={styles.legendItem}>
                                     <span className={styles.legendSwatchPrimary} />
-                                    <span>Allocated Budget</span>
+                                    <span>Budget</span>
                                 </div>
                                 <div className={styles.legendItem}>
                                     <span className={styles.legendSwatchSecondary} />
-                                    <span>Actual Bids</span>
+                                    <span>Actual</span>
                                 </div>
                             </div>
-                            <div className={styles.lineChart}>
+                            <div className={styles.statusChart}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart
                                         data={budgetTimeline.series}
@@ -295,14 +236,14 @@ const Analytics: React.FC = () => {
                                                     currency: 'USD',
                                                     maximumFractionDigits: 0,
                                                 }),
-                                                key === 'allocated' ? 'Allocated Budget' : 'Actual Bids',
+                                                key === 'allocated' ? 'Budget' : 'Actual',
                                             ]}
                                         />
                                         <Legend />
                                         <Line
                                             type="monotone"
                                             dataKey="allocated"
-                                            stroke="#38bdf8"
+                                            stroke="#6366f1"
                                             strokeWidth={2}
                                             dot={{ r: 3 }}
                                             activeDot={{ r: 5 }}
@@ -320,8 +261,117 @@ const Analytics: React.FC = () => {
                             </div>
                         </div>
 
+                        <div className={styles.vendorCard}>
+                            <h2 className={styles.sectionTitle}>Vendor Distribution</h2>
+                            <p className={styles.sectionSubtitle}>Projects by vendor</p>
+                            {vendorShare.total === 0 ? (
+                                <p className={styles.reportCardDesc}>
+                                    No finalized vendors yet. Assign vendors from the Directory to see this chart.
+                                </p>
+                            ) : (
+                                <div className={styles.vendorPieStack}>
+                                    <div className={styles.vendorPieChart}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Tooltip
+                                                    formatter={(value: number, _name, entry) => [
+                                                        `${value} projects`,
+                                                        (entry.payload as any).vendor,
+                                                    ]}
+                                                />
+                                                <Pie
+                                                    data={vendorShare.entries.map(([vendor, count]) => ({
+                                                        vendor,
+                                                        value: count,
+                                                    }))}
+                                                    dataKey="value"
+                                                    nameKey="vendor"
+                                                    innerRadius="60%"
+                                                    outerRadius="85%"
+                                                    paddingAngle={3}
+                                                >
+                                                    {vendorShare.entries.map((_, idx) => (
+                                                        <Cell
+                                                            key={idx}
+                                                            fill={
+                                                                ['#4F46E5', '#8B5CF6', '#6366F1', '#A855F7', '#E5E7EB'][
+                                                                    idx % 5
+                                                                ]
+                                                            }
+                                                        />
+                                                    ))}
+                                                </Pie>
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className={styles.vendorPieLegend}>
+                                        {vendorShare.entries.map(([vendor, count], idx) => {
+                                            const pct = Math.round((count / vendorShare.total) * 100);
+                                            const color =
+                                                ['#4F46E5', '#8B5CF6', '#6366F1', '#A855F7', '#E5E7EB'][idx % 5];
+                                            return (
+                                                <div key={vendor} className={styles.vendorLegendItem}>
+                                                    <div className={styles.vendorLegendLeft}>
+                                                        <span
+                                                            className={styles.vendorLegendSwatch}
+                                                            style={{ backgroundColor: color }}
+                                                        />
+                                                        <span className={styles.vendorLegendLabel}>{vendor}</span>
+                                                    </div>
+                                                    <div className={styles.vendorLegendRight}>
+                                                        <span className={styles.vendorProjects}>
+                                                            {count} projects
+                                                        </span>
+                                                        <span className={styles.vendorLegendValue}>{pct}%</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className={styles.bottomRow}>
+                        <div className={styles.statusCard}>
+                            <h2 className={styles.sectionTitle}>Project Status Trends</h2>
+                            <p className={styles.sectionSubtitle}>Monthly project status distribution</p>
+                            <div className={styles.statusChart}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={Object.entries(statusBuckets).map(([status, count]) => ({
+                                            status,
+                                            count,
+                                        }))}
+                                        margin={{ top: 10, right: 10, bottom: 0, left: 0 }}
+                                    >
+                                        <CartesianGrid vertical={false} stroke="#e5e7eb" />
+                                        <XAxis
+                                            dataKey="status"
+                                            tick={{ fontSize: 11, fill: '#6b7280' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis
+                                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            allowDecimals={false}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(249, 115, 22, 0.06)' }}
+                                            formatter={(value: number) => [`${value} projects`, 'Count']}
+                                        />
+                                        <Bar dataKey="count" radius={[8, 8, 0, 0]} fill="#f59e0b" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
                         <div className={styles.projectTypesCard}>
-                            <h2 className={styles.sectionTitle}>Project Types</h2>
+                            <h2 className={styles.sectionTitle}>Project Types Breakdown</h2>
+                            <p className={styles.sectionSubtitle}>Distribution by project category</p>
                             <div className={styles.projectTypesList}>
                                 {(() => {
                                     const typeCounts: Record<string, number> = {};

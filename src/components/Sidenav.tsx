@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidenav.module.scss';
 import { useAuth } from '../context/AuthContext';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Grid / waffle icon for Insights (active state uses blue)
 const GridIcon = ({ active }: { active?: boolean }) => (
@@ -50,7 +51,12 @@ const navItems = [
 
 const clusterName = 'Workspace Alpha';
 
-export const Sidenav: React.FC = () => {
+interface SidenavProps {
+    collapsed?: boolean;
+    onToggleCollapse?: () => void;
+}
+
+export const Sidenav: React.FC<SidenavProps> = ({ collapsed = false, onToggleCollapse }) => {
     const { role, loginType } = useAuth();
 
     const allowedNavItems = navItems.filter(({ to }) => {
@@ -70,11 +76,23 @@ export const Sidenav: React.FC = () => {
         return false;
     });
 
+    const sidebarClassName = `${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`;
+
     return (
-        <aside className={styles.sidebar}>
+        <aside className={sidebarClassName}>
             <div className={styles.header}>
-                <span className={styles.headerLabel}>SECURE CLUSTER</span>
-                <span className={styles.clusterName}>{clusterName}</span>
+                <div className={styles.headerText}>
+                    <span className={styles.headerLabel}>SECURE CLUSTER</span>
+                    {!collapsed && <span className={styles.clusterName}>{clusterName}</span>}
+                </div>
+                <button
+                    type="button"
+                    className={styles.collapseToggle}
+                    onClick={onToggleCollapse}
+                    aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+                >
+                    {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
             </div>
 
             <nav className={styles.nav}>
@@ -92,7 +110,7 @@ export const Sidenav: React.FC = () => {
                                 <span className={styles.navIcon}>
                                     <Icon active={isActive} />
                                 </span>
-                                <span className={styles.navLabel}>{label}</span>
+                                {!collapsed && <span className={styles.navLabel}>{label}</span>}
                             </>
                         )}
                     </NavLink>
