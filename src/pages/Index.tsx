@@ -80,13 +80,13 @@ const Index = () => {
   }, [getAccessToken, addApiCall]);
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-amber-900/70 px-6 py-8 space-y-8">
       <RollupDashboard />
       
-      <div className="grid grid-cols-1 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 gap-4 max-w-5xl mx-auto">
+        <Card className="border-amber-200/20 bg-slate-950/70 backdrop-blur-2xl shadow-[0_18px_55px_rgba(0,0,0,0.9)] text-slate-100">
           <CardHeader>
-            <CardTitle>Welcome to SharePoint Embedded Demo</CardTitle>
+            <CardTitle className="text-slate-50">Welcome to SharePoint Embedded Demo</CardTitle>
             <CardDescription>
               This is a simple demo application that demonstrates the SharePoint Embedded functionality.
             </CardDescription>
@@ -97,14 +97,18 @@ const Index = () => {
             </p>
           </CardContent>
           <CardFooter>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              className="border-amber-300/60 bg-amber-400/10 text-amber-100 hover:bg-amber-300/20 hover:text-amber-50 hover:border-amber-200"
+            >
               <Link to="/projects">View Projects</Link>
             </Button>
           </CardFooter>
         </Card>
 
         {permissionError && (
-          <Card className="border-red-200 bg-red-50">
+          <Card className="border-red-400/60 bg-red-900/40 backdrop-blur-xl text-red-50">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-5 w-5 text-red-500" />
@@ -130,7 +134,7 @@ const Index = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
         ) : error && !permissionError ? (
-          <Card className="border-red-200">
+          <Card className="border-red-400/60 bg-red-900/40 backdrop-blur-xl text-red-50">
             <CardHeader>
               <CardTitle className="text-red-500">Error</CardTitle>
             </CardHeader>
@@ -139,7 +143,7 @@ const Index = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="border-amber-200/20 bg-slate-950/70 backdrop-blur-2xl shadow-[0_18px_55px_rgba(0,0,0,0.9)] text-slate-100">
             <CardHeader>
               <CardTitle>Recent Projects</CardTitle>
               <CardDescription>
@@ -167,7 +171,11 @@ const Index = () => {
               )}
             </CardContent>
             <CardFooter>
-              <Button asChild variant="outline">
+              <Button
+                asChild
+                variant="outline"
+                className="border-amber-300/60 bg-amber-400/10 text-amber-100 hover:bg-amber-300/20 hover:text-amber-50 hover:border-amber-200"
+              >
                 <Link to="/projects">View All Projects</Link>
               </Button>
             </CardFooter>

@@ -81,12 +81,20 @@ const TaskTypeTooltip = ({ active, payload, label }: any) => {
 
 export function RollupDashboard() {
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Project Sites Rollup</h2>
+    <div className="space-y-6 rounded-3xl border border-amber-400/10 bg-slate-950/60 bg-gradient-to-br from-slate-950/80 via-slate-900/75 to-amber-900/40 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.9)] backdrop-blur-2xl text-slate-50">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Project Sites Rollup
+        </h2>
+        <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-amber-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-amber-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 shadow-[0_0_12px_rgba(250,204,21,0.9)]" />
+          Live overview
+        </span>
+      </div>
       
       {/* Summary Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-900/50 shadow-[0_14px_40px_rgba(0,0,0,0.65)] backdrop-blur-xl transition hover:border-amber-300/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Projects
@@ -96,7 +104,7 @@ export function RollupDashboard() {
             <div className="text-2xl font-bold">{mockRollupData.summary.totalProjects}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-900/50 shadow-[0_14px_40px_rgba(0,0,0,0.65)] backdrop-blur-xl transition hover:border-amber-300/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Work Items
@@ -106,7 +114,7 @@ export function RollupDashboard() {
             <div className="text-2xl font-bold">{mockRollupData.summary.totalWorkItems}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-900/50 shadow-[0_14px_40px_rgba(0,0,0,0.65)] backdrop-blur-xl transition hover:border-amber-300/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Tasks Due
@@ -116,7 +124,7 @@ export function RollupDashboard() {
             <div className="text-2xl font-bold">{mockRollupData.summary.totalTasksDue}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-900/50 shadow-[0_14px_40px_rgba(0,0,0,0.65)] backdrop-blur-xl transition hover:border-amber-300/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Issues Due
@@ -126,7 +134,7 @@ export function RollupDashboard() {
             <div className="text-2xl font-bold">{mockRollupData.summary.issuesDue}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-900/50 shadow-[0_14px_40px_rgba(0,0,0,0.65)] backdrop-blur-xl transition hover:border-amber-300/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Issues Late
@@ -136,7 +144,7 @@ export function RollupDashboard() {
             <div className="text-2xl font-bold text-red-500">{mockRollupData.summary.issuesLate}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-900/50 shadow-[0_14px_40px_rgba(0,0,0,0.65)] backdrop-blur-xl transition hover:border-amber-300/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Tasks Late
@@ -150,7 +158,7 @@ export function RollupDashboard() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-950/70 shadow-[0_18px_55px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
           <CardHeader>
             <CardTitle>Project Status Distribution</CardTitle>
           </CardHeader>
@@ -195,7 +203,7 @@ export function RollupDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-amber-300/15 bg-slate-950/70 shadow-[0_18px_55px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full"></div>
