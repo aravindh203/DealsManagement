@@ -681,7 +681,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
           <Separator className="shrink-0" />
           <DialogFooter className="shrink-0 px-6 py-4 flex-row justify-end gap-2 bg-muted/20">
             {isView ? (
-              <Button type="button" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                onClick={() => onOpenChange(false)}
+                className="bg-[#5a3dd4] hover:bg-[#4a30b5] text-white"
+              >
                 Close
               </Button>
             ) : (

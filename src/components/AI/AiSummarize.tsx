@@ -285,29 +285,30 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
         onEscapeKeyDown={(event) => event.preventDefault()}
       >
 
-        <div className="px-8 pt-4 pb-2 bg-[#f4f5f7]">
-          <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+        <div className="px-8 pt-6 pb-4 bg-[#f4f5f7] relative">
+          <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors z-20">
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex justify-between items-start gap-0">
-            <div className="max-w-md">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-[#5b45ff] rounded-xl text-white shadow-sm flex items-center justify-center">
+          <div className="flex justify-between items-center pr-10">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-3 mb-1.5">
+                <div className="p-2 bg-[#5b45ff] rounded-xl text-white shadow-sm flex items-center justify-center">
                   <Sparkles className="w-5 h-5" />
                 </div>
-                <h2 className="text-[22px] font-bold tracking-tight text-[#1a1b25]">
+                <h2 className="text-[24px] font-bold tracking-tight text-[#1a1b25]">
                   AI Suggested Vendors
                 </h2>
               </div>
-              <p className="text-[#6b7280] text-[13px] leading-relaxed ml-[44px]">
+              <p className="text-[#6b7280] text-[13px] leading-relaxed ml-[48px]">
                 Our intelligence engine analyzed your documents to find your perfect project matches.
               </p>
             </div>
 
             {!isAnalyzing && (
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm mt-1">
-                <span className="text-[10px] font-[800] text-[#6b7280] pr-1 uppercase tracking-wide">
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
+                <div className="w-2 h-2 rounded-full bg-[#00c875] animate-pulse" />
+                <span className="text-[11px] font-[800] text-[#1a1b25] uppercase tracking-wider">
                   {vendors.length} Vendors Uploaded
                 </span>
               </div>
@@ -472,13 +473,7 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
 
         </div>
 
-        <div className="bg-white px-8 py-3.5 flex items-center justify-between border-t border-gray-100">
-          <div className="flex items-center gap-5">
-            <div className="flex items-center gap-1.5 text-[10px] font-[800] text-[#00c875] uppercase tracking-widest">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Verified Data
-            </div>
-          </div>
+        <div className="bg-white px-8 py-4 flex items-center justify-end border-t border-gray-100">
 
           <div className="flex items-center gap-3">
             <button

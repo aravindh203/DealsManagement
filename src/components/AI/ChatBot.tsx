@@ -370,18 +370,18 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
 
           {/* Quick Suggestions - Sticky above input */}
           <div className="px-4 py-3 flex flex-wrap gap-2 bg-[#f8fafc] border-t border-gray-100/50">
-            <button
+            {/* <button
               onClick={() => handleSuggestionClick('create')}
               className="text-[12px] bg-indigo-50 hover:bg-indigo-100 text-[#6d28d9] border border-indigo-200 px-3 py-1.5 rounded-full transition-colors font-semibold whitespace-nowrap shadow-sm flex items-center gap-1.5 hover:scale-105 active:scale-95 duration-200"
             >
               <Sparkles className="w-3 h-3" />
               Create a project
-            </button>
+            </button> */}
             <button
               onClick={() => handleSuggestionClick('details')}
               className="text-[12px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1.5 rounded-full transition-colors font-semibold whitespace-nowrap shadow-sm hover:scale-105 active:scale-95 duration-200"
             >
-              All project details
+              Project details
             </button>
           </div>
 

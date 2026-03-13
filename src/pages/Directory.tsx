@@ -808,7 +808,6 @@ const Directory: React.FC = () => {
                                                 <Link to={`/project/${project.id}`}>
                                                     <strong>{project.P_Name}</strong>
                                                 </Link>
-                                                <span className={styles.idHint}> (ID: {project.id})</span>
                                             </td>
                                             <td>{project.P_Type || "-"}</td>
                                             {isVendor ? (
