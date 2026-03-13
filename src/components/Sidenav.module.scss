@@ -15,13 +15,44 @@
     border-right: 1px solid #e5e7eb;
     overflow: hidden;
     flex-shrink: 0;
+    transition: width 1s ease, min-width 1s ease, padding 1s ease;
+}
+
+.sidebarCollapsed {
+    width: 76px;
+    min-width: 76px;
+    padding-left: 12px;
+    padding-right: 12px;
+
+    .header {
+        align-items: center;
+    }
+
+    .headerLabel {
+        display: none;
+    }
+
+    .clusterName {
+        display: none;
+    }
+
+    .navLabel {
+        display: none;
+    }
 }
 
 .header {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+
+.headerText {
+    display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-bottom: 32px;
 }
 
 .headerLabel {
@@ -92,6 +123,35 @@
 
 .navLabel {
     flex: 1;
+    white-space: nowrap;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 1s ease, transform 1s ease;
+}
+
+.collapseToggle {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e5e7eb;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+
+    &:hover {
+        background-color: #d1d5db;
+        color: #374151;
+        transform: translateX(1px);
+    }
+}
+
+.sidebarCollapsed .navLabel {
+    opacity: 0;
+    transform: translateX(-4px);
 }
 
 .nodeHealth {
