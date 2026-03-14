@@ -7,16 +7,29 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { CheckCircle2, AlertCircle, Info } from "lucide-react"
+import { Check, X, Info } from "lucide-react"
 
 function ToastIcon({ variant }: { variant?: "default" | "destructive" | "success" }) {
+  const base = "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
   if (variant === "success") {
-    return <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+    return (
+      <div className={`${base} bg-emerald-500`} aria-hidden>
+        <Check className="h-4 w-4" strokeWidth={2.5} />
+      </div>
+    )
   }
   if (variant === "destructive") {
-    return <AlertCircle className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" aria-hidden />
+    return (
+      <div className={`${base} bg-red-500`} aria-hidden>
+        <X className="h-4 w-4" strokeWidth={2.5} />
+      </div>
+    )
   }
-  return <Info className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+  return (
+    <div className={`${base} bg-blue-500`} aria-hidden>
+      <Info className="h-4 w-4" strokeWidth={2.5} />
+    </div>
+  )
 }
 
 export function Toaster() {

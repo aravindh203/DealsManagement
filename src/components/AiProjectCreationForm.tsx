@@ -231,118 +231,100 @@ export const AiProjectCreationForm: React.FC<AiProjectCreationFormProps> = ({ on
     : description;
 
   return (
-    <div className="w-full mx-auto p-8 bg-white rounded-2xl shadow-xl border border-slate-200 relative overflow-hidden group">
-      {/* Background glow effects - softer for light theme */}
-      <div className="absolute -top-32 -left-32 w-64 h-64 bg-[#5a3dd4] rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none" />
-      
+    <div className="w-full mx-auto p-5 sm:p-6 bg-white rounded-2xl shadow-xl border border-slate-200/80 relative overflow-hidden group">
+      {/* Subtle background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#faf9ff] via-white to-[#f8f6ff] pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#5a3dd4] rounded-full filter blur-[80px] opacity-[0.07] pointer-events-none" />
       {isListening && (
-        <div className="absolute inset-0 bg-[#5a3dd4]/5 mix-blend-multiply pointer-events-none transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-[#5a3dd4]/[0.03] pointer-events-none transition-opacity duration-300" />
       )}
 
-      <div className="relative z-10 space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center p-2.5 bg-[#f8f6ff] rounded-xl border border-[#e8e2fa] mb-2 shadow-[0_4px_15px_rgba(90,61,212,0.1)]">
-            <Sparkles className="w-6 h-6 text-[#5a3dd4]" />
+      <div className="relative z-10 space-y-4">
+        {/* Header - compact */}
+        <div className="text-center space-y-1.5">
+          <div className="inline-flex items-center justify-center p-2 bg-[#f0ecff] rounded-lg border border-[#e5deff]">
+            <Sparkles className="w-5 h-5 text-[#5a3dd4]" />
           </div>
-          <h3 className="text-2xl font-bold text-slate-800 tracking-tight">
+          <h3 className="text-xl font-semibold text-slate-800 tracking-tight">
             AI Project Assistant
           </h3>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
-            Describe your project naturally. Our AI will translate your voice into structured project details.
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-snug">
+            Describe your project naturally. Voice or type—AI will structure the details.
           </p>
         </div>
 
-        {/* Central Mic/Wave Arena */}
-        <div className="flex flex-col items-center justify-center py-6 min-h-[160px] relative">
-          
-          {/* Waveform Visualization */}
-          <div 
-            className={`absolute inset-0 flex items-center justify-center gap-[3px] transition-all duration-500 ease-out ${isListening ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-            style={{ height: '80px', top: '50%', transform: 'translateY(-50%)' }}
+        {/* Mic + status - compact */}
+        <div className="flex flex-col items-center justify-center py-3 min-h-[100px] relative">
+          <div
+            className={`absolute inset-0 flex items-center justify-center gap-[3px] transition-all duration-300 ease-out ${isListening ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            style={{ height: '56px', top: '50%', transform: 'translateY(-50%)' }}
           >
             {renderWaveBars()}
           </div>
-
-          {/* Glowing Microphone Button */}
           <button
             onClick={toggleListening}
             className={`
-              relative z-20 flex items-center justify-center rounded-full transition-all duration-300 shadow-[0_4px_20px_rgba(90,61,212,0.25)]
-              ${isListening 
-                ? 'w-16 h-16 bg-white border-2 border-[#5a3dd4]' 
-                : 'w-20 h-20 bg-gradient-to-tr from-[#5a3dd4] to-indigo-500 hover:shadow-[0_8px_30px_rgba(90,61,212,0.35)] hover:-translate-y-1'
+              relative z-20 flex items-center justify-center rounded-full transition-all duration-200 shadow-[0_4px_16px_rgba(90,61,212,0.22)]
+              ${isListening
+                ? 'w-14 h-14 bg-white border-2 border-[#5a3dd4]'
+                : 'w-16 h-16 bg-gradient-to-br from-[#5a3dd4] to-indigo-500 hover:shadow-[0_6px_24px_rgba(90,61,212,0.35)] hover:scale-[1.02]'
               }
             `}
           >
             {isListening ? (
-              <Square className="w-6 h-6 text-[#5a3dd4] fill-[#5a3dd4] transition-all" />
+              <Square className="w-5 h-5 text-[#5a3dd4] fill-[#5a3dd4]" />
             ) : (
-              <Mic className="w-8 h-8 text-white transition-all" />
+              <Mic className="w-7 h-7 text-white" />
             )}
-            
-            {/* Pulsing ring when listening */}
             {isListening && (
-              <span className="absolute inset-0 rounded-full border border-[#5a3dd4] animate-ping opacity-50" style={{ animationDuration: '2s' }} />
+              <span className="absolute inset-0 rounded-full border border-[#5a3dd4] animate-ping opacity-40" style={{ animationDuration: '2s' }} />
             )}
           </button>
-
-          {/* Status Text */}
-          <div className="mt-8 h-6 flex items-center justify-center">
-            {isListening && (
-              <div className="flex items-center gap-2 text-[#5a3dd4] font-medium text-sm bg-white/70 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-[#5a3dd4]/20 animate-in fade-in zoom-in duration-300">
-                <Activity className="w-4 h-4 animate-pulse" />
-                Listening to you...
-              </div>
-            )}
-          </div>
+          {isListening && (
+            <div className="mt-3 flex items-center gap-2 text-[#5a3dd4] font-medium text-xs bg-[#f0ecff] px-3 py-1 rounded-full border border-[#5a3dd4]/20">
+              <Activity className="w-3.5 h-3.5 animate-pulse" />
+              Listening...
+            </div>
+          )}
         </div>
 
-        {/* Missing Fields Alert */}
+        {/* Missing Fields - compact */}
         {missingFields.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 animate-in slide-in-from-top-2 shadow-sm">
-            <div className="text-amber-500 mt-0.5">
-              <AlertCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-amber-800">Almost there! Missing information:</h4>
-              <p className="text-sm text-amber-600 mt-1 leading-relaxed">
-                To create a complete project, please provide details for: 
-                <span className="font-semibold text-amber-700"> {missingFields.map(f => f.replace(/([A-Z])/g, " $1").trim()).join(', ').toLowerCase()}</span>.
-              </p>
-              <p className="text-xs text-amber-500/80 mt-1.5 font-medium">
-                Tap the microphone or type below to continue adding these details.
+          <div className="bg-amber-50 border border-amber-200/80 rounded-lg p-3 flex gap-2.5 animate-in slide-in-from-top-1 duration-200">
+            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <h4 className="text-xs font-semibold text-amber-800">Missing: {missingFields.map(f => f.replace(/([A-Z])/g, " $1").trim()).join(', ').toLowerCase()}</h4>
+              <p className="text-xs text-amber-600 mt-0.5 leading-snug">
+                Add more details via mic or type below.
               </p>
             </div>
           </div>
         )}
 
-        {/* Text Input Area */}
-        <div className="relative group/input mt-4">
-          <div className={`absolute -inset-0.5 bg-gradient-to-r from-[#5a3dd4]/40 to-indigo-500/40 rounded-xl blur transition duration-500 ${isListening ? 'opacity-30' : 'opacity-0 group-hover/input:opacity-10'}`} />
-          <div className="relative bg-white rounded-xl shadow-[0_2px_15px_rgba(0,0,0,0.04)] ring-1 ring-slate-100 focus-within:ring-2 focus-within:ring-[#5a3dd4]/40 overflow-hidden transition-all duration-300">
-             <Textarea
+        {/* Textarea - compact */}
+        <div className="relative group/input">
+          <div className={`absolute -inset-px bg-gradient-to-r from-[#5a3dd4]/30 to-indigo-500/30 rounded-lg blur transition duration-300 ${isListening ? 'opacity-20' : 'opacity-0 group-hover/input:opacity-[0.08]'}`} />
+          <div className="relative bg-white rounded-lg ring-1 ring-slate-200/80 focus-within:ring-2 focus-within:ring-[#5a3dd4]/40 transition-all duration-200">
+            <Textarea
               value={displayDescription}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Or type your project details here..."
-              className="w-full min-h-[140px] bg-transparent border-0 text-slate-700 placeholder:text-slate-400 focus-visible:ring-0 focus-visible:border-0 resize-none rounded-none p-5 text-[15px] leading-relaxed"
+              className="w-full min-h-[100px] bg-transparent border-0 text-slate-700 placeholder:text-slate-400 focus-visible:ring-0 resize-none rounded-lg p-3.5 text-sm leading-snug"
               disabled={isLoading || isListening}
             />
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-2">
-          <div className="text-[13px] font-medium text-slate-400 flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-            <div className={`w-2.5 h-2.5 rounded-full ${isListening ? 'bg-[#5a3dd4] animate-pulse shadow-[0_0_8px_rgba(90,61,212,0.6)]' : 'bg-slate-300'}`} />
-            {isListening ? 'Speech recognition active' : 'Ready'}
+        {/* Footer - compact */}
+        <div className="flex justify-between items-center gap-3 pt-1">
+          <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 bg-slate-50/80 px-2.5 py-1 rounded-full border border-slate-100">
+            <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-[#5a3dd4] animate-pulse' : 'bg-slate-300'}`} />
+            {isListening ? 'Active' : 'Ready'}
           </div>
-          
-          <Button 
-            onClick={handleAiCall} 
+          <Button
+            onClick={handleAiCall}
             disabled={!description.trim() || isLoading || isListening}
-            className="bg-gradient-to-r from-[#5a3dd4] to-indigo-600 hover:from-[#4a30b5] hover:to-indigo-700 text-white rounded-xl px-8 h-12 shadow-[0_6px_20px_rgba(90,61,212,0.3)] hover:shadow-[0_8px_25px_rgba(90,61,212,0.4)] transition-all flex items-center gap-2 font-semibold text-sm hover:-translate-y-0.5"
+            className="bg-gradient-to-r from-[#5a3dd4] to-indigo-600 hover:from-[#4f36c4] hover:to-indigo-700 text-white rounded-lg px-5 py-2.5 h-9 text-sm font-medium shadow-[0_4px_14px_rgba(90,61,212,0.25)] hover:shadow-[0_6px_18px_rgba(90,61,212,0.35)] transition-all flex items-center gap-2"
           >
             {isLoading ? (
               <>
@@ -352,7 +334,7 @@ export const AiProjectCreationForm: React.FC<AiProjectCreationFormProps> = ({ on
             ) : (
               <>
                 Generate Project
-                <Send className="w-4 h-4 ml-1" />
+                <Send className="w-4 h-4" />
               </>
             )}
           </Button>

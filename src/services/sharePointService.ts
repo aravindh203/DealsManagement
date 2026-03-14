@@ -49,8 +49,6 @@ export class SharePointService {
       } else {
         url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${path}/children`;
       }
-      console.log("Fetching files from:", url);
-
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -61,7 +59,6 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching files:", errorText);
         throw new Error(
           `Failed to fetch files: ${response.status} ${response.statusText} - ${errorText}`,
         );
@@ -110,7 +107,6 @@ export class SharePointService {
 
       return data;
     } catch (error) {
-      console.error("CreateItem error:", error);
       throw error;
     }
   }
@@ -138,7 +134,6 @@ export class SharePointService {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error listing project metadata:", data);
         throw new Error(
           `Failed to list project metadata: ${response.status} ${response.statusText}`,
         );
@@ -146,7 +141,6 @@ export class SharePointService {
 
       return Array.isArray(data.value) ? data.value : [];
     } catch (error) {
-      console.error("listProjectMetadata error:", error);
       throw error;
     }
   }
@@ -159,12 +153,6 @@ export class SharePointService {
   ): Promise<any> {
     try {
       const url = `https://graph.microsoft.com/v1.0/storage/fileStorage/containers/${containerId}/items/${itemId}?$expand=fields`;
-
-      console.log("Getting project metadata item:", {
-        url,
-        containerId,
-        itemId,
-      });
 
       const response = await fetch(url, {
         method: "GET",
@@ -389,8 +377,6 @@ export class SharePointService {
       } else {
         url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${path}/children`;
       }
-      console.log("Fetching files from:", url);
-
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -401,7 +387,6 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching files:", errorText);
         throw new Error(
           `Failed to fetch files: ${response.status} ${response.statusText} - ${errorText}`,
         );
@@ -822,7 +807,7 @@ export class SharePointService {
   }
 
   /** Name of the subfolder used for project attachments. */
-  static readonly PROJECT_ATTACHMENTS_FOLDER_NAME = "Project files";
+  static readonly PROJECT_ATTACHMENTS_FOLDER_NAME = "Supporting documents";
   /** Name of the subfolder used for vendor files. */
   static readonly PROJECT_VENDOR_FOLDER_NAME = "Vendors";
 

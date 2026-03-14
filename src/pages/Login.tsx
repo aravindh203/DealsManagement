@@ -582,7 +582,7 @@ const Login = () => {
             <Text className={styles.vendorDescription} style={showVendorSignup ? { marginBottom: "10px" } : {}}>
               {showVendorSignup
                 ? 'Request access as a new vendor. Your account will be activated after an Office 365 admin approves it.'
-                : 'Sign in with your vendor credentials to access Directory and Repository.'}
+                : 'Sign in with your vendor credentials to access Project and Repository.'}
             </Text>
 
             {(!showVendorSignup && vendorError) && (

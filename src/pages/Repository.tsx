@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./Repository.module.scss";
 import { AddRegular, ArrowLeftRegular, FolderAddRegular } from "@fluentui/react-icons";
-import { LogOut, Download, Trash2, Eye, Share2, Globe2, Building2, Users2, Edit2, X, Share, FileText } from "lucide-react";
+import { Download, Trash2, Eye, Share2, Globe2, Building2, Users2, Edit2, X, Share, FileText } from "lucide-react";
+import { UserMenu } from "../components/UserMenu";
 import { useProjects } from "@/context/ProjectsContext";
 import { useAuth } from "@/context/AuthContext";
 import { getAccessTokenByApp } from "@/hooks/useClientCredentialsAuth";
@@ -93,7 +94,7 @@ type NavItem = { id: string; name: string };
 
 const Repository: React.FC = () => {
   const { projects, refetch } = useProjects();
-  const { loginType, vendorUser, logout } = useAuth();
+  const { loginType, vendorUser } = useAuth();
   const navigate = useNavigate();
   const [navStack, setNavStack] = useState<NavItem[]>([]);
   const [folderItems, setFolderItems] = useState<FileItem[]>([]);
@@ -199,14 +200,14 @@ const Repository: React.FC = () => {
    * Repository permissions (simplified plan):
    * - First level (project): Create folder = 365 only. Upload = neither.
    * - 365: Folder creation at 1st level only. View all. Upload in Project subfolder (and 365-owned e.g. Invoices).
-   * - Vendor: No create folder anywhere. At first level see only Project + Vendor; inside Vendor see only their company subfolder; upload in their company subfolder (via Directory submission flow).
+   * - Vendor: No create folder anywhere. At first level see only Project + Vendor; inside Vendor see only their company subfolder; upload in their company subfolder (via Project submission flow).
    */
   const isInsideSubfolder = navStack.length >= 2;
   const currentFolderName = navStack.length > 0 ? navStack[navStack.length - 1].name : "";
   const parentFolderName = navStack.length >= 2 ? navStack[navStack.length - 2].name : "";
   const isVendor = loginType === "vendor";
   const isProjectLevel = navStack.length === 1;
-  const isInsideProjectSubfolder = ["project", "project files"].includes(
+  const isInsideProjectSubfolder = ["project", "project files", "supporting documents"].includes(
     currentFolderName.trim().toLowerCase(),
   );
   const isInsideVendorFolder = ["Vendor", "Vendors"].includes(
@@ -494,8 +495,8 @@ const Repository: React.FC = () => {
   const handleShareSubmitAdvanced = async () => {
     if (!sharingItem) return;
     if (shareScope === "users" && !shareEmails.trim()) {
-       toast({ title: "Email required", description: "Please enter at least one email address for Specific people.", variant: "destructive" });
-       return;
+      toast({ title: "Email required", description: "Please enter at least one email address for Specific people.", variant: "destructive" });
+      return;
     }
     const token = await getAccessTokenByApp();
     if (!token) return;
@@ -517,9 +518,9 @@ const Repository: React.FC = () => {
       );
       setShareLinkResult(result);
       if (shareScope === "users") {
-          toast({ title: "Shared successfully", description: "Invitation sent.", variant: "success" });
+        toast({ title: "Shared successfully", description: "Invitation sent.", variant: "success" });
       } else {
-          toast({ title: "Link created", description: "Share link is ready to copy.", variant: "success" });
+        toast({ title: "Link created", description: "Share link is ready to copy.", variant: "success" });
       }
     } catch (err) {
       console.error("Sharing failed:", err);
@@ -530,7 +531,7 @@ const Repository: React.FC = () => {
   };
 
   const isRoot = navStack.length === 0;
-  const PROJECT_SUBFOLDER_NAMES = ["Project", "Project files"];
+  const PROJECT_SUBFOLDER_NAMES = ["Project", "Project files", "Supporting documents"];
   const VENDOR_FOLDER_NAMES = ["Vendor", "Vendors"];
 
   const itemsToShow = isRoot
@@ -563,15 +564,7 @@ const Repository: React.FC = () => {
           <span className={styles.logo}>Repository</span>
         </div>
         <div className={styles.navRight}>
-          <button
-            type="button"
-            className={styles.logoutBtn}
-            onClick={() => { logout(); navigate("/login"); }}
-            title="Logout"
-          >
-            <LogOut size={18} />
-            <span>Logout</span>
-          </button>
+          <UserMenu />
         </div>
       </nav>
 
@@ -654,7 +647,7 @@ const Repository: React.FC = () => {
                     {projects.length === 0 ? (
                       <tr>
                         <td colSpan={3} className={styles.emptyCell}>
-                          No projects in directory. Create projects from the Directory screen.
+                          No projects yet. Create projects from the Project screen.
                         </td>
                       </tr>
                     ) : (
@@ -727,7 +720,7 @@ const Repository: React.FC = () => {
                                   <FolderIcon />
                                 </span>
                               ) : (
-                                <span 
+                                <span
                                   className={`${styles.iconFile} cursor-pointer hover:opacity-80 transition-opacity`}
                                   onClick={(e) => { e.stopPropagation(); handleViewFile(item); }}
                                 >
@@ -743,9 +736,9 @@ const Repository: React.FC = () => {
                                 </span>
                               )}
                               <div>
-                                <span 
+                                <span
                                   className={`${styles.assetName} ${!item.folder ? "cursor-pointer hover:text-[#6B47E5] transition-colors" : ""}`}
-                                  onClick={(e) => { 
+                                  onClick={(e) => {
                                     if (!item.folder) {
                                       e.stopPropagation();
                                       handleViewFile(item);
@@ -753,11 +746,6 @@ const Repository: React.FC = () => {
                                   }}
                                 >
                                   {item.name}
-                                </span>
-                                <span className={styles.assetMeta}>
-                                  {item.folder
-                                    ? "Folder"
-                                    : item.file?.mimeType || "File"}
                                 </span>
                               </div>
                             </div>
@@ -961,125 +949,125 @@ const Repository: React.FC = () => {
               <Share2 size={24} className="text-[#6B47E5]" strokeWidth={2} /> Share
             </DialogTitle>
             {sharingItem && (
-               <div className="text-sm text-muted-foreground ml-[2px] flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                 <div className="flex-shrink-0">
-                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {getFileIcon(sharingItem.name)}
-                   </svg>
-                 </div>
-                 <span className="truncate font-medium">{sharingItem.name}</span>
-               </div>
+              <div className="text-sm text-muted-foreground ml-[2px] flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                <div className="flex-shrink-0">
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {getFileIcon(sharingItem.name)}
+                  </svg>
+                </div>
+                <span className="truncate font-medium">{sharingItem.name}</span>
+              </div>
             )}
           </DialogHeader>
-          
+
           <div className="flex flex-col gap-6">
             {/* Scope Selection */}
             <div className="space-y-3">
-               <Label className="text-[15px] font-semibold text-slate-900">Scope</Label>
-               <div className="grid grid-cols-3 gap-4">
-                  <button 
-                    type="button"
-                    onClick={() => { setShareScope("anonymous"); setShareLinkResult(null); }}
-                    className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "anonymous" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                  >
-                     <Globe2 className="mb-2" size={24} strokeWidth={1.5} />
-                     <span className="font-semibold text-[13px] mb-0.5">Anyone</span>
-                     <span className="text-[11px] opacity-70">Anyone with the link</span>
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => { setShareScope("organization"); setShareLinkResult(null); }}
-                    className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "organization" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                  >
-                     <Building2 className="mb-2" size={24} strokeWidth={1.5} />
-                     <span className="font-semibold text-[13px] mb-0.5">Organization</span>
-                     <span className="text-[11px] opacity-70">People in your org</span>
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => { setShareScope("users"); setShareLinkResult(null); }}
-                    className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "users" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                  >
-                     <Users2 className="mb-2" size={24} strokeWidth={1.5} />
-                     <span className="font-semibold text-[13px] mb-0.5">Specific people</span>
-                     <span className="text-[11px] opacity-70">Only recipients</span>
-                  </button>
-               </div>
+              <Label className="text-[15px] font-semibold text-slate-900">Scope</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <button
+                  type="button"
+                  onClick={() => { setShareScope("anonymous"); setShareLinkResult(null); }}
+                  className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "anonymous" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                >
+                  <Globe2 className="mb-2" size={24} strokeWidth={1.5} />
+                  <span className="font-semibold text-[13px] mb-0.5">Anyone</span>
+                  <span className="text-[11px] opacity-70">Anyone with the link</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShareScope("organization"); setShareLinkResult(null); }}
+                  className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "organization" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                >
+                  <Building2 className="mb-2" size={24} strokeWidth={1.5} />
+                  <span className="font-semibold text-[13px] mb-0.5">Organization</span>
+                  <span className="text-[11px] opacity-70">People in your org</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShareScope("users"); setShareLinkResult(null); }}
+                  className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "users" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                >
+                  <Users2 className="mb-2" size={24} strokeWidth={1.5} />
+                  <span className="font-semibold text-[13px] mb-0.5">Specific people</span>
+                  <span className="text-[11px] opacity-70">Only recipients</span>
+                </button>
+              </div>
             </div>
 
             {/* Permission Selection */}
             <div className="space-y-3">
-               <Label className="text-[15px] font-semibold text-slate-900">Permission</Label>
-               <div className="grid grid-cols-2 gap-4">
-                  <button 
-                    type="button"
-                    onClick={() => { setShareRole("read"); setShareLinkResult(null); }}
-                    className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "read" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                  >
-                     <Eye className="mr-3" size={20} strokeWidth={1.5} />
-                     <div className="flex flex-col text-left">
-                       <span className="font-semibold text-[13px]">View</span>
-                       <span className="text-[11px] opacity-70">Can view only</span>
-                     </div>
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => { setShareRole("write"); setShareLinkResult(null); }}
-                    className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "write" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                  >
-                     <Edit2 className="mr-3" size={20} strokeWidth={1.5} />
-                     <div className="flex flex-col text-left">
-                       <span className="font-semibold text-[13px]">Edit</span>
-                       <span className="text-[11px] opacity-70">Can view & edit</span>
-                     </div>
-                  </button>
-               </div>
+              <Label className="text-[15px] font-semibold text-slate-900">Permission</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => { setShareRole("read"); setShareLinkResult(null); }}
+                  className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "read" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                >
+                  <Eye className="mr-3" size={20} strokeWidth={1.5} />
+                  <div className="flex flex-col text-left">
+                    <span className="font-semibold text-[13px]">View</span>
+                    <span className="text-[11px] opacity-70">Can view only</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShareRole("write"); setShareLinkResult(null); }}
+                  className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "write" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                >
+                  <Edit2 className="mr-3" size={20} strokeWidth={1.5} />
+                  <div className="flex flex-col text-left">
+                    <span className="font-semibold text-[13px]">Edit</span>
+                    <span className="text-[11px] opacity-70">Can view & edit</span>
+                  </div>
+                </button>
+              </div>
             </div>
 
             {/* Users Input (only for Specific people) */}
             {shareScope === "users" && (
-                <div className="space-y-3">
-                   <Label htmlFor="share-emails" className="text-[15px] font-semibold text-slate-900">Recipients (comma separated)</Label>
-                   <Input
-                      id="share-emails"
-                      type="text"
-                      value={shareEmails}
-                      onChange={(e) => setShareEmails(e.target.value)}
-                      placeholder="Add people via email..."
-                      className="rounded-lg border-slate-200"
-                   />
-                </div>
+              <div className="space-y-3">
+                <Label htmlFor="share-emails" className="text-[15px] font-semibold text-slate-900">Recipients (comma separated)</Label>
+                <Input
+                  id="share-emails"
+                  type="text"
+                  value={shareEmails}
+                  onChange={(e) => setShareEmails(e.target.value)}
+                  placeholder="Add people via email..."
+                  className="rounded-lg border-slate-200"
+                />
+              </div>
             )}
 
             {/* Toggles removed per user request */}
 
             {/* Result Area */}
             {shareLinkResult && shareScope !== "users" && (
-               <div className="p-4 bg-green-50 border border-green-200 rounded-lg mt-2">
-                 <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully</Label>
-                 <div className="flex items-center gap-2">
-                    <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
-                    <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({ title: "Copied", description: "Link copied to clipboard.", variant: "success" }) }}>Copy</Button>
-                 </div>
-               </div>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg mt-2">
+                <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully</Label>
+                <div className="flex items-center gap-2">
+                  <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
+                  <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({ title: "Copied", description: "Link copied to clipboard.", variant: "success" }) }}>Copy</Button>
+                </div>
+              </div>
             )}
           </div>
 
           <DialogFooter className="mt-8 flex justify-end gap-3 sm:justify-end">
-             <Button 
-               variant="outline" 
-               className="rounded-lg px-6 font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200" 
-               onClick={() => setIsShareOpen(false)}
-             >
-               Cancel
-             </Button>
-             <Button 
-               onClick={handleShareSubmitAdvanced} 
-               disabled={sharing || (shareScope === "users" && !shareEmails.trim())}
-               className="bg-[#6B47E5] hover:bg-[#5A3DD4] text-white rounded-lg px-6 font-medium border border-transparent shadow-sm"
-             >
-               {sharing ? "Processing..." : shareScope === "users" ? "Send" : "Create Link"}
-             </Button>
+            <Button
+              variant="outline"
+              className="rounded-lg px-6 font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200"
+              onClick={() => setIsShareOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleShareSubmitAdvanced}
+              disabled={sharing || (shareScope === "users" && !shareEmails.trim())}
+              className="bg-[#6B47E5] hover:bg-[#5A3DD4] text-white rounded-lg px-6 font-medium border border-transparent shadow-sm"
+            >
+              {sharing ? "Processing..." : shareScope === "users" ? "Send" : "Create Link"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

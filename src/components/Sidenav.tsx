@@ -43,7 +43,7 @@ const ShieldCheckIcon = () => (
 
 const navItems = [
     { to: '/insights', label: 'Insights', Icon: GridIcon },
-    { to: '/directory', label: 'Directory', Icon: BriefcaseIcon },
+    { to: '/projects', label: 'Project', Icon: BriefcaseIcon },
     { to: '/repository', label: 'Repository', Icon: FolderIcon },
     { to: '/analytics', label: 'Analytics', Icon: AnalyticsIcon },
     { to: '/vendor-approvals', label: 'Vendor approvals', Icon: IdentityIcon },
@@ -58,9 +58,9 @@ export const Sidenav: React.FC<SidenavProps> = ({ collapsed = false, onToggleCol
     const { role, loginType } = useAuth();
 
     const allowedNavItems = navItems.filter(({ to }) => {
-        // Vendors: only Directory and Repository
+        // Vendors: only Project and Repository
         if (loginType === 'vendor') {
-            return to === '/directory' || to === '/repository';
+            return to === '/projects' || to === '/repository';
         }
 
         if (role === 'admin') {
@@ -68,7 +68,7 @@ export const Sidenav: React.FC<SidenavProps> = ({ collapsed = false, onToggleCol
         }
 
         if (role === 'manager' || role === 'executive') {
-            return to === '/directory' || to === '/repository' || to === '/analytics';
+            return to === '/projects' || to === '/repository' || to === '/analytics';
         }
 
         return false;

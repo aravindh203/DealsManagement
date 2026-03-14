@@ -8,7 +8,8 @@ import {
     EditRegular,
     DeleteRegular,
 } from "@fluentui/react-icons";
-import { Eye, LogOut, Sparkles } from "lucide-react";
+import { Eye, Sparkles, AlertTriangle } from "lucide-react";
+import { UserMenu } from "../components/UserMenu";
 import AiSummarize from "../components/AI/AiSummarize";
 import { useAuth } from "../context/AuthContext";
 import { useProjects } from "../context/ProjectsContext";
@@ -120,7 +121,7 @@ const isInCurrentMonth = (dateStr?: string | null): boolean => {
 };
 
 const Directory: React.FC = () => {
-    const { loginType, logout, vendorUser } = useAuth();
+    const { loginType, vendorUser } = useAuth();
     const navigate = useNavigate();
     const isVendor = loginType === "vendor";
 
@@ -415,6 +416,51 @@ const Directory: React.FC = () => {
         [],
     );
 
+    const handlePreviewAttachment = useCallback(
+        async (fileId: string, _fileName: string) => {
+            const token = await getAccessTokenByApp();
+            if (!token) return;
+            try {
+                const url = await sharePointService.getFilePreview(
+                    token,
+                    appConfig.ContainerID,
+                    fileId,
+                );
+                if (url) window.open(url, "_blank", "noopener,noreferrer");
+            } catch (err) {
+                console.error("Preview attachment failed:", err);
+                toast({ title: "Preview failed", variant: "destructive" });
+            }
+        },
+        [],
+    );
+
+    const handleDownloadAttachment = useCallback(
+        async (fileId: string, fileName: string) => {
+            const token = await getAccessTokenByApp();
+            if (!token) return;
+            try {
+                const buffer = await sharePointService.getFileBuffer(
+                    token,
+                    appConfig.ContainerID,
+                    fileId,
+                );
+                const blob = new Blob([buffer], { type: "application/octet-stream" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = fileName || "download";
+                a.click();
+                URL.revokeObjectURL(url);
+                toast({ title: "Download started" });
+            } catch (err) {
+                console.error("Download attachment failed:", err);
+                toast({ title: "Download failed", variant: "destructive" });
+            }
+        },
+        [],
+    );
+
     const [savingProject, setSavingProject] = useState(false);
 
     const handleSaveProject = async (
@@ -638,18 +684,10 @@ const Directory: React.FC = () => {
         <div className={styles.page}>
             <nav className={styles.topNav}>
                 <div className={styles.navLeft}>
-                    <span className={styles.logo}>Directory</span>
+                    <span className={styles.logo}>Project</span>
                 </div>
                 <div className={styles.navRight}>
-                    <button
-                        type="button"
-                        className={styles.logoutBtn}
-                        onClick={() => { logout(); navigate("/login"); }}
-                        title="Logout"
-                    >
-                        <LogOut size={18} />
-                        <span>Logout</span>
-                    </button>
+                    <UserMenu />
                 </div>
             </nav>
             <main className={styles.main}>
@@ -678,15 +716,12 @@ const Directory: React.FC = () => {
                             </div>
                             <span className={styles.dirCardLabel}>TOTAL PROJECTS</span>
                             <span className={styles.dirCardValue}>{totalProjects}</span>
-                            <span className={styles.dirCardSub}>Projects in directory</span>
+                            <span className={styles.dirCardSub}>Projects</span>
                         </div>
                         <div className={styles.dirCard}>
                             <div className={styles.dirCardIcon}>
                                 <AddRegular />
                             </div>
-                            <span className={styles.dirCardBadge}>
-                                {thisMonthProjectsCount}
-                            </span>
                             <span className={styles.dirCardLabel}>THIS MONTH PROJECTS</span>
                             <span className={styles.dirCardValue}>
                                 {thisMonthProjectsCount}
@@ -746,17 +781,17 @@ const Directory: React.FC = () => {
                                     </button>
                                     <button
                                         type="button"
-                                        className={directoryTab365 === "assigned" ? styles.tabActive : styles.tab}
-                                        onClick={() => setDirectoryTab365("assigned")}
-                                    >
-                                        Vendor Allocated
-                                    </button>
-                                    <button
-                                        type="button"
                                         className={directoryTab365 === "assignVendor" ? styles.tabActive : styles.tab}
                                         onClick={() => setDirectoryTab365("assignVendor")}
                                     >
                                         Pending Assignment
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={directoryTab365 === "assigned" ? styles.tabActive : styles.tab}
+                                        onClick={() => setDirectoryTab365("assigned")}
+                                    >
+                                        Vendor Allocated
                                     </button>
                                     <button
                                         type="button"
@@ -958,6 +993,8 @@ const Directory: React.FC = () => {
                         saving={savingProject}
                         onLoadExistingAttachments={loadExistingAttachments}
                         onLoadVendorFilesByCategory={loadVendorFilesByCategory}
+                        onPreviewAttachment={handlePreviewAttachment}
+                        onDownloadAttachment={handleDownloadAttachment}
                         externalError={projectFormError}
                     />
 
@@ -983,7 +1020,10 @@ const Directory: React.FC = () => {
                     />
 
                     <UiDialog open={aiCreateOpen} onOpenChange={setAiCreateOpen}>
-                        <UiDialogContent className="sm:max-w-[700px] p-0 bg-transparent border-0 shadow-none">
+                        <UiDialogContent
+                            className="sm:max-w-[700px] p-0 bg-transparent border-0 shadow-none"
+                            onInteractOutside={(e) => e.preventDefault()}
+                        >
                             <AiProjectCreationForm
                                 onGenerated={(project) => {
                                     setAiCreateOpen(false);
@@ -1078,21 +1118,31 @@ const Directory: React.FC = () => {
                         open={deleteConfirmId !== null}
                         onOpenChange={(open) => !open && setDeleteConfirmId(null)}
                     >
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete project?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. The project will be removed from
-                                    the list.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogContent className="sm:max-w-md rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-black/5 overflow-hidden">
+                            <div className="p-4 sm:p-5">
+                                <AlertDialogHeader className="gap-3 sm:flex-row sm:items-start sm:text-left space-y-0">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 ring-2 ring-red-50/80">
+                                        <AlertTriangle className="h-5 w-5" strokeWidth={2} aria-hidden />
+                                    </div>
+                                    <div className="space-y-1 min-w-0">
+                                        <AlertDialogTitle className="text-lg font-semibold tracking-tight text-zinc-900">
+                                            Delete this project?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription className="text-sm text-zinc-500 leading-snug max-w-sm">
+                                            This will permanently remove the project from the list. Project attachments and related data will no longer be accessible. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                    </div>
+                                </AlertDialogHeader>
+                            </div>
+                            <AlertDialogFooter className="flex flex-col-reverse gap-2 border-t border-zinc-100 bg-zinc-50/80 px-4 py-3 sm:flex-row sm:justify-end sm:px-5 sm:py-3.5">
+                                <AlertDialogCancel className="m-0 border-zinc-200 bg-white font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900">
+                                    Cancel
+                                </AlertDialogCancel>
                                 <AlertDialogAction
                                     onClick={handleConfirmDelete}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    className="m-0 bg-red-600 px-4 py-2 font-medium text-white shadow-sm ring-1 ring-red-600/20 hover:bg-red-700 hover:shadow focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                                 >
-                                    Delete
+                                    Delete project
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>

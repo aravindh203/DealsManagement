@@ -26,6 +26,8 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
+  Eye,
+  Download,
 } from 'lucide-react';
 import { getFileContent } from '@/services/aiFileService';
 import { analyzeProposalDocuments } from '@/services/aiSummary';
@@ -69,6 +71,10 @@ interface ProjectFormDialogProps {
   >;
   /** Optional external error message passed from parent (eg. duplicate project). */
   externalError?: string | null;
+  /** Preview a project or vendor attachment by file id (opens in new tab). */
+  onPreviewAttachment?: (fileId: string, fileName: string) => void | Promise<void>;
+  /** Download a project or vendor attachment by file id. */
+  onDownloadAttachment?: (fileId: string, fileName: string) => void | Promise<void>;
 }
 
 const emptyForm: Omit<Project, 'id'> = {
@@ -101,6 +107,8 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   onLoadExistingAttachments,
   onLoadVendorFilesByCategory,
   externalError,
+  onPreviewAttachment,
+  onDownloadAttachment,
 }) => {
   const mode: ProjectDialogMode = modeProp ?? (project ? 'edit' : 'create');
   const isView = mode === 'view';
@@ -354,7 +362,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                   ? 'Project details (read-only)'
                   : project
                     ? 'Update project details and attachments'
-                    : 'Add a new project to the directory'}
+                    : 'Add a new project'}
               </p>
             </div>
           </div>
@@ -369,17 +377,9 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
               )}
               {/* Project layout */}
               <section className="space-y-5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    Project details
-                  </div>
-                  {!isVendor && (
-                    <div className="inline-flex items-center gap-2 rounded-full bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
-                      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      New project configuration
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  Project details
                 </div>
 
                 {/* Row 1 & 2: 7 fields in a single grid so widths stay consistent */}
@@ -611,6 +611,32 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                               >
                                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                                 <span className="truncate flex-1">{a.name}</span>
+                                {(onPreviewAttachment || onDownloadAttachment) && (
+                                  <div className="flex items-center gap-0.5 shrink-0">
+                                    {onPreviewAttachment && (
+                                      <button
+                                        type="button"
+                                        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                        onClick={() => onPreviewAttachment(a.id, a.name)}
+                                        aria-label={`Preview ${a.name}`}
+                                        title="Preview"
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                    {onDownloadAttachment && (
+                                      <button
+                                        type="button"
+                                        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                        onClick={() => onDownloadAttachment(a.id, a.name)}
+                                        aria-label={`Download ${a.name}`}
+                                        title="Download"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                                 {!isView && (
                                   <button
                                     type="button"
@@ -756,7 +782,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                               </p>
                               {vendor.bidAmount != null && vendor.bidAmount !== '' && (
                                 <p className="text-sm text-muted-foreground">
-                                  Bid amount: {vendor.bidAmount}
+                                  Bid amount: ${vendor.bidAmount}
                                 </p>
                               )}
                             </div>
@@ -782,6 +808,32 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                                       >
                                         <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                                         <span className="truncate flex-1">{f.name}</span>
+                                        {(onPreviewAttachment || onDownloadAttachment) && (
+                                          <div className="flex items-center gap-0.5 shrink-0">
+                                            {onPreviewAttachment && (
+                                              <button
+                                                type="button"
+                                                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                                onClick={() => onPreviewAttachment(f.id, f.name)}
+                                                aria-label={`Preview ${f.name}`}
+                                                title="Preview"
+                                              >
+                                                <Eye className="h-4 w-4" />
+                                              </button>
+                                            )}
+                                            {onDownloadAttachment && (
+                                              <button
+                                                type="button"
+                                                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                                onClick={() => onDownloadAttachment(f.id, f.name)}
+                                                aria-label={`Download ${f.name}`}
+                                                title="Download"
+                                              >
+                                                <Download className="h-4 w-4" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
                                       </li>
                                     ))}
                                   </ul>

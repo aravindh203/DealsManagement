@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { EditRegular, SearchRegular, ArrowSyncRegular } from "@fluentui/react-icons";
 import { useAuth } from "../context/AuthContext";
+import { UserMenu } from "../components/UserMenu";
 
 type VendorStatusFilter = "all" | "pending" | "approved" | "rejected";
 
@@ -162,26 +163,28 @@ const VendorApprovals: React.FC = () => {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <div className={styles.overline}>VENDOR ACCESS</div>
-          <h1 className={styles.title}>Vendor approvals</h1>
+      <nav className={styles.topNav}>
+        <div className={styles.navLeft}>
+          <span className={styles.logo}>Vendor approvals</span>
+        </div>
+        <div className={styles.navRight}>
+          <UserMenu />
+        </div>
+      </nav>
+
+      <div className={styles.contentWrap}>
+        <header className={styles.header}>
+          <div className={styles.titleGroup}>
+            <span className={styles.overline}>VENDOR ACCESS</span>
+            <h1 className={styles.pageTitle}>Review &amp; approve vendors</h1>
+          </div>
           <p className={styles.subtitle}>
             Review vendor signup requests from the UserDetails list. Only Approved vendors
-            can sign in to Directory and Repository.
+            can sign in to Project and Repository.
           </p>
-        </div>
-        <button
-          type="button"
-          className={styles.refreshButton}
-          onClick={loadVendors}
-          disabled={loading}
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </header>
+        </header>
 
-      <main className={styles.main}>
+        <main className={styles.main}>
         <div>
           <div className={directoryStyles.filtersRow}>
             <div className={directoryStyles.tabsRow}>
@@ -496,6 +499,7 @@ const VendorApprovals: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

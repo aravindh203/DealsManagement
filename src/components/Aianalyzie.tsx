@@ -28,10 +28,10 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
         console.log("Starting AI Process...");
         const extractedData = await AiProcess(proposalDocument);
         console.log("Content extracted, starting analysis...");
-        
+
         const analysisResult = await AiAnalysiz(extractedData, projectDescription);
         console.log("Analysis Result:", analysisResult);
-        
+
         // You can now use analysisResult to update state if needed
       } catch (error) {
         console.error("AI Analysis failed:", error);
@@ -52,8 +52,8 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
       setProgress(newProgress);
       if (currentStep >= totalSteps) {
         clearInterval(timer);
-        
-        // Wait 3 seconds after completion, then call onClose to return to directory
+
+        // Wait 3 seconds after completion, then call onClose to return to Project
         setTimeout(() => {
           onClose();
         }, 3000);
@@ -124,7 +124,7 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
       </div>
 
       {/* Main Validation Card */}
-      <div 
+      <div
         className="w-full max-w-lg bg-white rounded-[2rem] p-8 md:p-10 shadow-2xl shadow-indigo-500/5 border border-white/60 relative overflow-hidden z-10 animate-fade-in-down"
         style={{ animationDelay: "400ms", animationFillMode: "both" }}
       >
@@ -178,23 +178,21 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
                 <div className="flex items-center gap-4">
                   {/* Icon Box */}
                   <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${
-                      isCompleted || isCurrent
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${isCompleted || isCurrent
                         ? "bg-emerald-50/80 shadow-sm"
                         : "bg-slate-50 grayscale opacity-50"
-                    }`}
+                      }`}
                   >
                     {step.icon}
                   </div>
                   {/* Label */}
                   <span
-                    className={`text-[15px] font-semibold transition-colors duration-500 ${
-                      isCompleted
+                    className={`text-[15px] font-semibold transition-colors duration-500 ${isCompleted
                         ? "text-slate-700"
                         : isCurrent
-                        ? "text-slate-900"
-                        : "text-slate-400"
-                    }`}
+                          ? "text-slate-900"
+                          : "text-slate-400"
+                      }`}
                   >
                     {step.label}
                   </span>
@@ -225,20 +223,17 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
           <div className="flex items-center gap-2.5">
             <span className="relative flex h-2.5 w-2.5 items-center justify-center">
               <span
-                className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  progress < 100 ? "animate-ping bg-emerald-400" : "bg-violet-400"
-                }`}
+                className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${progress < 100 ? "animate-ping bg-emerald-400" : "bg-violet-400"
+                  }`}
               ></span>
               <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${
-                  progress < 100 ? "bg-emerald-500" : "bg-violet-500"
-                }`}
+                className={`relative inline-flex rounded-full h-2 w-2 ${progress < 100 ? "bg-emerald-500" : "bg-violet-500"
+                  }`}
               ></span>
             </span>
             <span
-              className={`text-[11px] font-bold tracking-widest uppercase transition-colors duration-300 ${
-                progress < 100 ? "text-slate-400" : "text-violet-500"
-              }`}
+              className={`text-[11px] font-bold tracking-widest uppercase transition-colors duration-300 ${progress < 100 ? "text-slate-400" : "text-violet-500"
+                }`}
             >
               {progress < 100 ? "AI Engine Active" : "Validation Complete"}
             </span>
@@ -250,7 +245,8 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
       </div>
 
       {/* Global CSS for custom animations that Tailwind might miss without full config */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes fade-in-down {
           0% {
             opacity: 0;

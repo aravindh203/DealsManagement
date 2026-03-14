@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styles from './Identity.module.scss';
 import { AddRegular, SearchRegular, PeopleRegular } from '@fluentui/react-icons';
-import { LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { UserMenu } from '../components/UserMenu';
 
 const MoreVerticalIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -59,8 +57,6 @@ const delegationsData: DelegationRow[] = [
 ];
 
 const Identity: React.FC = () => {
-    const { logout } = useAuth();
-    const navigate = useNavigate();
     const [tab, setTab] = useState<Tab>('USERS');
     const [searchUsers, setSearchUsers] = useState('');
     const [fromBroker, setFromBroker] = useState('Lisa Johnson');
@@ -74,15 +70,7 @@ const Identity: React.FC = () => {
                     <span className={styles.logo}>Identity</span>
                 </div>
                 <div className={styles.navRight}>
-                    <button
-                        type="button"
-                        className={styles.logoutBtn}
-                        onClick={() => { logout(); navigate('/login'); }}
-                        title="Logout"
-                    >
-                        <LogOut size={18} />
-                        <span>Logout</span>
-                    </button>
+                    <UserMenu />
                 </div>
             </nav>
 

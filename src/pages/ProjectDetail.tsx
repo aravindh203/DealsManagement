@@ -42,11 +42,11 @@ const ProjectDetail: React.FC = () => {
     }, [isVendor, vendorUser?.username, project?.id]);
 
     if (!id) {
-        return <Navigate to="/directory" replace />;
+        return <Navigate to="/projects" replace />;
     }
 
     if (!project) {
-        return <Navigate to="/directory" replace />;
+        return <Navigate to="/projects" replace />;
     }
 
     const handleSaveEdit = (data: Omit<Project, 'id'>, files?: File[] | null, attachmentIdsToDelete?: string[]) => {
@@ -57,8 +57,8 @@ const ProjectDetail: React.FC = () => {
     return (
         <div style={{ padding: '32px' }}>
             <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                <Link to="/directory" style={{ color: '#2563eb', fontWeight: 600 }}>
-                    &larr; Back to Project Directory
+                <Link to="/projects" style={{ color: '#2563eb', fontWeight: 600 }}>
+                    &larr; Back to Project
                 </Link>
                 {!isVendor && (
                     <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
