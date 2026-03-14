@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => ({
         rewrite: (path: string) => path.replace(/^\/api\/token/, ''),
         secure: true,
         // Remove browser headers so Azure AD treats this as server-to-server
-        headers: {
-          'Origin': '',
-        },
+        // headers: {
+        //   'Origin': '',
+        // },
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
             proxyReq.removeHeader('origin');
