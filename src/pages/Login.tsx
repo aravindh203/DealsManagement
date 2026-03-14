@@ -410,6 +410,7 @@ const Login = () => {
       toast({
         title: "Login successful",
         description: "You have been successfully authenticated.",
+        variant: "success",
       });
     } catch (err) {
       console.error('Login failed:', err);
@@ -433,6 +434,7 @@ const Login = () => {
       toast({
         title: "Login successful",
         description: "You have been signed in as a vendor.",
+        variant: "success",
       });
     } catch (err) {
       console.error('Vendor login failed:', err);
@@ -476,6 +478,7 @@ const Login = () => {
       toast({
         title: "Request submitted",
         description: "Your vendor signup request has been sent for approval. You will be able to sign in after an Office 365 admin approves you.",
+        variant: "success",
       });
 
       // Reset signup form and switch back to sign-in

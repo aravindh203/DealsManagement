@@ -49,8 +49,6 @@ const navItems = [
     { to: '/vendor-approvals', label: 'Vendor approvals', Icon: IdentityIcon },
 ];
 
-const clusterName = 'Workspace Alpha';
-
 interface SidenavProps {
     collapsed?: boolean;
     onToggleCollapse?: () => void;
@@ -81,10 +79,6 @@ export const Sidenav: React.FC<SidenavProps> = ({ collapsed = false, onToggleCol
     return (
         <aside className={sidebarClassName}>
             <div className={styles.header}>
-                <div className={styles.headerText}>
-                    <span className={styles.headerLabel}>SECURE CLUSTER</span>
-                    {!collapsed && <span className={styles.clusterName}>{clusterName}</span>}
-                </div>
                 <button
                     type="button"
                     className={styles.collapseToggle}
@@ -97,7 +91,7 @@ export const Sidenav: React.FC<SidenavProps> = ({ collapsed = false, onToggleCol
 
             <nav className={styles.nav}>
                 {allowedNavItems.map(({ to, label, Icon }) => (
-                    <NavLink
+                    <NavLink title={label}
                         key={to}
                         to={to}
                         className={({ isActive }) =>

@@ -98,6 +98,8 @@ const Repository: React.FC = () => {
   const [navStack, setNavStack] = useState<NavItem[]>([]);
   const [folderItems, setFolderItems] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
+  /** For vendor at project level: their company folder (inside Vendors), so we show it directly instead of "Vendors". */
+  const [vendorCompanyFolderAtRoot, setVendorCompanyFolderAtRoot] = useState<FileItem | null>(null);
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -162,6 +164,7 @@ const Repository: React.FC = () => {
   useEffect(() => {
     if (navStack.length === 0) {
       setFolderItems([]);
+      setVendorCompanyFolderAtRoot(null);
       return;
     }
     const current = navStack[navStack.length - 1];
@@ -203,14 +206,59 @@ const Repository: React.FC = () => {
   const parentFolderName = navStack.length >= 2 ? navStack[navStack.length - 2].name : "";
   const isVendor = loginType === "vendor";
   const isProjectLevel = navStack.length === 1;
-  const isInsideProjectSubfolder = currentFolderName.trim().toLowerCase() === "project";
-  const isInsideVendorFolder = (currentFolderName || "").trim() === "Vendor";
+  const isInsideProjectSubfolder = ["project", "project files"].includes(
+    currentFolderName.trim().toLowerCase(),
+  );
+  const isInsideVendorFolder = ["Vendor", "Vendors"].includes(
+    (currentFolderName || "").trim(),
+  );
   const vendorCompanyFolderName = (vendorCompanyName ?? vendorUser?.username ?? "").trim();
+  const isParentVendorFolder = ["Vendor", "Vendors"].includes(
+    (parentFolderName || "").trim(),
+  );
   const isInsideVendorOwnSubfolder =
     isVendor &&
     navStack.length >= 2 &&
-    parentFolderName === "Vendor" &&
-    (currentFolderName || "").trim() === vendorCompanyFolderName;
+    (currentFolderName || "").trim() === vendorCompanyFolderName &&
+    (isParentVendorFolder || navStack.length === 2);
+
+  /** At project level, vendor users see their company folder directly instead of "Vendors". Load that folder. */
+  useEffect(() => {
+    if (!isProjectLevel || !isVendor || !vendorCompanyFolderName || folderItems.length === 0) {
+      setVendorCompanyFolderAtRoot(null);
+      return;
+    }
+    const vendorFolderNames = ["Vendor", "Vendors"];
+    const vendorsFolder = folderItems.find(
+      (item) => item.folder && vendorFolderNames.includes(item.name),
+    );
+    if (!vendorsFolder?.id) {
+      setVendorCompanyFolderAtRoot(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const token = await getAccessTokenByApp();
+      if (!token || cancelled) return;
+      try {
+        const children = await sharePointService.listFiles(
+          token,
+          appConfig.ContainerID,
+          vendorsFolder.id,
+        );
+        if (cancelled) return;
+        const companyFolder = (children || []).find(
+          (item: FileItem) =>
+            item.folder &&
+            (item.name || "").trim() === vendorCompanyFolderName,
+        );
+        setVendorCompanyFolderAtRoot(companyFolder || null);
+      } catch {
+        if (!cancelled) setVendorCompanyFolderAtRoot(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isProjectLevel, isVendor, vendorCompanyFolderName, folderItems]);
 
   const M365_OWNED_SUBFOLDER_NAMES = ["Invoices"];
   const isInsideM365OwnedFolder = M365_OWNED_SUBFOLDER_NAMES.some(
@@ -235,7 +283,7 @@ const Repository: React.FC = () => {
     if (
       !isVendor ||
       navStack.length < 2 ||
-      parentFolderName !== "Vendor" ||
+      !["Vendor", "Vendors"].includes((parentFolderName || "").trim()) ||
       !currentFolderId
     ) {
       setCurrentFolderCreatedBy(null);
@@ -281,7 +329,7 @@ const Repository: React.FC = () => {
           vendorUser.username
         );
       }
-      toast({ title: "Folder created", description: `"${name}" was created.` });
+      toast({ title: "Folder created", description: `"${name}" was created.`, variant: "success" });
       setCreateFolderOpen(false);
       setNewFolderName("");
       refreshCurrentFolder();
@@ -338,7 +386,7 @@ const Repository: React.FC = () => {
       a.download = item.name || "download";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Download started", description: `"${item.name}" is downloading.` });
+      toast({ title: "Download started", description: `"${item.name}" is downloading.`, variant: "success" });
     } catch (err) {
       console.error("Download failed:", err);
       toast({
@@ -362,7 +410,7 @@ const Repository: React.FC = () => {
     setActionItemId(item.id);
     try {
       await sharePointService.deleteFile(token, appConfig.ContainerID, item.id);
-      toast({ title: "File deleted", description: `"${item.name}" was removed.` });
+      toast({ title: "File deleted", description: `"${item.name}" was removed.`, variant: "success" });
       refreshCurrentFolder();
     } catch (err) {
       console.error("Delete failed:", err);
@@ -469,9 +517,9 @@ const Repository: React.FC = () => {
       );
       setShareLinkResult(result);
       if (shareScope === "users") {
-          toast({ title: "Shared successfully", description: "Invitation sent." });
+          toast({ title: "Shared successfully", description: "Invitation sent.", variant: "success" });
       } else {
-          toast({ title: "Link created", description: "Share link is ready to copy." });
+          toast({ title: "Link created", description: "Share link is ready to copy.", variant: "success" });
       }
     } catch (err) {
       console.error("Sharing failed:", err);
@@ -482,19 +530,18 @@ const Repository: React.FC = () => {
   };
 
   const isRoot = navStack.length === 0;
-  const PROJECT_SUBFOLDER_NAME = "Project";
-  const VENDOR_FOLDER_NAME = "Vendor";
+  const PROJECT_SUBFOLDER_NAMES = ["Project", "Project files"];
+  const VENDOR_FOLDER_NAMES = ["Vendor", "Vendors"];
 
   const itemsToShow = isRoot
     ? []
     : (() => {
       let list = [...folderItems];
       if (isProjectLevel && isVendor) {
-        list = list.filter(
-          (item) =>
-            item.name === PROJECT_SUBFOLDER_NAME ||
-            item.name === VENDOR_FOLDER_NAME,
-        );
+        list = list.filter((item) => PROJECT_SUBFOLDER_NAMES.includes(item.name));
+        if (vendorCompanyFolderAtRoot) {
+          list = [...list, vendorCompanyFolderAtRoot];
+        }
       } else if (isVendor && isInsideVendorFolder && vendorCompanyFolderName) {
         list = list.filter(
           (item) =>
@@ -1012,7 +1059,7 @@ const Repository: React.FC = () => {
                  <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully</Label>
                  <div className="flex items-center gap-2">
                     <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
-                    <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({title:"Copied", description:"Link copied to clipboard."}) }}>Copy</Button>
+                    <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({ title: "Copied", description: "Link copied to clipboard.", variant: "success" }) }}>Copy</Button>
                  </div>
                </div>
             )}

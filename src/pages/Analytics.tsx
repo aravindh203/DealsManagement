@@ -125,7 +125,7 @@ const Analytics: React.FC = () => {
 
             <main className={styles.main}>
                 <div className={styles.mainStatic}>
-                    <div className={styles.headerRow}>
+                    <div className={styles.pageHeader}>
                         <div className={styles.titleGroup}>
                             <span className={styles.overline}>Analytics &amp; Reporting</span>
                             <h1 className={styles.pageTitle}>Project Performance Overview</h1>
@@ -139,60 +139,70 @@ const Analytics: React.FC = () => {
                             </button>
                         </div>
                     </div>
+
+                    {/* Stat cards – Insights-style */}
+                    <div className={styles.statsRow}>
+                        <div className={`${styles.card} ${styles.cardDark}`}>
+                            <div className={styles.cardTop}>
+                                <div className={`${styles.iconBox} ${styles.iconBoxDark}`}>
+                                    <Folder size={20} />
+                                </div>
+                            </div>
+                            <div className={styles.cardBottom}>
+                                <span className={styles.cardLabel}>Total Projects</span>
+                                <h2 className={styles.cardValue}>{totalProjects}</h2>
+                                <span className={`${styles.cardSub} ${styles.cardSubGreen}`}>+3 vs last month</span>
+                            </div>
+                        </div>
+                        <div className={`${styles.card} ${styles.cardLight}`}>
+                            <div className={styles.cardTop}>
+                                <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
+                                    <Users size={20} />
+                                </div>
+                            </div>
+                            <div className={styles.cardBottom}>
+                                <span className={styles.cardLabel}>Active Vendors</span>
+                                <h2 className={styles.cardValue}>{activeVendors}</h2>
+                                <span className={styles.cardSub}>Across all projects</span>
+                            </div>
+                        </div>
+                        <div className={`${styles.card} ${styles.cardLight}`}>
+                            <div className={styles.cardTop}>
+                                <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
+                                    <DollarSign size={20} />
+                                </div>
+                            </div>
+                            <div className={styles.cardBottom}>
+                                <span className={styles.cardLabel}>Total Budget</span>
+                                <h2 className={styles.cardValue}>
+                                    {budgetVsBid.totalBudget.toLocaleString('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD',
+                                        maximumFractionDigits: 0,
+                                    })}
+                                </h2>
+                                <span className={`${styles.cardSub} ${styles.cardSubGreen}`}>
+                                    {budgetVsBid.totalBudget > 0 && budgetVsBid.totalBid > 0
+                                        ? `${Math.round((budgetVsBid.totalBid / budgetVsBid.totalBudget) * 100)}% spent`
+                                        : '0% spent'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className={`${styles.card} ${styles.cardPurple}`}>
+                            <div className={styles.cardTop}>
+                                <div className={`${styles.iconBox} ${styles.iconBoxPurple}`}>
+                                    <Star size={20} />
+                                </div>
+                            </div>
+                            <div className={styles.cardBottom}>
+                                <span className={styles.cardLabel}>Avg Vendor Rating</span>
+                                <h2 className={styles.cardValue}>4.6</h2>
+                                <span className={styles.cardSub}>Based on 42 reviews</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div className={styles.mainScroll}>
-                    <section className={styles.kpiRow}>
-                        <div className={`${styles.kpiCard} ${styles.kpiCardPrimary}`}>
-                            <div className={styles.kpiHeader}>
-                                <div className={styles.kpiIcon}>
-                                    <Folder size={18} />
-                                </div>
-                            </div>
-                            <p className={styles.kpiLabel}>Total Projects</p>
-                            <p className={styles.kpiValue}>{totalProjects}</p>
-                            <p className={styles.kpiDelta}>+3 vs last month</p>
-                        </div>
-                        <div className={styles.kpiCard}>
-                            <div className={styles.kpiHeader}>
-                                <div className={styles.kpiIcon}>
-                                    <Users size={18} />
-                                </div>
-                            </div>
-                            <p className={styles.kpiLabel}>Active Vendors</p>
-                            <p className={styles.kpiValue}>{activeVendors}</p>
-                            <p className={styles.kpiDelta}>Across all projects</p>
-                        </div>
-                        <div className={styles.kpiCard}>
-                            <div className={styles.kpiHeader}>
-                                <div className={styles.kpiIcon}>
-                                    <DollarSign size={18} />
-                                </div>
-                            </div>
-                            <p className={styles.kpiLabel}>Total Budget</p>
-                            <p className={styles.kpiValue}>
-                                {budgetVsBid.totalBudget.toLocaleString('en-US', {
-                                    style: 'currency',
-                                    currency: 'USD',
-                                    maximumFractionDigits: 0,
-                                })}
-                            </p>
-                            <p className={styles.kpiDelta}>
-                                {budgetVsBid.totalBid > 0
-                                    ? `${Math.round((budgetVsBid.totalBid / budgetVsBid.totalBudget) * 100) || 0}% spent`
-                                    : '0% spent'}
-                            </p>
-                        </div>
-                        <div className={styles.kpiCard}>
-                            <div className={styles.kpiHeader}>
-                                <div className={styles.kpiIcon}>
-                                    <Star size={18} />
-                                </div>
-                            </div>
-                            <p className={styles.kpiLabel}>Avg Vendor Rating</p>
-                            <p className={styles.kpiValue}>4.6</p>
-                            <p className={styles.kpiDelta}>Based on 42 reviews</p>
-                        </div>
-                    </section>
 
                     <section className={styles.middleRow}>
                         <div className={styles.statusCard}>
@@ -295,7 +305,7 @@ const Analytics: React.FC = () => {
                                                             key={idx}
                                                             fill={
                                                                 ['#4F46E5', '#8B5CF6', '#6366F1', '#A855F7', '#E5E7EB'][
-                                                                    idx % 5
+                                                                idx % 5
                                                                 ]
                                                             }
                                                         />

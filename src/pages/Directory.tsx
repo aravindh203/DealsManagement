@@ -398,6 +398,23 @@ const Directory: React.FC = () => {
         [],
     );
 
+    const loadVendorFilesByCategory = useCallback(
+        async (projectId: string) => {
+            const token = await getAccessTokenByApp();
+            if (!token) return [];
+            try {
+                return await sharePointService.listVendorAttachmentsByVendor(
+                    token,
+                    appConfig.ContainerID,
+                    projectId,
+                );
+            } catch {
+                return [];
+            }
+        },
+        [],
+    );
+
     const [savingProject, setSavingProject] = useState(false);
 
     const handleSaveProject = async (
@@ -474,6 +491,14 @@ const Directory: React.FC = () => {
                 if (files?.length) attachmentsFolderId = result.attachmentsFolderId;
             }
             shouldClose = true;
+
+            toast({
+                title: editingProject ? "Project updated" : "Project created",
+                description: editingProject
+                    ? "Your changes have been saved."
+                    : "A new project has been created.",
+                variant: "success",
+            });
 
             if (files?.length && attachmentsFolderId) {
                 const token = await getAccessTokenByApp();
@@ -592,7 +617,7 @@ const Directory: React.FC = () => {
                 bidAmount,
                 filesByCategory,
             );
-            toast({ title: "Submission saved", description: "Your company folder and documents have been created." });
+            toast({ title: "Submission saved", description: "Your company folder and documents have been created.", variant: "success" });
             setVendorSubmissionOpen(false);
             setVendorSubmissionProject(null);
             await reloadProjects();
@@ -693,21 +718,21 @@ const Directory: React.FC = () => {
                                         className={directoryTabVendor === "open" ? styles.tabActive : styles.tab}
                                         onClick={() => setDirectoryTabVendor("open")}
                                     >
-                                        Open
+                                        Not Submitted
                                     </button>
                                     <button
                                         type="button"
                                         className={directoryTabVendor === "myRequest" ? styles.tabActive : styles.tab}
                                         onClick={() => setDirectoryTabVendor("myRequest")}
                                     >
-                                        My Submitted
+                                        My Submissions
                                     </button>
                                     <button
                                         type="button"
                                         className={directoryTabVendor === "myAssigned" ? styles.tabActive : styles.tab}
                                         onClick={() => setDirectoryTabVendor("myAssigned")}
                                     >
-                                        My Assigned
+                                        Assigned to Me
                                     </button>
                                 </>
                             ) : (
@@ -724,21 +749,21 @@ const Directory: React.FC = () => {
                                         className={directoryTab365 === "assigned" ? styles.tabActive : styles.tab}
                                         onClick={() => setDirectoryTab365("assigned")}
                                     >
-                                        Assigned
+                                        Vendor Allocated
                                     </button>
                                     <button
                                         type="button"
                                         className={directoryTab365 === "assignVendor" ? styles.tabActive : styles.tab}
                                         onClick={() => setDirectoryTab365("assignVendor")}
                                     >
-                                        Un Assigned
+                                        Pending Assignment
                                     </button>
                                     <button
                                         type="button"
                                         className={directoryTab365 === "open" ? styles.tabActive : styles.tab}
                                         onClick={() => setDirectoryTab365("open")}
                                     >
-                                        Un Submitted
+                                        No Bids Yet
                                     </button>
                                 </>
                             )}
@@ -865,16 +890,19 @@ const Directory: React.FC = () => {
                                                     >
                                                         <Eye size={16} />
                                                     </button>
-                                                    {!isVendor && directoryTab365 === "assignVendor" && (
-                                                        <button
-                                                            type="button"
-                                                            className={styles.actionBtn}
-                                                            onClick={() => handleOpenAiSummarize(project)}
-                                                            title="AI Suggested Vendor"
-                                                        >
-                                                            <Sparkles size={16} className="text-emerald-500" />
-                                                        </button>
-                                                    )}
+                                                    {!isVendor &&
+                                                        getProjectStatus(project) === "Open" &&
+                                                        projectHasAnyVendorSubmission[String(project.id)] &&
+                                                        !isProjectAssigned(project) && (
+                                                            <button
+                                                                type="button"
+                                                                className={styles.actionBtn}
+                                                                onClick={() => handleOpenAiSummarize(project)}
+                                                                title="AI Suggested Vendor"
+                                                            >
+                                                                <Sparkles size={16} className="text-emerald-500" />
+                                                            </button>
+                                                        )}
                                                     {isVendor ? (
                                                         !projectHasVendorSubmission[String(project.id)] && (
                                                             <button
@@ -929,6 +957,7 @@ const Directory: React.FC = () => {
                         onSave={handleSaveProject}
                         saving={savingProject}
                         onLoadExistingAttachments={loadExistingAttachments}
+                        onLoadVendorFilesByCategory={loadVendorFilesByCategory}
                         externalError={projectFormError}
                     />
 

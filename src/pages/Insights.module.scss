@@ -1,5 +1,5 @@
 /* ============================================
-   Insights – Workspace Alpha dashboard
+   Insights – DealBridge dashboard
    ============================================ */
 
 .page {
@@ -415,71 +415,46 @@
     }
 }
 
+.auditTableWrap {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
 .auditTable {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
+    font-size: 13px;
 
     thead th {
+        text-align: left;
+        padding: 14px 20px;
         font-size: 10px;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: #b0b5c8;
-        padding: 0 16px 14px;
-        border-bottom: 1px solid #e8e9f0;
-        vertical-align: bottom;
+        color: #6b7280;
+        background-color: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+    }
 
-        &:first-child {
-            text-align: left;
-            width: 36%;
-        }
-        &:nth-child(2) {
-            text-align: right;
-            width: 16%;
-        }
-        &:nth-child(3) {
-            text-align: right;
-            width: 16%;
-        }
-        &:nth-child(4) {
-            text-align: right;
-            width: 16%;
-        }
-        &:last-child {
-            text-align: right;
-            width: 16%;
-        }
+    tbody td {
+        padding: 16px 20px;
+        border-bottom: 1px solid #f3f4f6;
+        color: #374151;
+    }
+
+    tbody tr:hover {
+        background-color: #fafafa;
     }
 }
 
-.auditTableBody {
-    tr {
-        border-top: 1px solid #f3f4f8;
-    }
-
-    td {
-        padding: 18px 16px;
-        vertical-align: middle;
-        font-size: 12px;
-        color: #0d0d1a;
-
-        &:first-child {
-            text-align: left;
-        }
-        &:nth-child(2),
-        &:nth-child(3),
-        &:nth-child(4),
-        &:last-child {
-            text-align: right;
-        }
-    }
-}
-
-.timeCell {
-    font-size: 12px;
-    color: #b0b5c8;
-    font-weight: 500;
+.auditEmptyCell {
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+    padding: 24px 20px !important;
 }
 
 .entityCell {
@@ -519,31 +494,42 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #b0b5c8;
+    color: #6b7280;
 }
 
-.verificationCell {
-    text-align: right;
-}
-
-.chip {
+/* Status pills – match Directory table */
+.statusPill {
     display: inline-block;
-    padding: 5px 12px;
-    border-radius: 9px;
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.chipSuccess {
-    background-color: #f1f1f7;
-    color: #6e6e9a;
-}
-
-.chipActive {
-    background-color: #def7ec;
+.statusOpen {
+    background-color: #dcfce7;
     color: #16a34a;
+}
+
+.statusYettostart {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.statusPending {
+    background-color: #ffedd5;
+    color: #ea580c;
+}
+
+.statusCompleted {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.statusNotStarted {
+    background-color: #e0e7ff;
+    color: #4338ca;
 }
 
 /* ---- CLUSTER VITALS ---- */

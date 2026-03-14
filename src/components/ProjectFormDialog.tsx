@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,16 @@ interface ProjectFormDialogProps {
   saving?: boolean;
   /** When editing/viewing, load existing files from the project Attachments folder. */
   onLoadExistingAttachments?: (projectId: string) => Promise<ExistingAttachment[]>;
+  /** When viewing as M365, load vendor attachments by vendor (name, bid amount, categories with files). One section per vendor. */
+  onLoadVendorFilesByCategory?: (
+    projectId: string,
+  ) => Promise<
+    {
+      vendorName: string;
+      bidAmount: string | null;
+      categories: { category: string; files: { id: string; name: string }[] }[];
+    }[]
+  >;
   /** Optional external error message passed from parent (eg. duplicate project). */
   externalError?: string | null;
 }
@@ -89,6 +99,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   onSave,
   saving = false,
   onLoadExistingAttachments,
+  onLoadVendorFilesByCategory,
   externalError,
 }) => {
   const mode: ProjectDialogMode = modeProp ?? (project ? 'edit' : 'create');
@@ -99,6 +110,14 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
   const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
   const [attachmentIdsToDelete, setAttachmentIdsToDelete] = useState<string[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [vendorSections, setVendorSections] = useState<
+    {
+      vendorName: string;
+      bidAmount: string | null;
+      categories: { category: string; files: { id: string; name: string }[] }[];
+    }[]
+  >([]);
+  const [loadingVendorFiles, setLoadingVendorFiles] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const startDateRef = useRef<HTMLInputElement | null>(null);
   const endDateRef = useRef<HTMLInputElement | null>(null);
@@ -131,15 +150,42 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
             .catch(() => setExistingAttachments([]))
             .finally(() => setLoadingAttachments(false));
         }
+        if (
+          isView &&
+          !isVendor &&
+          onLoadVendorFilesByCategory &&
+          id != null
+        ) {
+          setLoadingVendorFiles(true);
+          setVendorSections([]);
+          onLoadVendorFilesByCategory(String(id))
+            .then(setVendorSections)
+            .catch(() => setVendorSections([]))
+            .finally(() => setLoadingVendorFiles(false));
+        } else {
+          setVendorSections([]);
+        }
       } else {
         setForm({ ...emptyForm });
         setExistingAttachments([]);
+        setVendorSections([]);
       }
       setFiles([]);
       setAttachmentIdsToDelete([]);
       setValidationError(null);
     }
-  }, [open, project, onLoadExistingAttachments]);
+  }, [open, project, onLoadExistingAttachments, onLoadVendorFilesByCategory, isView, isVendor]);
+
+  /** Open projects: show all vendor attachments. Allocated vendor: show only that vendor's section. */
+  const displayVendorSections = useMemo(() => {
+    if (!isView || !project || vendorSections.length === 0) return vendorSections;
+    const allocated = (project.V_BidDescription ?? '').toString().trim();
+    if (allocated === '') return vendorSections;
+    const match = vendorSections.filter(
+      (v) => v.vendorName.trim().toLowerCase() === allocated.toLowerCase(),
+    );
+    return match;
+  }, [isView, project, vendorSections]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -676,6 +722,79 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                   )}
                 </div>
               </section>
+
+              {/* Vendor attachments: one section per vendor (M365 view only) */}
+              {isView && !isVendor && project && (
+                <>
+                  <Separator />
+                  <section className="space-y-6">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Paperclip className="h-4 w-4 text-muted-foreground" />
+                      Vendor Attachments
+                    </div>
+                    {loadingVendorFiles ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading vendor files…
+                      </div>
+                    ) : displayVendorSections.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-1 rounded-xl border bg-muted/20 p-4">
+                        {vendorSections.length === 0
+                          ? 'No vendor uploads for this project yet.'
+                          : 'No attachments for the allocated vendor.'}
+                      </p>
+                    ) : (
+                      <div className="space-y-8">
+                        {displayVendorSections.map((vendor) => (
+                          <div
+                            key={vendor.vendorName}
+                            className="rounded-xl border bg-muted/10 p-4 space-y-4"
+                          >
+                            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
+                              <p className="text-base font-semibold text-foreground">
+                                {vendor.vendorName}
+                              </p>
+                              {vendor.bidAmount != null && vendor.bidAmount !== '' && (
+                                <p className="text-sm text-muted-foreground">
+                                  Bid amount: {vendor.bidAmount}
+                                </p>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {vendor.categories.map(({ category, files: categoryFiles }) => (
+                                <div
+                                  key={category}
+                                  className="rounded-xl border bg-muted/20 p-4 space-y-3"
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-sm font-semibold text-foreground">
+                                      {category}
+                                    </p>
+                                    <span className="text-xs text-muted-foreground">
+                                      {categoryFiles.length} file(s)
+                                    </span>
+                                  </div>
+                                  <ul className="space-y-1.5">
+                                    {categoryFiles.map((f) => (
+                                      <li
+                                        key={f.id}
+                                        className="flex items-center gap-2 rounded-md bg-background px-3 py-2 text-sm border"
+                                      >
+                                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        <span className="truncate flex-1">{f.name}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </>
+              )}
             </div>
           </ScrollArea>
           <Separator className="shrink-0" />

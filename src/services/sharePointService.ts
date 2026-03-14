@@ -822,9 +822,9 @@ export class SharePointService {
   }
 
   /** Name of the subfolder used for project attachments. */
-  static readonly PROJECT_ATTACHMENTS_FOLDER_NAME = "Project";
+  static readonly PROJECT_ATTACHMENTS_FOLDER_NAME = "Project files";
   /** Name of the subfolder used for vendor files. */
-  static readonly PROJECT_VENDOR_FOLDER_NAME = "Vendor";
+  static readonly PROJECT_VENDOR_FOLDER_NAME = "Vendors";
 
   /** Subfolder names under a vendor company folder for submission documents. */
   static readonly VENDOR_SUBFOLDER_NAMES = [
@@ -835,8 +835,14 @@ export class SharePointService {
     "Approval Documents",
   ] as const;
 
+  /** Legacy folder name for backward compatibility when resolving existing projects. */
+  private static readonly LEGACY_VENDOR_FOLDER_NAME = "Vendor";
+  /** Legacy folder name for backward compatibility when resolving existing projects. */
+  private static readonly LEGACY_ATTACHMENTS_FOLDER_NAME = "Project";
+
   /**
    * Get the Vendor folder id under a project folder. Returns null if not found.
+   * Resolves both "Vendors" (new) and "Vendor" (legacy) for backward compatibility.
    */
   async getVendorFolderId(
     token: string,
@@ -847,9 +853,154 @@ export class SharePointService {
     const vendor = children.find(
       (item) =>
         item.folder &&
-        item.name === SharePointService.PROJECT_VENDOR_FOLDER_NAME,
+        (item.name === SharePointService.PROJECT_VENDOR_FOLDER_NAME ||
+          item.name === SharePointService.LEGACY_VENDOR_FOLDER_NAME),
     );
     return vendor?.id ?? null;
+  }
+
+  /**
+   * Recursively collect all file items (id, name) under a folder. Skips subfolders for traversal but includes their files.
+   */
+  private async listAllFilesRecursive(
+    token: string,
+    containerId: string,
+    folderId: string,
+  ): Promise<{ id: string; name: string }[]> {
+    const children = await this.listFiles(token, containerId, folderId);
+    const files: { id: string; name: string }[] = [];
+    for (const item of children) {
+      if (item.folder) {
+        const nested = await this.listAllFilesRecursive(
+          token,
+          containerId,
+          item.id,
+        );
+        files.push(...nested);
+      } else {
+        files.push({ id: item.id, name: item.name });
+      }
+    }
+    return files;
+  }
+
+  /**
+   * List vendor-uploaded files grouped by document category (Proposal Document, Supporting Documents, etc.).
+   * For M365 users in View Project: show all vendor uploads by category below project attachments.
+   */
+  async listVendorFilesByCategory(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+  ): Promise<
+    {
+      category: string;
+      files: { id: string; name: string; vendor?: string }[];
+    }[]
+  > {
+    const vendorFolderId = await this.getVendorFolderId(
+      token,
+      containerId,
+      projectFolderId,
+    );
+    if (!vendorFolderId) return [];
+    const companyFolders = await this.listFiles(
+      token,
+      containerId,
+      vendorFolderId,
+    );
+    const byCategory = new Map<
+      string,
+      { id: string; name: string; vendor?: string }[]
+    >();
+    for (const cat of SharePointService.VENDOR_SUBFOLDER_NAMES) {
+      byCategory.set(cat, []);
+    }
+    for (const item of companyFolders) {
+      if (!item.folder) continue;
+      const vendorName = item.name?.trim() || "Vendor";
+      const subfolders = await this.listFiles(token, containerId, item.id);
+      for (const sub of subfolders) {
+        if (!sub.folder) continue;
+        const categoryName = sub.name?.trim();
+        if (!categoryName) continue;
+        if (!byCategory.has(categoryName)) {
+          byCategory.set(categoryName, []);
+        }
+        const fileItems = await this.listFiles(token, containerId, sub.id);
+        const files = fileItems
+          .filter((f) => !f.folder)
+          .map((f) => ({ id: f.id, name: f.name, vendor: vendorName }));
+        byCategory.get(categoryName)!.push(...files);
+      }
+    }
+    return Array.from(byCategory.entries())
+      .filter(([, files]) => files.length > 0)
+      .map(([category, files]) => ({ category, files }));
+  }
+
+  /**
+   * List vendor attachments grouped by vendor: each vendor has name, bid amount, and categories with files.
+   * For M365 View Project: show one section per vendor with vendor name and bid amount on top.
+   */
+  async listVendorAttachmentsByVendor(
+    token: string,
+    containerId: string,
+    projectFolderId: string,
+  ): Promise<
+    {
+      vendorName: string;
+      bidAmount: string | null;
+      categories: { category: string; files: { id: string; name: string }[] }[];
+    }[]
+  > {
+    const vendorFolderId = await this.getVendorFolderId(
+      token,
+      containerId,
+      projectFolderId,
+    );
+    if (!vendorFolderId) return [];
+    const companyFolders = await this.listFiles(
+      token,
+      containerId,
+      vendorFolderId,
+    );
+    const result: {
+      vendorName: string;
+      bidAmount: string | null;
+      categories: { category: string; files: { id: string; name: string }[] }[];
+    }[] = [];
+    for (const item of companyFolders) {
+      if (!item.folder) continue;
+      const vendorName = item.name?.trim() || "Vendor";
+      const bidAmount = await this.getCompanyFolderBidAmount(
+        token,
+        containerId,
+        projectFolderId,
+        vendorName,
+      );
+      const subfolders = await this.listFiles(token, containerId, item.id);
+      const byCategory: {
+        category: string;
+        files: { id: string; name: string }[];
+      }[] = [];
+      for (const sub of subfolders) {
+        if (!sub.folder) continue;
+        const categoryName = sub.name?.trim();
+        if (!categoryName) continue;
+        const fileItems = await this.listFiles(token, containerId, sub.id);
+        const files = fileItems
+          .filter((f) => !f.folder)
+          .map((f) => ({ id: f.id, name: f.name }));
+        if (files.length > 0) {
+          byCategory.push({ category: categoryName, files });
+        }
+      }
+      if (byCategory.length > 0) {
+        result.push({ vendorName, bidAmount, categories: byCategory });
+      }
+    }
+    return result;
   }
 
   /**
@@ -1226,7 +1377,10 @@ export class SharePointService {
     const data = await res.json();
     const children = data.value ?? [];
     const existing = children.find(
-      (item: any) => item.folder && item.name === name,
+      (item: any) =>
+        item.folder &&
+        (item.name === name ||
+          item.name === SharePointService.LEGACY_ATTACHMENTS_FOLDER_NAME),
     );
     if (existing?.id) return existing.id;
 
@@ -2017,7 +2171,7 @@ export class SharePointService {
         FirstName: details.firstName ?? "",
         LastName: details.lastName ?? "",
         Email: details.email ?? "",
-        MobileNumber: details.mobileNumber ?? "",
+        MobileNumber: details.mobileNumber ?? null,
         Status: "Pending",
       },
     };
@@ -2152,8 +2306,9 @@ export class SharePointService {
   }
 
   /**
-   * Get all distinct company names from the UserDetails SharePoint list (Company column).
-   * Used e.g. for Top Vendors section; project counts can be merged later.
+   * Get all distinct APPROVED company names from the UserDetails SharePoint list.
+   * Only rows with Status === "Approved" are counted.
+   * Used e.g. for Insights TOTAL VENDORS card and Top Vendors.
    */
   async getAllCompaniesFromUserDetails(): Promise<string[]> {
     const token = await getAccessTokenByApp();
@@ -2161,7 +2316,7 @@ export class SharePointService {
 
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
     const sitePath = "/sites/HackerthonDealsManagement";
-    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=Company)`;
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=Company,Status)`;
 
     try {
       const response = await fetch(url, {
@@ -2176,7 +2331,10 @@ export class SharePointService {
       const items = Array.isArray(data.value) ? data.value : [];
       const companies = new Set<string>();
       items.forEach((item: any) => {
-        const company = item.fields?.Company;
+        const fields = item.fields ?? {};
+        const status = (fields.Status ?? "").toString().trim();
+        if (status !== "Approved") return;
+        const company = fields.Company;
         if (company != null && String(company).trim() !== "") {
           companies.add(String(company).trim());
         }
@@ -2244,9 +2402,16 @@ export class SharePointService {
       message?: string;
       sendInvitation?: boolean;
       retainInheritedPermissions?: boolean;
-    }
+    },
   ): Promise<string> {
-    const { scope, role, recipients, message, sendInvitation = true, retainInheritedPermissions = false } = options;
+    const {
+      scope,
+      role,
+      recipients,
+      message,
+      sendInvitation = true,
+      retainInheritedPermissions = false,
+    } = options;
     const type = role === "write" ? "edit" : "view";
 
     if (scope === "users") {
@@ -2273,9 +2438,11 @@ export class SharePointService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error creating invite:", errorText);
-        throw new Error(`Failed to invite users: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to invite users: ${response.status} ${response.statusText}`,
+        );
       }
-      
+
       const data = await response.json();
       return "Invitation sent successfully";
     } else {
@@ -2297,7 +2464,9 @@ export class SharePointService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error creating link:", errorText);
-        throw new Error(`Failed to create link: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to create link: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();

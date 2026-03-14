@@ -75,8 +75,7 @@ const VendorApprovals: React.FC = () => {
       if (!token) {
         toast({
           title: "No access token",
-          description:
-            "Could not get Graph access token for the current user. Please sign in again.",
+          description: "Could not get Graph access token for the current user. Please sign in again.",
           variant: "destructive",
         });
         return;
@@ -96,6 +95,7 @@ const VendorApprovals: React.FC = () => {
       toast({
         title: "Status updated",
         description: `Vendor has been marked as ${status}.`,
+        variant: "success",
       });
     } catch (err) {
       console.error("Failed to update vendor status:", err);
