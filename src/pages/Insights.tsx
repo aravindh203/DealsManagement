@@ -10,6 +10,8 @@ import {
     ArrowSyncRegular,
     ArrowUploadRegular,
     DismissRegular,
+    FolderRegular,
+    CheckmarkCircleRegular,
 } from '@fluentui/react-icons';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -46,6 +48,9 @@ const getProjectStatus = (project: Project, now: Date): ProjectStatus => {
     if (start && start > now) return 'Not Started';
     return 'Open';
 };
+
+/** Status pill class suffix from P_Status (no spaces), to match Directory table. */
+const getStatusPillClass = (status: string): string => status.replace(/\s+/g, '');
 
 // ── Component ──────────────────────────────────────────────
 const Insights: React.FC = () => {
@@ -90,6 +95,10 @@ const Insights: React.FC = () => {
     const totalProjects = projects.length;
     /** Open count uses P_Status (same as Directory) so the card reflects actual list data. */
     const openProjectsCount = projects.filter((p) => (p.P_Status ?? 'Open') === 'Open').length;
+    const completedProjectsCount = useMemo(
+        () => projects.filter((p) => getProjectStatus(p, new Date()) === 'Completed').length,
+        [projects],
+    );
 
     const latestUpdates = useMemo(
         () => {
@@ -109,7 +118,7 @@ const Insights: React.FC = () => {
                         x !== null
                 )
                 .sort((a, b) => b.date.getTime() - a.date.getTime());
-            return items.slice(0, 5);
+            return items.slice(0, 3);
         },
         [projects]
     );
@@ -129,7 +138,8 @@ const Insights: React.FC = () => {
 
                     return { company, count };
                 })
-                .sort((a, b) => b.count - a.count);
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 5);
         },
         [companiesFromUserDetails, projects]
     );
@@ -278,71 +288,68 @@ const Insights: React.FC = () => {
                 <div className={styles.mainStatic}>
                     <div className={styles.pageHeader}>
                         <div className={styles.titleGroup}>
-                            <span className={styles.overline}>OPERATIONS MANAGEMENT</span>
-                            <h1 className={styles.pageTitle}>Workspace Alpha</h1>
+                            <span className={styles.overline}>DEALBRIDGE</span>
+                            <h1 className={styles.pageTitle}>Insights</h1>
                         </div>
                     </div>
 
                     {/* ── Stat Cards ── */}
                     <div className={styles.statsRow}>
-                        {/* Fiscal Revenue – dark card */}
+                        {/* Total Projects – dark card */}
                         <div className={`${styles.card} ${styles.cardDark}`}>
                             <div className={styles.cardTop}>
                                 <div className={`${styles.iconBox} ${styles.iconBoxDark}`}>
-                                    <MoneyRegular />
+                                    <FolderRegular />
                                 </div>
-                                <span className={styles.trendChip}>+12.5%</span>
                             </div>
                             <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>FISCAL REVENUE</span>
-                                <h2 className={styles.cardValue}>$1.24M</h2>
+                                <span className={styles.cardLabel}>TOTAL PROJECTS</span>
+                                <h2 className={styles.cardValue}>{totalProjects}</h2>
                             </div>
                         </div>
 
-                        {/* Cluster Storage – LIVE DATA */}
+                        {/* Total Vendors */}
                         <div className={`${styles.card} ${styles.cardLight}`}>
                             <div className={styles.cardTop}>
                                 <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
-                                    <CubeRegular />
+                                    <PeopleRegular />
                                 </div>
-                                {loading && (
+                                {loadingCompanies && (
                                     <ArrowSyncRegular
                                         style={{ color: '#6B47E5', fontSize: 16, animation: 'spin 1s linear infinite' }}
                                     />
                                 )}
                             </div>
                             <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>CLUSTER STORAGE</span>
-                                {error ? (
-                                    <h2 className={styles.cardValue} style={{ fontSize: 20, color: '#e74c3c' }}>Error</h2>
-                                ) : loading ? (
-                                    <h2 className={styles.cardValue} style={{ fontSize: 24 }}>Loading…</h2>
+                                <span className={styles.cardLabel}>TOTAL VENDORS</span>
+                                {loadingCompanies ? (
+                                    <h2 className={styles.cardValue} style={{ fontSize: 24 }}>…</h2>
                                 ) : (
                                     <>
-                                        <h2 className={styles.cardValue}>{usedFormatted}</h2>
+                                        <h2 className={styles.cardValue}>{companiesFromUserDetails.length}</h2>
                                         <span className={styles.cardSub}>
-                                            of 2 TB limit
+                                            Vendors in directory
                                         </span>
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        {/* Total Projects */}
+                        {/* Completed Projects */}
                         <div className={`${styles.card} ${styles.cardLight}`}>
                             <div className={styles.cardTop}>
                                 <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
-                                    <PeopleRegular />
+                                    <CheckmarkCircleRegular />
                                 </div>
                             </div>
                             <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>TOTAL PROJECTS</span>
+                                <span className={styles.cardLabel}>COMPLETED PROJECTS</span>
                                 {loading ? (
                                     <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`} style={{ fontSize: 24 }}>…</h2>
                                 ) : (
                                     <>
-                                        <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`}>{totalProjects}</h2>
-                                        <span className={styles.cardSub}>Projects in directory</span>
+                                        <h2 className={`${styles.cardValue} ${styles.cardValuePurple}`}>{completedProjectsCount}</h2>
+                                        <span className={styles.cardSub}>Projects completed</span>
                                     </>
                                 )}
                             </div>
@@ -352,7 +359,7 @@ const Insights: React.FC = () => {
                         <div className={`${styles.card} ${styles.cardPurple}`}>
                             <div className={styles.cardTop}>
                                 <div className={`${styles.iconBox} ${styles.iconBoxPurple}`}>
-                                    <ShieldCheckmarkRegular />
+                                    <PulseRegular />
                                 </div>
                             </div>
                             <div className={styles.cardBottom}>
@@ -368,113 +375,60 @@ const Insights: React.FC = () => {
                 <div className={styles.mainScroll}>
                     {/* ── Bottom Section ── */}
                     <div className={styles.bottomSection}>
-                        {/* Audit Protocol */}
+                        {/* Projects - Latest Updates */}
                         <div className={styles.auditCard}>
                             <div className={styles.auditHeader}>
-                                <h3 className={styles.auditTitle}>Audit Protocol - Latest Updates</h3>
-                                <a href="#" className={styles.historyLink}>Full History</a>
+                                <h3 className={styles.auditTitle}>Projects - Latest Updates</h3>
                             </div>
 
-                            <table className={styles.auditTable}>
-                                <thead className={styles.auditTableHead}>
-                                    <tr>
-                                        <th>Project name</th>
-                                        <th>Date</th>
-                                        <th>Budget</th>
-                                        <th>Bid amount</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className={styles.auditTableBody}>
-                                    {latestUpdates.length === 0 ? (
+                            <div className={styles.auditTableWrap}>
+                                <table className={styles.auditTable}>
+                                    <thead>
                                         <tr>
-                                            <td colSpan={5} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
-                                                No recent project updates.
-                                            </td>
+                                            <th>Project name</th>
+                                            <th>Date</th>
+                                            <th>Budget</th>
+                                            <th>Bid amount</th>
+                                            <th>Status</th>
                                         </tr>
-                                    ) : (
-                                        latestUpdates.map(({ project, date }, idx) => {
-                                            const status = project.P_Status ?? 'Open';
-                                            const statusClass =
-                                                status === 'Open'
-                                                    ? `${styles.chip} ${styles.chipActive}`
-                                                    : status === 'Completed'
-                                                        ? `${styles.chip} ${styles.chipSuccess}`
-                                                        : styles.chip;
-                                            const initial = project.P_Name ? project.P_Name.charAt(0).toUpperCase() : '?';
-
-                                            return (
-                                                <tr key={idx}>
-                                                    <td>
-                                                        <div className={styles.entityCell}>
-                                                            <div className={styles.avatar}>{initial}</div>
-                                                            <div className={styles.entityInfo}>
-                                                                <span className={styles.entityName}>{project.P_Name || '—'}</span>
-                                                                <span className={styles.entityRole}>{project.P_Type || 'Project'}</span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className={styles.timeCell}>{date.toLocaleDateString()}</td>
-                                                    <td>{project.P_Budget ? `$${project.P_Budget}` : '—'}</td>
-                                                    <td>{project.V_BidAmount != null && String(project.V_BidAmount).trim() !== '' ? `$${project.V_BidAmount}` : '—'}</td>
-                                                    <td className={styles.verificationCell}>
-                                                        <span className={statusClass}>{status}</span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-
-                            {/* Container Details Table */}
-                            {!loading && !error && containerCount > 0 && (
-                                <div className={styles.containerSection}>
-                                    <div className={styles.containerSectionHeader}>
-                                        <span className={styles.containerSectionTitle}>Container Storage Breakdown</span>
-                                        <button className={styles.refetchBtn} onClick={refetch}>
-                                            <ArrowSyncRegular /> Refresh
-                                        </button>
-                                    </div>
-                                    <table className={styles.auditTable} style={{ marginTop: 8 }}>
-                                        <thead className={styles.auditTableHead}>
+                                    </thead>
+                                    <tbody>
+                                        {latestUpdates.length === 0 ? (
                                             <tr>
-                                                <th>Container</th>
-                                                <th>Storage Used</th>
-                                                <th>Quota (Available)</th>
+                                                <td colSpan={5} className={styles.auditEmptyCell}>
+                                                    No recent project updates.
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody className={styles.auditTableBody}>
-                                            {containers.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
-                                                        No containers found.
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                <>
-                                                    {containers.map((c) => {
-                                                        const availableBytes = Math.max(c.totalBytes - c.usedBytes, 0);
-                                                        return (
-                                                            <tr key={c.id}>
-                                                                <td>{c.name}</td>
-                                                                <td>{formatBytes(c.usedBytes)}</td>
-                                                                <td>{formatBytes(availableBytes)}</td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                    <tr>
-                                                        <td colSpan={3} style={{ color: '#b0b5c8', fontSize: 12, paddingTop: 16 }}>
-                                                            {containerCount} container{containerCount !== 1 ? 's' : ''} · Total used: {usedFormatted}
-                                                            {totalStorageTotalBytes > 0 ? ` of ${totalFormatted} (${storagePercent}%)` : ''}
+                                        ) : (
+                                            latestUpdates.map(({ project, date }, idx) => {
+                                                const status = project.P_Status ?? 'Open';
+                                                const pillClass = (styles as Record<string, string>)[`status${getStatusPillClass(status)}`] ?? styles.statusOpen;
+                                                const initial = project.P_Name ? project.P_Name.charAt(0).toUpperCase() : '?';
+
+                                                return (
+                                                    <tr key={idx}>
+                                                        <td>
+                                                            <div className={styles.entityCell}>
+                                                                <div className={styles.avatar}>{initial}</div>
+                                                                <div className={styles.entityInfo}>
+                                                                    <span className={styles.entityName}>{project.P_Name || '—'}</span>
+                                                                    <span className={styles.entityRole}>{project.P_Type || 'Project'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>{date.toLocaleDateString()}</td>
+                                                        <td>{project.P_Budget ? `$${project.P_Budget}` : '—'}</td>
+                                                        <td>{project.V_BidAmount != null && String(project.V_BidAmount).trim() !== '' ? `$${project.V_BidAmount}` : '—'}</td>
+                                                        <td>
+                                                            <span className={`${styles.statusPill} ${pillClass}`}>{status}</span>
                                                         </td>
                                                     </tr>
-                                                </>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
 
                             {error && (
                                 <p style={{ color: '#e74c3c', fontSize: 12, marginTop: 16 }}>

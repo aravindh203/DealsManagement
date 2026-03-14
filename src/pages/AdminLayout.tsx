@@ -4,7 +4,7 @@ import { Sidenav } from '../components/Sidenav';
 import styles from './AdminLayout.module.scss';
 
 export const AdminLayout: React.FC = () => {
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
     return (
         <div className={styles.layout}>

@@ -97,6 +97,7 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
       toast({
         title: 'Vendor selected',
         description: `${vendor.name} has been set as the finalized vendor for this project.`,
+        variant: 'success',
       });
 
       onClose();
@@ -495,19 +496,27 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
             }
           }}
         >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Assign this vendor to the project?</AlertDialogTitle>
-              <AlertDialogDescription>
+          <AlertDialogContent className="bg-[#f4f5f7] border border-slate-200 shadow-2xl rounded-2xl p-6 gap-4 text-left">
+            <AlertDialogHeader className="space-y-2 text-left">
+              <AlertDialogTitle className="text-lg font-bold text-[#1a1b25]">
+                Assign this vendor to the project?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-sm text-[#6b7280] leading-relaxed">
                 {pendingVendor
                   ? `You are about to finalize "${pendingVendor.name}" as the selected vendor for this project. This will update the project status and store this vendor as the finalized choice.`
                   : "You are about to finalize this vendor for the project."}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={assigningVendor}>Cancel</AlertDialogCancel>
+            <AlertDialogFooter className="flex flex-row gap-2 sm:justify-end sm:space-x-2 mt-4">
+              <AlertDialogCancel
+                disabled={assigningVendor}
+                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 rounded-xl px-4"
+              >
+                Cancel
+              </AlertDialogCancel>
               <AlertDialogAction
                 disabled={assigningVendor}
+                className="bg-[#5a3dd4] hover:bg-[#4a30b5] text-white rounded-xl px-4 border-0 focus:ring-2 focus:ring-[#5a3dd4]/40"
                 onClick={async (event) => {
                   event.preventDefault();
                   if (!pendingVendor) return;

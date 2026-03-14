@@ -156,12 +156,28 @@
 .mainStatic {
     flex-shrink: 0;
     padding: 36px 48px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.pageHeader {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+.headerRow {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .titleGroup {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 6px;
 }
 
 .overline {
@@ -169,72 +185,201 @@
     font-weight: 800;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #6b7280;
+    color: #6B47E5;
 }
 
 .pageTitle {
-    font-size: 32px;
+    font-size: 44px;
     font-weight: 900;
-    letter-spacing: -0.5px;
+    letter-spacing: -1.5px;
     color: #1A202C;
     margin: 0;
     line-height: 1;
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.rangeButton {
+    padding: 10px 18px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+
+    &:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+}
+
+.primaryButton {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none;
+    background: #6B47E5;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(107, 71, 229, 0.35);
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+        background: #5a3dd4;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(107, 71, 229, 0.45);
+    }
+}
+
+/* ---- Stat cards (Insights-style) ---- */
+.statsRow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.card {
+    border-radius: 28px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    min-height: 180px;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.12);
+    }
+}
+
+.cardDark {
+    background-color: #1A202C;
+    color: #fff;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+
+    &:hover {
+        box-shadow: 0 24px 52px rgba(0, 0, 0, 0.28);
+    }
+}
+
+.cardLight {
+    background-color: #ffffff;
+    color: #1A202C;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.05);
+
+    &:hover {
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.cardPurple {
+    background-color: #6B47E5;
+    color: #fff;
+    box-shadow: 0 16px 36px rgba(107, 71, 229, 0.36);
+
+    &:hover {
+        box-shadow: 0 24px 48px rgba(107, 71, 229, 0.45);
+    }
+}
+
+.cardTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.iconBox {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.iconBoxDark {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.iconBoxLight {
+    background-color: #f0efff;
+    color: #6B47E5;
+}
+
+.iconBoxPurple {
+    background-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
+.cardBottom {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cardLabel {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+}
+
+.cardDark .cardLabel,
+.cardPurple .cardLabel {
+    opacity: 0.9;
+    color: #fff;
+}
+
+.cardLight .cardLabel {
+    color: #1A202C;
+    opacity: 0.7;
+}
+
+.cardValue {
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin: 0;
+    line-height: 1;
+}
+
+.cardValuePurple {
+    color: #6B47E5 !important;
+}
+
+.cardSub {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 3px;
+    color: inherit;
+}
+
+.cardLight .cardSub {
+    color: #ADB5BD;
+}
+
+.cardSubGreen {
+    color: #16a34a;
+    font-weight: 600;
 }
 
 .mainScroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 0 48px 48px;
-}
-
-.kpiRow {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
-}
-
-.kpiCard {
-    position: relative;
-    background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 18px;
-    padding: 18px 20px 20px;
-    box-shadow: 0 4px 14px rgba(148, 163, 184, 0.2);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    overflow: hidden;
-}
-
-.kpiCard:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 40px rgba(148, 163, 184, 0.45);
-    transition: transform 0.22s ease, box-shadow 0.22s ease;
-}
-
-.kpiLabel {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748b;
-    margin: 0;
-}
-
-.kpiValue {
-    font-size: 24px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0;
-}
-
-.kpiDelta {
-    font-size: 11px;
-    font-weight: 500;
-    color: #16a34a;
-    margin: 0;
+    padding: 24px 48px 48px;
 }
 
 .middleRow,
