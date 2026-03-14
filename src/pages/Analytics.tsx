@@ -305,7 +305,7 @@ const Analytics: React.FC = () => {
                                                             key={idx}
                                                             fill={
                                                                 ['#4F46E5', '#8B5CF6', '#6366F1', '#A855F7', '#E5E7EB'][
-                                                                    idx % 5
+                                                                idx % 5
                                                                 ]
                                                             }
                                                         />
