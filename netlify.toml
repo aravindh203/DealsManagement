@@ -1,0 +1,18 @@
+# Build settings
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Proxy /api/token/* to Azure AD (replaces the Vite dev proxy)
+# Netlify makes the request server-side, so no CORS issues.
+[[redirects]]
+  from = "/api/token/*"
+  to = "https://login.microsoftonline.com/:splat"
+  status = 200
+  force = true
+
+# SPA catch-all: serve index.html for all client-side routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
