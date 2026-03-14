@@ -1,73 +1,83 @@
-## Project information
-This sample application simulates a common project management use case where documents need to be collabarated on by internal and external project teams.  
+# Deals Management & Vendor Analysis Platform
 
-View project dashboard information:
+A premium, AI-driven project management and document collaboration platform powered by **SharePoint Embedded** and **Azure OpenAI**.
 
-![alt text](image-5.png)
+## 🚀 Key Features
 
-Navigate into the projects you have access and begin to collaborate with other project members.
+### 🧠 AI-Powered Intelligence
+- **AI Suggested Vendors**: Automatically analyzes proposal, cost, and policy documents to score vendors based on project criteria.
+- **Contextual ChatBot**: A persistent AI assistant that helps users query project data, create projects, and surface insights instantly.
+- **Smart Summarization**: Generates intelligence reports from complex vendor submissions.
 
-![alt text](image-4.png)
+### 📄 Advanced Document Collaboration
+- **Office Online Integration**: Seamlessly view and edit Word, Excel, and PowerPoint files directly within the application.
+- **Premium Document Viewer**: A high-fidelity, in-app preview system with support for diverse file types (PDF, Images, Office Docs).
+- **Advanced Sharing**: A unified sharing workflow supporting:
+  - **Anyone** (Anonymous links)
+  - **Organization-wide** access
+  - **Specific People** (Via Graph API invitations)
+  - Granular **View/Edit** permission controls.
 
-Experience full Microsoft Office collaboration right wihtin your application.
+### ✨ Premium User Experience
+- **Modern Dashboard**: Visually rich interface with glassmorphism, dynamic animations, and a tailored purple theme.
+- **Responsive Design**: Fully optimized for diverse screen sizes.
+- **Intelligent Notifications**: Custom-built, non-intrusive toast system positioned for optimal visibility.
 
-![alt text](image-3.png)
+## 🛠️ Technology Stack
 
-## Getting started
+- **Frontend**: React 18, Vite, TypeScript
+- **Styling**: Tailwind CSS, Lucide Icons, Radix UI (shadcn/ui)
+- **Authentication**: MSAL (Microsoft Authentication Library) for Azure AD
+- **Backend Services**: Microsoft Graph API (File & Sharing operations)
+- **AI Engine**: Azure OpenAI (GPT-4) for document analysis and chat
 
-**Use your preferred IDE**
+## ⚙️ Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. 
+### Prerequisites
+- **Node.js** (v18 or higher)
+- **Azure AD App Registration** with appropriate Graph API permissions:
+  - `Files.ReadWrite.All`
+  - `Sites.Read.All`
+  - `User.Read`
+  - `FileStorageContainer.Selected` (for SPE)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd DealsManagement
+   ```
 
-Follow these steps:
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Configure the application:
+   Update `src/config/appConfig.ts` with your Azure and SharePoint Embedded details:
+   ```typescript
+   export const appConfig = {
+     clientId: "YOUR_CLIENT_ID",
+     tenantId: "YOUR_TENANT_ID",
+     containerTypeId: "YOUR_CONTAINER_TYPE_ID",
+     sharePointHostname: "https://your-tenant.sharepoint.com",
+     // ... other settings
+   };
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. Run in development mode:
+   ```bash
+   npm run dev
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 📂 Project Structure
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+- `src/components`: Reusable UI components (Modals, Chat, Forms).
+- `src/pages`: Main application views (Dashboard, Repository, Directory).
+- `src/services`: Core logic for API interactions (SharePoint, AI).
+- `src/context`: React Context for global state management (Auth, Projects).
+- `src/hooks`: Custom hooks for common logic and API calls.
 
-**Connect to SharePoint Embedded**
+## 📄 License
 
-It is assumed that you have a SharePoint Embedded Container Type registered and a container created to hold documents.  If not follow this [install guide](https://aka.ms/spe-start).
-
-
-
-## Application Configuration
-Start using the application by updating the configuration with your SharePoint Embedded information.  This can be found in the /src/config/appConfig.ts
-
-```sh
-# Line 5-7:  Replace whats in brackets with your SharePoint Embedded information.
- 
-    clientId: "<CLIENT_ID>", // Replace with your application client ID
-    tenantId: "<TENANT_ID>", // Replace with your tenant ID
-    containerTypeId: "<CONTAINER_TYPE_ID>", // Replace with your container type ID
-
-# Line 11:  Update your domain to authenticate properly
-
-    sharePointHostname: "https://<Domain>.sharepoint.com",
-
-# Line 16:  Update the Client ID 
-
-    clientId: "<CLIENT_ID>", // Same as above
-```
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Internal Project - All Rights Reserved.
