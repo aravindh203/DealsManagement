@@ -89,7 +89,8 @@ const App = () => {
                       <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route path="/admin" element={<Navigate to="/insights" replace />} />
-                        <Route path="/admin/directory" element={<Navigate to="/directory" replace />} />
+                        <Route path="/admin/directory" element={<Navigate to="/projects" replace />} />
+                        <Route path="/directory" element={<Navigate to="/projects" replace />} />
                         <Route path="/admin/repository" element={<Navigate to="/repository" replace />} />
                         <Route path="/admin/analytics" element={<Navigate to="/analytics" replace />} />
                         <Route path="/admin/identity" element={<Navigate to="/identity" replace />} />
@@ -104,7 +105,7 @@ const App = () => {
                             )}
                           />
                           <Route
-                            path="directory"
+                            path="projects"
                             element={(
                               <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
                                 <Directory />
@@ -187,10 +188,10 @@ const ProtectedRouteWithSearch = ({ children }: { children: React.ReactNode }) =
   return <LayoutWithSearch>{children}</LayoutWithSearch>;
 };
 
-// Redirect to default screen: vendors go to Directory, others to Insights
+// Redirect to default screen: vendors go to Project, others to Insights
 const DefaultRedirect = () => {
   const { loginType } = useAuth();
-  return <Navigate to={loginType === 'vendor' ? '/directory' : '/insights'} replace />;
+  return <Navigate to={loginType === 'vendor' ? '/projects' : '/insights'} replace />;
 };
 
 // Standalone protected route without standard layout
@@ -215,13 +216,13 @@ const ModuleGuard = ({
 }) => {
   const { role, loginType } = useAuth();
 
-  // Vendors may only access Directory and Repository (and project detail from Directory)
+  // Vendors may only access Project and Repository (and project detail from Project)
   if (loginType === 'vendor' && !allowVendor) {
-    return <Navigate to="/directory" replace />;
+    return <Navigate to="/projects" replace />;
   }
 
   if (!allowedRoles.includes(role)) {
-    return <Navigate to="/directory" replace />;
+    return <Navigate to="/projects" replace />;
   }
 
   return <>{children}</>;

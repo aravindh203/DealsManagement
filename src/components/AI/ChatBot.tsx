@@ -412,45 +412,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ onCreateProjectClick }) => {
         </div>
       )}
 
-      {/* Floating Action Button */}
+      {/* Floating Action Button - AI assistant icon */}
       <button
         onClick={toggleChat}
-        className="w-14 h-14 bg-white hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all duration-300 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(88,28,135,0.35)] border border-slate-100"
-        aria-label="Open DealBridge assistant"
+        className="w-14 h-14 bg-white hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all duration-300 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(88,28,135,0.35)] border border-slate-100 text-[#5a3dd4]"
+        aria-label="Open Nexus assistant"
       >
-        <svg
-          width="32"
-          height="32"
-          viewBox="0 0 32 32"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="chatbot-bubble" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="#a855f7" />
-              <stop offset="1" stopColor="#3b82f6" />
-            </linearGradient>
-            <linearGradient id="chatbot-star" x1="0" y1="20" x2="20" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="#f97316" />
-              <stop offset="1" stopColor="#eab308" />
-            </linearGradient>
-          </defs>
-          {/* Chat bubble */}
-          <path
-            d="M8.5 6C6.567 6 5 7.567 5 9.5v7C5 18.985 6.79 21 9 21h4.4l3.24 2.7c.98.82 2.36.11 2.36-1.1V21H23.5C25.433 21 27 19.433 27 17.5v-8C27 7.567 25.433 6 23.5 6h-15Z"
-            fill="url(#chatbot-bubble)"
-          />
-          {/* Lines inside bubble */}
-          <path
-            d="M11 11.25c0-.414.336-.75.75-.75H19a.75.75 0 0 1 0 1.5h-7.25A.75.75 0 0 1 11 11.25Zm0 3c0-.414.336-.75.75-.75H17a.75.75 0 0 1 0 1.5h-5.25A.75.75 0 0 1 11 14.25Z"
-            fill="white"
-            fillOpacity="0.95"
-          />
-          {/* Sparkle/star */}
-          <path
-            d="M21.75 7.5c.15-.39.71-.39.86 0l.64 1.65c.16.43.5.77.93.93l1.65.64c.39.15.39.71 0 .86l-1.65.64c-.43.16-.77.5-.93.93l-.64 1.65c-.15.39-.71.39-.86 0l-.64-1.65a1.5 1.5 0 0 0-.93-.93l-1.65-.64a.45.45 0 0 1 0-.86l1.65-.64c.43-.16.77-.5.93-.93l.64-1.65Z"
-            fill="url(#chatbot-star)"
-          />
-        </svg>
+        <Bot className="w-7 h-7" strokeWidth={2} />
       </button>
     </div>
   );

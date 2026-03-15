@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styles from './Analytics.module.scss';
-import { LogOut, Folder, Users, DollarSign, Star } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Folder, CircleDollarSign, DollarSign, FolderOpen } from 'lucide-react';
+import { UserMenu } from '../components/UserMenu';
 import { useProjects } from '../context/ProjectsContext';
 import type { Project } from './projectsData';
 import {
@@ -22,20 +21,9 @@ import {
 } from 'recharts';
 
 const Analytics: React.FC = () => {
-    const { logout } = useAuth();
-    const navigate = useNavigate();
     const { projects } = useProjects();
 
     const totalProjects = projects.length;
-
-    const activeVendors = useMemo(() => {
-        const set = new Set<string>();
-        projects.forEach((p) => {
-            const email = (p.V_SubmittedByEmail ?? '').toString().trim();
-            if (email) set.add(email);
-        });
-        return set.size;
-    }, [projects]);
 
     const statusBuckets = useMemo(() => {
         const buckets: Record<string, number> = {
@@ -111,15 +99,7 @@ const Analytics: React.FC = () => {
                     <span className={styles.logo}>Analytics</span>
                 </div>
                 <div className={styles.navRight}>
-                    <button
-                        type="button"
-                        className={styles.logoutBtn}
-                        onClick={() => { logout(); navigate('/login'); }}
-                        title="Logout"
-                    >
-                        <LogOut size={18} />
-                        <span>Logout</span>
-                    </button>
+                    <UserMenu />
                 </div>
             </nav>
 
@@ -127,20 +107,12 @@ const Analytics: React.FC = () => {
                 <div className={styles.mainStatic}>
                     <div className={styles.pageHeader}>
                         <div className={styles.titleGroup}>
-                            <span className={styles.overline}>Analytics &amp; Reporting</span>
-                            <h1 className={styles.pageTitle}>Project Performance Overview</h1>
-                        </div>
-                        <div className={styles.headerActions}>
-                            <button type="button" className={styles.rangeButton}>
-                                Last 30 days
-                            </button>
-                            <button type="button" className={styles.primaryButton}>
-                                Export Report
-                            </button>
+                            <span className={styles.overline}>Deals &amp; project analytics</span>
+                            <h1 className={styles.pageTitle}>Deal pipeline overview</h1>
                         </div>
                     </div>
 
-                    {/* Stat cards – Insights-style */}
+                    {/* Stat cards – deals/project business */}
                     <div className={styles.statsRow}>
                         <div className={`${styles.card} ${styles.cardDark}`}>
                             <div className={styles.cardTop}>
@@ -149,21 +121,9 @@ const Analytics: React.FC = () => {
                                 </div>
                             </div>
                             <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>Total Projects</span>
+                                <span className={styles.cardLabel}>Total projects</span>
                                 <h2 className={styles.cardValue}>{totalProjects}</h2>
-                                <span className={`${styles.cardSub} ${styles.cardSubGreen}`}>+3 vs last month</span>
-                            </div>
-                        </div>
-                        <div className={`${styles.card} ${styles.cardLight}`}>
-                            <div className={styles.cardTop}>
-                                <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
-                                    <Users size={20} />
-                                </div>
-                            </div>
-                            <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>Active Vendors</span>
-                                <h2 className={styles.cardValue}>{activeVendors}</h2>
-                                <span className={styles.cardSub}>Across all projects</span>
+                                <span className={styles.cardSub}>In pipeline</span>
                             </div>
                         </div>
                         <div className={`${styles.card} ${styles.cardLight}`}>
@@ -173,7 +133,7 @@ const Analytics: React.FC = () => {
                                 </div>
                             </div>
                             <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>Total Budget</span>
+                                <span className={styles.cardLabel}>Total budget</span>
                                 <h2 className={styles.cardValue}>
                                     {budgetVsBid.totalBudget.toLocaleString('en-US', {
                                         style: 'currency',
@@ -183,21 +143,39 @@ const Analytics: React.FC = () => {
                                 </h2>
                                 <span className={`${styles.cardSub} ${styles.cardSubGreen}`}>
                                     {budgetVsBid.totalBudget > 0 && budgetVsBid.totalBid > 0
-                                        ? `${Math.round((budgetVsBid.totalBid / budgetVsBid.totalBudget) * 100)}% spent`
-                                        : '0% spent'}
+                                        ? `${Math.round((budgetVsBid.totalBid / budgetVsBid.totalBudget) * 100)}% committed`
+                                        : '0% committed'}
                                 </span>
+                            </div>
+                        </div>
+                        <div className={`${styles.card} ${styles.cardLight}`}>
+                            <div className={styles.cardTop}>
+                                <div className={`${styles.iconBox} ${styles.iconBoxLight}`}>
+                                    <CircleDollarSign size={20} />
+                                </div>
+                            </div>
+                            <div className={styles.cardBottom}>
+                                <span className={styles.cardLabel}>Total bid amount</span>
+                                <h2 className={styles.cardValue}>
+                                    {budgetVsBid.totalBid.toLocaleString('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD',
+                                        maximumFractionDigits: 0,
+                                    })}
+                                </h2>
+                                <span className={styles.cardSub}>Sum of all vendor bids</span>
                             </div>
                         </div>
                         <div className={`${styles.card} ${styles.cardPurple}`}>
                             <div className={styles.cardTop}>
                                 <div className={`${styles.iconBox} ${styles.iconBoxPurple}`}>
-                                    <Star size={20} />
+                                    <FolderOpen size={20} />
                                 </div>
                             </div>
                             <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>Avg Vendor Rating</span>
-                                <h2 className={styles.cardValue}>4.6</h2>
-                                <span className={styles.cardSub}>Based on 42 reviews</span>
+                                <span className={styles.cardLabel}>Open projects</span>
+                                <h2 className={styles.cardValue}>{statusBuckets['Open'] ?? 0}</h2>
+                                <span className={styles.cardSub}>Currently active</span>
                             </div>
                         </div>
                     </div>
@@ -276,7 +254,7 @@ const Analytics: React.FC = () => {
                             <p className={styles.sectionSubtitle}>Projects by vendor</p>
                             {vendorShare.total === 0 ? (
                                 <p className={styles.reportCardDesc}>
-                                    No finalized vendors yet. Assign vendors from the Directory to see this chart.
+                                    No finalized vendors yet. Assign vendors from the Project screen to see this chart.
                                 </p>
                             ) : (
                                 <div className={styles.vendorPieStack}>

@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styles from './Insights.module.scss';
 import {
     CubeRegular,
@@ -13,8 +12,7 @@ import {
     FolderRegular,
     CheckmarkCircleRegular,
 } from '@fluentui/react-icons';
-import { LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { UserMenu } from '../components/UserMenu';
 import { useAdminStats, formatBytes } from '../hooks/useAdminStats';
 import { useProjects } from '../context/ProjectsContext';
 import { getAccessTokenByApp } from '../hooks/useClientCredentialsAuth';
@@ -54,8 +52,6 @@ const getStatusPillClass = (status: string): string => status.replace(/\s+/g, ''
 
 // ── Component ──────────────────────────────────────────────
 const Insights: React.FC = () => {
-    const { logout } = useAuth();
-    const navigate = useNavigate();
     const {
         containerCount,
         totalStorageUsedBytes,
@@ -93,6 +89,15 @@ const Insights: React.FC = () => {
     const now = new Date();
 
     const totalProjects = projects.length;
+    /** Sum of all project budgets (P_Budget) for Total Budget card. */
+    const totalBudget = useMemo(
+        () =>
+            projects.reduce((sum, p) => {
+                const b = p.P_Budget ? parseFloat(String(p.P_Budget).replace(/[^0-9.-]/g, '')) : 0;
+                return sum + (Number.isNaN(b) ? 0 : b);
+            }, 0),
+        [projects]
+    );
     /** Open count uses P_Status (same as Directory) so the card reflects actual list data. */
     const openProjectsCount = projects.filter((p) => (p.P_Status ?? 'Open') === 'Open').length;
     const completedProjectsCount = useMemo(
@@ -270,15 +275,7 @@ const Insights: React.FC = () => {
                     >
                         <span>Manage Columns</span>
                     </button>
-                    <button
-                        type="button"
-                        className={styles.logoutBtn}
-                        onClick={() => { logout(); navigate('/login'); }}
-                        title="Logout"
-                    >
-                        <LogOut size={18} />
-                        <span>Logout</span>
-                    </button>
+                    <UserMenu />
                 </div>
             </nav>
 
@@ -288,23 +285,29 @@ const Insights: React.FC = () => {
                 <div className={styles.mainStatic}>
                     <div className={styles.pageHeader}>
                         <div className={styles.titleGroup}>
-                            <span className={styles.overline}>DEALBRIDGE</span>
+                            <span className={styles.overline}>NEXUS</span>
                             <h1 className={styles.pageTitle}>Insights</h1>
                         </div>
                     </div>
 
                     {/* ── Stat Cards ── */}
                     <div className={styles.statsRow}>
-                        {/* Total Projects – dark card */}
+                        {/* Total Budget – dark card */}
                         <div className={`${styles.card} ${styles.cardDark}`}>
                             <div className={styles.cardTop}>
                                 <div className={`${styles.iconBox} ${styles.iconBoxDark}`}>
-                                    <FolderRegular />
+                                    <MoneyRegular />
                                 </div>
                             </div>
                             <div className={styles.cardBottom}>
-                                <span className={styles.cardLabel}>TOTAL PROJECTS</span>
-                                <h2 className={styles.cardValue}>{totalProjects}</h2>
+                                <span className={styles.cardLabel}>TOTAL BUDGET</span>
+                                <h2 className={styles.cardValue}>
+                                    {totalBudget >= 1e6
+                                        ? `$${(totalBudget / 1e6).toFixed(1)}M`
+                                        : totalBudget >= 1e3
+                                            ? `$${(totalBudget / 1e3).toFixed(0)}K`
+                                            : `$${totalBudget.toLocaleString()}`}
+                                </h2>
                             </div>
                         </div>
 
@@ -328,7 +331,7 @@ const Insights: React.FC = () => {
                                     <>
                                         <h2 className={styles.cardValue}>{companiesFromUserDetails.length}</h2>
                                         <span className={styles.cardSub}>
-                                            Vendors in directory
+                                            Vendors
                                         </span>
                                     </>
                                 )}

@@ -1,39 +1,82 @@
 .page {
   display: flex;
   flex-direction: column;
-  padding: 32px 40px;
+  height: 100%;
   background-color: #F8F9FA;
   box-sizing: border-box;
 }
 
-.header {
+.topNav {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
+  padding: 18px 48px;
+  background-color: #F8F9FA;
+  border-bottom: 1px solid #ebebf0;
+  flex-shrink: 0;
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #1A202C;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.contentWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 40px;
+  overflow: auto;
+}
+
+.header {
+  margin-bottom: 28px;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .overline {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: #6b7280;
-  margin-bottom: 4px;
+  color: #6B47E5;
 }
 
-.title {
+.pageTitle {
   font-size: 28px;
-  font-weight: 800;
-  margin: 0 0 6px;
-  color: #111827;
+  font-weight: 700;
+  margin: 0;
+  color: #1a202c;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .subtitle {
-  font-size: 13px;
-  color: #6b7280;
-  max-width: 520px;
+  font-size: 14px;
+  color: #64748b;
+  max-width: 560px;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .refreshButton {

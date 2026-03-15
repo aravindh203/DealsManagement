@@ -4,7 +4,7 @@ export const appConfig = {
   clientId: "453b9fbd-7155-4832-8324-efd5c13de9fb", // Replace with your application client ID
   tenantId: "3e8e53be-a48f-4147-adf8-7e90a6e46b57", // Replace with your tenant ID
   containerTypeId: "5d56b164-88fc-4574-b399-7da2520f3a03", // Replace with your container type ID
-  appName: "DealBridge",
+  appName: "Nexus",
   ContainerID:
     "b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ",
 
