@@ -107,7 +107,7 @@ const Analytics: React.FC = () => {
                 <div className={styles.mainStatic}>
                     <div className={styles.pageHeader}>
                         <div className={styles.titleGroup}>
-                            <span className={styles.overline}>Deals &amp; project analytics</span>
+                            <span className={styles.overline}>Deals &amp; projects analytics</span>
                             <h1 className={styles.pageTitle}>Deal pipeline overview</h1>
                         </div>
                     </div>

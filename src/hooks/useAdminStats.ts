@@ -43,20 +43,14 @@ export const useAdminStats = (): AdminStats => {
         setError(null);
 
         const token = await getAccessTokenByApp();
-        //getAccessToken();
         if (!token) {
           setError("Failed to acquire access token");
           return;
         }
 
-        // 1. List all containers
-        const containerList = await sharePointService.getAllContainers(
-          token,
-          appConfig.containerTypeId,
-        );
+        const containerList = await sharePointService.getAllContainers(token, appConfig.containerTypeId);
         setContainerCount(containerList.length);
 
-        // 2. Fetch quota for each container in parallel
         const quotaResults = await Promise.all(
           containerList.map(async (c) => {
             const quota = await sharePointService.getDriveQuota(token, c.id);
@@ -68,17 +62,10 @@ export const useAdminStats = (): AdminStats => {
             };
           }),
         );
-        console.log("quotaResults", quotaResults);
-
         setContainers(quotaResults);
-        setTotalStorageUsedBytes(
-          quotaResults.reduce((sum, c) => sum + c.usedBytes, 0),
-        );
-        setTotalStorageTotalBytes(
-          quotaResults.reduce((sum, c) => sum + c.totalBytes, 0),
-        );
+        setTotalStorageUsedBytes(quotaResults.reduce((sum, c) => sum + c.usedBytes, 0));
+        setTotalStorageTotalBytes(quotaResults.reduce((sum, c) => sum + c.totalBytes, 0));
       } catch (err: any) {
-        console.error("useAdminStats error:", err);
         setError(err.message || "Failed to load admin stats");
       } finally {
         setLoading(false);

@@ -105,7 +105,6 @@ const Conversation: React.FC<ConversationProps> = ({
     try {
       await onSendMessage(text);
     } catch (error) {
-      console.error("Conversation Error:", error);
       setMessages((prev) => [
         ...prev,
         { 
@@ -357,3 +356,4 @@ const Conversation: React.FC<ConversationProps> = ({
 };
 
 export default Conversation;
+

@@ -15,11 +15,9 @@ window.addEventListener('error', (e) => {
     e.message.includes('ContainerTypeId') ||
     e.message.includes('Cannot read properties of undefined')
   )) {
-    console.error('SharePoint Embedded error caught:', e.error || e.message);
     // Prevent default browser error handling for these specific errors
     e.preventDefault();
   } else {
-    console.error('Global error caught:', e.error || e.message);
   }
 });
 
@@ -33,13 +31,12 @@ window.addEventListener('unhandledrejection', (e) => {
     )) ||
     (e.reason.toString && e.reason.toString().includes('SharePoint'))
   )) {
-    console.error('Unhandled SharePoint promise rejection:', e.reason);
     // Prevent default browser error handling
     e.preventDefault();
   } else {
-    console.error('Unhandled promise rejection:', e.reason);
   }
 });
 
 const root = createRoot(rootElement);
 root.render(<App />);
+

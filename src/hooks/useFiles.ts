@@ -22,29 +22,11 @@ export const useFiles = (containerId: string | undefined) => {
   const { isAuthenticated, getAccessToken } = useAuth();
   const { addApiCall } = useApiCalls();
 
-  // Improved container ID normalization for SharePoint site IDs
   const normalizeContainerId = useCallback((id: string) => {
     if (!id) return '';
-    
-    console.log('Original container ID:', id);
-    
-    // If it's a SharePoint site ID format (contains commas), use it as-is
-    // SharePoint site IDs have the format: tenant.sharepoint.com,siteId,webId
-    if (id.includes(',')) {
-      console.log('Using SharePoint site ID format as-is:', id);
-      return id;
-    }
-    
-    // If it contains 'b!' prefix, it's already a Graph-style ID
-    if (id.startsWith('b!')) {
-      console.log('Using Graph ID format:', id);
-      return id;
-    }
-    
-    // Otherwise, add the b! prefix
-    const normalizedId = `b!${id}`;
-    console.log('Normalized to Graph ID format:', normalizedId);
-    return normalizedId;
+    if (id.includes(',')) return id;
+    if (id.startsWith('b!')) return id;
+    return `b!${id}`;
   }, []);
 
   const fetchFiles = useCallback(async () => {
@@ -57,17 +39,14 @@ export const useFiles = (containerId: string | undefined) => {
       if (!token) {
         setError("Failed to get access token. Please try logging in again.");
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token",
+          title: "Files access token error",
           variant: "destructive",
         });
         return;
       }
 
       const normalizedContainerId = normalizeContainerId(containerId);
-      console.log(`Fetching files for container ${normalizedContainerId}, folder ${currentFolder || 'root'}`);
       
-      // Track API call
       const apiCallData = {
         method: 'GET',
         url: `/containers/${normalizedContainerId}/drive/items/${currentFolder || 'root'}/children`,
@@ -93,9 +72,7 @@ export const useFiles = (containerId: string | undefined) => {
           status: 200
         });
       } catch (apiError: any) {
-        console.error('API Error details:', apiError);
-        
-        // Track failed API call
+
         addApiCall({
           ...apiCallData,
           response: { error: apiError.message },
@@ -111,18 +88,14 @@ export const useFiles = (containerId: string | undefined) => {
         } else if (apiError.message?.includes('400')) {
           errorMessage = "Invalid request. The container ID format may be incorrect.";
         }
-        
         setError(errorMessage);
         throw apiError;
       }
     } catch (error: any) {
-      console.error('Error fetching files:', error);
-      
       if (!error.message?.includes('404') && !error.message?.includes('403') && !error.message?.includes('400')) {
         setError(error.message || "Failed to fetch files. This may be due to insufficient permissions or API limitations.");
         toast({
-          title: "Error",
-          description: "Failed to fetch files. Please check console for details.",
+          title: "Files fetch error",
           variant: "destructive",
         });
       }
@@ -157,8 +130,7 @@ export const useFiles = (containerId: string | undefined) => {
       const token = await getAccessToken();
       if (!token) {
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token",
+          title: "Files access token error",
           variant: "destructive",
         });
         return;
@@ -185,8 +157,7 @@ export const useFiles = (containerId: string | undefined) => {
         });
         
         toast({
-          title: "Success",
-          description: "File deleted successfully",
+          title: "File delete success",
         });
       } catch (apiError: any) {
         // Track failed API call
@@ -198,10 +169,8 @@ export const useFiles = (containerId: string | undefined) => {
         throw apiError;
       }
     } catch (error: any) {
-      console.error('Error deleting file:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete file. Please try again.",
+        title: "File delete error",
         variant: "destructive",
       });
     }

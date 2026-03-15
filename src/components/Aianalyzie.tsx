@@ -24,17 +24,12 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
         const AiAnalysiz = async (extractedContent: any, description: string) => {
           return await analyzeProposalDocuments(extractedContent, { P_Description: description });
         };
-
-        console.log("Starting AI Process...");
         const extractedData = await AiProcess(proposalDocument);
-        console.log("Content extracted, starting analysis...");
 
         const analysisResult = await AiAnalysiz(extractedData, projectDescription);
-        console.log("Analysis Result:", analysisResult);
 
         // You can now use analysisResult to update state if needed
       } catch (error) {
-        console.error("AI Analysis failed:", error);
       }
     };
 
@@ -275,4 +270,5 @@ export default function Aianalyzie({ projectDescription, proposalDocument, onClo
     </div>
   );
 }
+
 

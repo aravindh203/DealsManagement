@@ -91,7 +91,6 @@ const FileList: React.FC<FileListProps> = ({
 
   if (files.length === 0) {
     return <EmptyState onUploadClick={() => {
-      console.log("Upload button clicked in EmptyState");
     }} />;
   }
 
@@ -222,3 +221,4 @@ const FileList: React.FC<FileListProps> = ({
 };
 
 export default FileList;
+

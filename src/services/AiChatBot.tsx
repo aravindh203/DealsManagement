@@ -133,7 +133,5 @@ ${JSON.stringify(Question, null, 2)}
   if (content.endsWith("```")) {
     content = content.substring(0, content.length - 3);
   }
-
-  console.log("content", content);
   return JSON.parse(content);
 };

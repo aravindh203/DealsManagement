@@ -50,7 +50,6 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
       const containerId: string = appConfig.ContainerID;
 
       if (!token) {
-        console.error("Failed to acquire app token for projects reload");
         return;
       }
 
@@ -73,10 +72,7 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
           };
         }) ?? [],
       );
-
-      console.log("resData: ", resData);
     } catch (error) {
-      console.error("Error reloading projects from SharePoint:", error);
     }
   }, []);
 
@@ -87,7 +83,6 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
       const containerId: string = appConfig.ContainerID;
 
       if (!token) {
-        console.error("Failed to acquire app token for projects reload");
         return;
       }
 
@@ -113,7 +108,6 @@ export const ProjectsProvider: React.FC<{ children: ReactNode }> = ({
 
       setProjects(resData);
     } catch (error) {
-      console.error("Error reloading projects from SharePoint:", error);
     } finally {
       setProjectsLoading(false);
     }
@@ -199,3 +193,4 @@ export function useProjects(): ProjectsContextType {
   }
   return context;
 }
+

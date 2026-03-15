@@ -91,7 +91,6 @@ const useStyles = makeStyles({
     justifyContent: 'center',
     alignItems: 'center',
     columnGap: '8px',
-    // borderStyle: 'none',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     ':hover': {
@@ -408,16 +407,13 @@ const Login = () => {
       setError(null);
       await login();
       toast({
-        title: "Login successful",
-        description: "You have been successfully authenticated.",
+        title: "User login success",
         variant: "success",
       });
     } catch (err) {
-      console.error('Login failed:', err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
       toast({
-        title: "Login failed",
-        description: "An error occurred during authentication.",
+        title: "User login failed",
         variant: "destructive",
       });
     } finally {
@@ -432,16 +428,13 @@ const Login = () => {
       setVendorError(null);
       await loginVendor(vendorUsername, vendorPassword);
       toast({
-        title: "Login successful",
-        description: "You have been signed in as a vendor.",
+        title: "Vendor login success",
         variant: "success",
       });
     } catch (err) {
-      console.error('Vendor login failed:', err);
       setVendorError(err instanceof Error ? err.message : 'Invalid username or password.');
       toast({
         title: "Vendor login failed",
-        description: "Please check your username and password.",
         variant: "destructive",
       });
     } finally {
@@ -476,8 +469,7 @@ const Login = () => {
       });
 
       toast({
-        title: "Request submitted",
-        description: "Your vendor signup request has been sent for approval. You will be able to sign in after an Office 365 admin approves you.",
+        title: "Vendor signup request submitted",
         variant: "success",
       });
 
@@ -492,11 +484,9 @@ const Login = () => {
       setSignupConfirmPassword('');
       setShowVendorSignup(false);
     } catch (err) {
-      console.error('Vendor signup failed:', err);
       setSignupError(err instanceof Error ? err.message : 'Could not submit signup request.');
       toast({
-        title: "Vendor signup failed",
-        description: "There was a problem submitting your request. Please try again.",
+        title: "Vendor signup request failed",
         variant: "destructive",
       });
     } finally {

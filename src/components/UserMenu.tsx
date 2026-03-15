@@ -38,12 +38,17 @@ export const UserMenu: React.FC<UserMenuProps> = ({ className }) => {
         <button
           type="button"
           className={cn(
-            'flex items-center justify-center rounded-full w-9 h-9 border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300',
+            'flex items-center gap-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 pl-3 pr-1 py-1',
             className
           )}
           aria-label="Open user menu"
         >
-          <User size={18} />
+          <span className="text-sm font-medium text-slate-700 max-w-[150px] truncate hidden sm:inline-block">
+            {displayName}
+          </span>
+          <div className="flex items-center justify-center rounded-full w-7 h-7 bg-slate-100 text-slate-600">
+            <User size={16} />
+          </div>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={6} className="min-w-[220px] p-0">

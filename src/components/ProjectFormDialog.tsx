@@ -355,14 +355,14 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
             </div>
             <div className="space-y-0.5">
               <DialogTitle className="text-lg font-semibold tracking-tight">
-                {isView ? 'View Project' : project ? 'Edit Project' : 'New Project'}
+                {isView ? 'View Project' : mode === 'create' ? 'New Project' : 'Edit Project'}
               </DialogTitle>
               <p className="text-xs text-muted-foreground">
                 {isView
                   ? 'Project details (read-only)'
-                  : project
-                    ? 'Update project details and attachments'
-                    : 'Add a new project'}
+                  : mode === 'create'
+                    ? 'Add a new project'
+                    : 'Update project details and attachments'}
               </p>
             </div>
           </div>
@@ -688,7 +688,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                           )}
                           {!isView && <p className="text-xs text-muted-foreground pt-1">Add more files below.</p>}
                         </div>
-                      ) : !isView && project ? null : existingAttachments.length === 0 && project ? (
+                      ) : !isView && mode !== 'create' ? null : existingAttachments.length === 0 && mode !== 'create' ? (
                         <p className="text-xs text-muted-foreground py-1">No attachments.</p>
                       ) : null}
                     </>
@@ -697,7 +697,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                     <>
                       <div className="space-y-2">
                         <Label htmlFor="projectFile" className="text-xs font-medium text-muted-foreground">
-                          {project ? 'Add more files' : 'Choose files (optional)'}
+                          {mode !== 'create' ? 'Add more files' : 'Choose files (optional)'}
                         </Label>
                         <label
                           htmlFor="projectFile"
@@ -872,10 +872,10 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                   {saving ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      {project ? 'Saving…' : 'Creating project…'}
+                      {mode !== 'create' ? 'Saving…' : 'Creating project…'}
                     </>
                   ) : (
-                    project ? 'Save changes' : 'Create project'
+                    mode !== 'create' ? 'Save changes' : 'Create project'
                   )}
                 </Button>
               </>

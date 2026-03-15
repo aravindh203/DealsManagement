@@ -70,7 +70,12 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [bidError, setBidError] = useState<string | null>(null);
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
-  type VerificationStatus = "idle" | "processing" | "accepted" | "rejected" | "error";
+  type VerificationStatus =
+    | "idle"
+    | "processing"
+    | "accepted"
+    | "rejected"
+    | "error";
   interface VendorVerificationItem {
     file: File;
     category: string;
@@ -81,7 +86,9 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
   }
 
   const [verificationOpen, setVerificationOpen] = useState(false);
-  const [verificationItems, setVerificationItems] = useState<VendorVerificationItem[]>([]);
+  const [verificationItems, setVerificationItems] = useState<
+    VendorVerificationItem[]
+  >([]);
   const [verificationRunning, setVerificationRunning] = useState(false);
 
   useEffect(() => {
@@ -122,7 +129,9 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
   const handleConfirmVerification = async () => {
     if (saving) return;
 
-    const acceptedItems = verificationItems.filter((i) => i.status === "accepted");
+    const acceptedItems = verificationItems.filter(
+      (i) => i.status === "accepted",
+    );
     // Build filtered category map with only accepted files
     const filtered: VendorFilesByCategory = {
       proposalDocument: [],
@@ -212,7 +221,8 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
           P_Description: projectDescription,
         });
         const score = analysis?.score ?? 0;
-        const description = analysis?.aiSuggestion || "No AI description available.";
+        const description =
+          analysis?.aiSuggestion || "No AI description available.";
 
         verified.push({
           ...item,
@@ -222,7 +232,9 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
         });
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : "Verification failed for this file.";
+          err instanceof Error
+            ? err.message
+            : "Verification failed for this file.";
         verified.push({
           ...item,
           status: "error",
@@ -254,16 +266,24 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                   Vendor submission — {project.P_Name}
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground">
-                  Upload documents and enter your bid amount. A folder for <strong>{vendorCompanyName}</strong> will be created under this project&apos;s Vendor folder.
+                  Upload documents and enter your bid amount. A folder for{" "}
+                  <strong>{vendorCompanyName}</strong> will be created under
+                  this project&apos;s Vendor folder.
                 </p>
               </div>
             </div>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-1 flex-col min-h-0"
+          >
             <ScrollArea className="flex-1 min-h-0 overflow-auto">
               <div className="space-y-5 px-6 py-5">
                 <div className="space-y-2">
-                  <Label htmlFor="vendor-bid-amount" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="vendor-bid-amount"
+                    className="flex items-center gap-2"
+                  >
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                     Bid amount
                   </Label>
@@ -287,7 +307,11 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                       Attachments (upload by category)
                     </div>
                     <span className="text-[11px] text-muted-foreground">
-                      {Object.values(filesByCategory).reduce((sum, arr) => sum + (arr?.length || 0), 0)} file(s) selected
+                      {Object.values(filesByCategory).reduce(
+                        (sum, arr) => sum + (arr?.length || 0),
+                        0,
+                      )}{" "}
+                      file(s) selected
                     </span>
                   </div>
                   <ScrollArea
@@ -327,7 +351,9 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                                   className="flex items-center gap-2 rounded-lg bg-slate-50 px-2 py-1 border border-slate-100"
                                 >
                                   <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                  <span className="truncate flex-1">{file.name}</span>
+                                  <span className="truncate flex-1">
+                                    {file.name}
+                                  </span>
                                   <button
                                     type="button"
                                     className="text-[12px] text-destructive hover:underline shrink-0"
@@ -346,7 +372,9 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                     </div>
                   </ScrollArea>
                   {attachmentsError && (
-                    <p className="mt-1 text-xs text-red-500">{attachmentsError}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {attachmentsError}
+                    </p>
                   )}
                 </section>
               </div>
@@ -396,7 +424,8 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                   Verifying vendor documents
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Our AI is reviewing your uploaded documents and describing how well they support this bid.
+                  Our AI is reviewing your uploaded documents and describing how
+                  well they support this bid.
                 </p>
               </div>
             </div>
@@ -425,7 +454,8 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                             {item.file.name}
                           </span>
                           <span className="text-[11px] text-slate-400">
-                            {item.category} · {Math.round((item.file.size || 0) / 1024)} KB
+                            {item.category} ·{" "}
+                            {Math.round((item.file.size || 0) / 1024)} KB
                           </span>
                         </div>
                       </div>
@@ -462,7 +492,8 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                         <p className="text-[11px] leading-relaxed text-slate-600">
                           {isError
                             ? item.error
-                            : item.description || "No AI description available."}
+                            : item.description ||
+                              "No AI description available."}
                         </p>
                       </div>
                     )}
@@ -517,7 +548,7 @@ export const VendorSubmissionDialog: React.FC<VendorSubmissionDialogProps> = ({
                           Verifying…
                         </>
                       ) : (
-                        "Confirm & save submission"
+                        "Confirm & Save submission"
                       )}
                     </Button>
                   </div>

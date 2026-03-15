@@ -49,20 +49,15 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({ onSucc
       //getAccessToken();
       if (!token) {
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token. Please try logging in again.",
+          title: "Create container authentication error",
           variant: "destructive",
         });
         return;
       }
-
-      console.log('Creating container with data:', data);
       const newContainer = await sharePointService.createContainer(token, data.displayName, data.description);
-      console.log('Container created successfully:', newContainer);
 
       toast({
-        title: "Success",
-        description: `Container "${data.displayName}" created successfully!`,
+        title: `Container "${data.displayName}" creation success`,
       });
 
       form.reset();
@@ -70,10 +65,8 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({ onSucc
       // Pass the new container ID to the parent component
       onSuccess(newContainer.id);
     } catch (error: any) {
-      console.error('Error creating container:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create container",
+        title: "Create container error",
         variant: "destructive",
       });
     } finally {
@@ -155,3 +148,4 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({ onSucc
     </Form>
   );
 };
+

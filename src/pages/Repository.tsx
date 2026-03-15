@@ -155,7 +155,6 @@ const Repository: React.FC = () => {
       );
       setFolderItems(items || []);
     } catch (err) {
-      console.error("Repository: load folder contents failed", err);
       setFolderItems([]);
     } finally {
       setLoading(false);
@@ -311,7 +310,7 @@ const Repository: React.FC = () => {
     if (!name || !currentFolderId) return;
     const token = await getAccessTokenByApp();
     if (!token) {
-      toast({ title: "Error", description: "Could not get access token.", variant: "destructive" });
+      toast({ title: "Repository access token error", variant: "destructive" });
       return;
     }
     setCreatingFolder(true);
@@ -330,15 +329,13 @@ const Repository: React.FC = () => {
           vendorUser.username
         );
       }
-      toast({ title: "Folder created", description: `"${name}" was created.`, variant: "success" });
+      toast({ title: "Repository folder creation success", variant: "success" });
       setCreateFolderOpen(false);
       setNewFolderName("");
       refreshCurrentFolder();
     } catch (err) {
-      console.error("Create folder failed:", err);
       toast({
-        title: "Create folder failed",
-        description: err instanceof Error ? err.message : "Could not create folder.",
+        title: "Repository folder creation error",
         variant: "destructive",
       });
     } finally {
@@ -370,7 +367,7 @@ const Repository: React.FC = () => {
     if (item.folder) return;
     const token = await getAccessTokenByApp();
     if (!token) {
-      toast({ title: "Error", description: "Could not get access token.", variant: "destructive" });
+      toast({ title: "Repository access token error", variant: "destructive" });
       return;
     }
     setActionItemId(item.id);
@@ -387,12 +384,10 @@ const Repository: React.FC = () => {
       a.download = item.name || "download";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Download started", description: `"${item.name}" is downloading.`, variant: "success" });
+      toast({ title: "Repository file download started", variant: "success" });
     } catch (err) {
-      console.error("Download failed:", err);
       toast({
-        title: "Download failed",
-        description: err instanceof Error ? err.message : "Could not download file.",
+        title: "Repository file download error",
         variant: "destructive",
       });
     } finally {
@@ -405,19 +400,17 @@ const Repository: React.FC = () => {
     if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
     const token = await getAccessTokenByApp();
     if (!token) {
-      toast({ title: "Error", description: "Could not get access token.", variant: "destructive" });
+      toast({ title: "Repository access token error", variant: "destructive" });
       return;
     }
     setActionItemId(item.id);
     try {
       await sharePointService.deleteFile(token, appConfig.ContainerID, item.id);
-      toast({ title: "File deleted", description: `"${item.name}" was removed.`, variant: "success" });
+      toast({ title: "Repository file delete success", variant: "success" });
       refreshCurrentFolder();
     } catch (err) {
-      console.error("Delete failed:", err);
       toast({
-        title: "Delete failed",
-        description: err instanceof Error ? err.message : "Could not delete file.",
+        title: "Repository file delete error",
         variant: "destructive",
       });
     } finally {
@@ -429,7 +422,7 @@ const Repository: React.FC = () => {
     if (!selectedFiles.length || !currentFolderId) return;
     const token = await getAccessTokenByApp();
     if (!token) {
-      toast({ title: "Error", description: "Could not get access token.", variant: "destructive" });
+      toast({ title: "Repository access token error", variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -451,13 +444,12 @@ const Repository: React.FC = () => {
         }
       }
       if (uploaded > 0) {
-        toast({ title: "Upload complete", description: `${uploaded} file(s) uploaded.` });
+        toast({ title: "Repository file upload success" });
         refreshCurrentFolder();
       }
       if (failed > 0) {
         toast({
-          title: "Some uploads failed",
-          description: `${failed} file(s) could not be uploaded.`,
+          title: "Repository file upload error",
           variant: "destructive",
         });
       }
@@ -473,8 +465,7 @@ const Repository: React.FC = () => {
       window.open(item.webUrl, "_blank");
     } else {
       toast({
-        title: "View failed",
-        description: "No web URL available for this file.",
+        title: "Repository file view error",
         variant: "destructive"
       });
     }
@@ -495,7 +486,7 @@ const Repository: React.FC = () => {
   const handleShareSubmitAdvanced = async () => {
     if (!sharingItem) return;
     if (shareScope === "users" && !shareEmails.trim()) {
-      toast({ title: "Email required", description: "Please enter at least one email address for Specific people.", variant: "destructive" });
+      toast({ title: "Repository share error", variant: "destructive" });
       return;
     }
     const token = await getAccessTokenByApp();
@@ -518,13 +509,12 @@ const Repository: React.FC = () => {
       );
       setShareLinkResult(result);
       if (shareScope === "users") {
-        toast({ title: "Shared successfully", description: "Invitation sent.", variant: "success" });
+        toast({ title: "Repository share success", variant: "success" });
       } else {
-        toast({ title: "Link created", description: "Share link is ready to copy.", variant: "success" });
+        toast({ title: "Repository share link creation success", variant: "success" });
       }
     } catch (err) {
-      console.error("Sharing failed:", err);
-      toast({ title: "Sharing failed", description: "Could not share the file or generate link.", variant: "destructive" });
+      toast({ title: "Repository share error", variant: "destructive" });
     } finally {
       setSharing(false);
     }
@@ -647,7 +637,7 @@ const Repository: React.FC = () => {
                     {projects.length === 0 ? (
                       <tr>
                         <td colSpan={3} className={styles.emptyCell}>
-                          No projects yet. Create projects from the Project screen.
+                          No projects yet. Create projects from the Projects screen.
                         </td>
                       </tr>
                     ) : (
@@ -1047,7 +1037,7 @@ const Repository: React.FC = () => {
                 <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully</Label>
                 <div className="flex items-center gap-2">
                   <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
-                  <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({ title: "Copied", description: "Link copied to clipboard.", variant: "success" }) }}>Copy</Button>
+                  <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({ title: "Repository share link copied", variant: "success" }) }}>Copy</Button>
                 </div>
               </div>
             )}

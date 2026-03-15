@@ -65,11 +65,9 @@ export class SharePointService {
       }
 
       const data = await response.json();
-      console.log("Files data:", data);
 
       return data.value || [];
     } catch (error) {
-      console.error("Error getting files:", error);
       throw error;
     }
   }
@@ -97,13 +95,10 @@ export class SharePointService {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error creating item:", data);
         throw new Error(
           `Failed to create item: ${response.status} ${response.statusText}`,
         );
       }
-
-      console.log("Item created successfully:", data);
 
       return data;
     } catch (error) {
@@ -120,8 +115,6 @@ export class SharePointService {
   ): Promise<any[]> {
     try {
       const url = `https://graph.microsoft.com/v1.0/storage/fileStorage/containers/${containerId}/items?$expand=fields`;
-
-      console.log("Listing project metadata items:", { url, containerId });
 
       const response = await fetch(url, {
         method: "GET",
@@ -165,7 +158,6 @@ export class SharePointService {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error getting project metadata:", data);
         throw new Error(
           `Failed to get project metadata: ${response.status} ${response.statusText}`,
         );
@@ -173,7 +165,6 @@ export class SharePointService {
 
       return data;
     } catch (error) {
-      console.error("getProjectMetadata error:", error);
       throw error;
     }
   }
@@ -188,12 +179,6 @@ export class SharePointService {
     try {
       const url = `https://graph.microsoft.com/v1.0/storage/fileStorage/containers/${containerId}/items/${itemId}`;
 
-      console.log("Updating project metadata item:", {
-        url,
-        containerId,
-        itemId,
-      });
-
       const response = await fetch(url, {
         method: "PATCH",
         headers: {
@@ -206,7 +191,6 @@ export class SharePointService {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error updating project metadata:", data);
         throw new Error(
           `Failed to update project metadata: ${response.status} ${response.statusText}`,
         );
@@ -214,7 +198,6 @@ export class SharePointService {
 
       return data;
     } catch (error) {
-      console.error("updateProjectMetadata error:", error);
       throw error;
     }
   }
@@ -228,12 +211,6 @@ export class SharePointService {
     try {
       const url = `https://graph.microsoft.com/v1.0/storage/fileStorage/containers/${containerId}/items/${itemId}`;
 
-      console.log("Deleting project metadata item:", {
-        url,
-        containerId,
-        itemId,
-      });
-
       const response = await fetch(url, {
         method: "DELETE",
         headers: {
@@ -244,13 +221,11 @@ export class SharePointService {
 
       if (!response.ok && response.status !== 204) {
         const errorText = await response.text();
-        console.error("Error deleting project metadata:", errorText);
         throw new Error(
           `Failed to delete project metadata: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
     } catch (error) {
-      console.error("deleteProjectMetadata error:", error);
       throw error;
     }
   }
@@ -259,8 +234,6 @@ export class SharePointService {
   async CreateColumn(token: string, containerId: string): Promise<any> {
     try {
       const url = `https://graph.microsoft.com/beta/storage/fileStorage/containers/${containerId}/columns`;
-
-      console.log("Creating column at:", url);
 
       const response = await fetch(url, {
         method: "POST",
@@ -286,18 +259,15 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error creating column:", errorText);
         throw new Error(
           `Failed: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("Column created:", data);
 
       return data;
     } catch (error) {
-      console.error("Error creating column:", error);
       throw error;
     }
   }
@@ -324,7 +294,6 @@ export class SharePointService {
 
       if (!listResponse.ok) {
         const text = await listResponse.text();
-        console.error("Error listing columns before delete:", text);
         throw new Error(
           `Failed to list columns: ${listResponse.status} ${listResponse.statusText} - ${text}`,
         );
@@ -337,9 +306,6 @@ export class SharePointService {
       );
 
       if (!target?.id) {
-        console.warn(
-          `Column "${internalName}" not found on container ${containerId}. Nothing to delete.`,
-        );
         return;
       }
 
@@ -354,13 +320,11 @@ export class SharePointService {
 
       if (!deleteResponse.ok && deleteResponse.status !== 204) {
         const errorText = await deleteResponse.text();
-        console.error("Error deleting column:", errorText);
         throw new Error(
           `Failed to delete column: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
         );
       }
     } catch (error) {
-      console.error("deleteColumnByName error:", error);
       throw error;
     }
   }
@@ -393,7 +357,6 @@ export class SharePointService {
       }
 
       const data = await response.json();
-      console.log("Files data:", data);
 
       // Transform the response to include the required properties
       const files = (data.value || []).map((item: any) => ({
@@ -405,7 +368,6 @@ export class SharePointService {
 
       return files;
     } catch (error) {
-      console.error("Error getting files:", error);
       throw error;
     }
   }
@@ -416,7 +378,6 @@ export class SharePointService {
   ): Promise<{ webUrl: string; name: string }> {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}`;
-      console.log("Fetching container details:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -428,21 +389,18 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching container details:", errorText);
         throw new Error(
           `Failed to get container details: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("Container details data:", data);
 
       return {
         webUrl: data.webUrl || "",
         name: data.name || "Project Container",
       };
     } catch (error) {
-      console.error("Error getting container details:", error);
       throw error;
     }
   }
@@ -531,7 +489,6 @@ export class SharePointService {
 
       progressCallback(100);
     } catch (error) {
-      console.error("File upload failed:", error);
       throw error;
     }
   }
@@ -549,7 +506,6 @@ export class SharePointService {
       } else {
         url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${path}:/${fileName}:/createUploadSession`;
       }
-      console.log("Creating upload session:", url);
 
       const response = await fetch(url, {
         method: "POST",
@@ -566,18 +522,15 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error creating upload session:", errorText);
         throw new Error(
           `Failed to create upload session: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("Upload session data:", data);
 
       return { uploadUrl: data.uploadUrl };
     } catch (error) {
-      console.error("Error creating upload session:", error);
       throw error;
     }
   }
@@ -605,7 +558,6 @@ export class SharePointService {
 
       return data?.value ?? [];
     } catch (error) {
-      console.error("Error creating item:", error);
       return [];
     }
   }
@@ -631,15 +583,10 @@ export class SharePointService {
           try {
             await this.deleteFolderAndItem(token, containerId, id);
           } catch (err) {
-            console.error(
-              "Error deleting project folder while clearing container:",
-              { id, err },
-            );
           }
         }),
       );
     } catch (error) {
-      console.error("Error deleting all projects in container:", error);
       throw error;
     }
   }
@@ -661,7 +608,6 @@ export class SharePointService {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Error fetching sub folder:", errorText);
         throw new Error(
           `Failed to fetch sub folder: ${res.status} ${res.statusText} - ${errorText}`,
         );
@@ -680,7 +626,6 @@ export class SharePointService {
 
       return preparedData ?? [];
     } catch (error) {
-      console.error("Error fetching subfolders:", error);
       return [];
     }
   }
@@ -724,7 +669,6 @@ export class SharePointService {
       });
 
       const data = await response.json();
-      console.log("Data:", data);
       const obj: Project = {
         id: folderId,
         P_Name: data.P_Name || null,
@@ -747,7 +691,6 @@ export class SharePointService {
 
       return obj;
     } catch (error) {
-      console.error("Error fetching item:", error);
       return null;
     }
   }
@@ -799,7 +742,6 @@ export class SharePointService {
     });
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Error patching P_CreatedUserEmail:", errorText);
       throw new Error(
         `Failed to set created by: ${res.status} ${res.statusText} - ${errorText}`,
       );
@@ -1084,7 +1026,6 @@ export class SharePointService {
     });
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Error patching list item fields:", errorText);
       throw new Error(
         `Failed to set list item fields: ${res.status} ${res.statusText} - ${errorText}`,
       );
@@ -1158,10 +1099,6 @@ export class SharePointService {
         V_BidAmount: normalizedBidAmount,
       });
     } catch (err) {
-      console.warn(
-        "Could not set V_BidAmount on company folder (column may not exist):",
-        err,
-      );
     }
 
     try {
@@ -1169,10 +1106,6 @@ export class SharePointService {
         V_BidAmount: normalizedBidAmount,
       });
     } catch (err) {
-      console.warn(
-        "Could not set V_BidAmount on project metadata (column may not exist):",
-        err,
-      );
     }
   }
 
@@ -1200,7 +1133,6 @@ export class SharePointService {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Error creating folder:", errorText);
         throw new Error(
           `Failed to create folder: ${res.status} ${res.statusText} - ${errorText}`,
         );
@@ -1240,7 +1172,6 @@ export class SharePointService {
 
       if (!patchRes.ok) {
         const errorText = await patchRes.text();
-        console.error("Error PATCH listItem fields:", errorText);
         throw new Error(
           `Failed to set folder metadata: ${patchRes.status} ${patchRes.statusText} - ${errorText}`,
         );
@@ -1255,7 +1186,6 @@ export class SharePointService {
 
       return { folderId, attachmentsFolderId };
     } catch (error) {
-      console.error("Error creating item:", error);
       throw error;
     }
   }
@@ -1286,7 +1216,6 @@ export class SharePointService {
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Error creating Attachments subfolder:", errorText);
       throw new Error(
         `Failed to create Attachments folder: ${res.status} ${res.statusText} - ${errorText}`,
       );
@@ -1322,7 +1251,6 @@ export class SharePointService {
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Error creating Vendor subfolder:", errorText);
       throw new Error(
         `Failed to create Vendor folder: ${res.status} ${res.statusText} - ${errorText}`,
       );
@@ -1353,7 +1281,6 @@ export class SharePointService {
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Error listing project children:", errorText);
       throw new Error(
         `Failed to list project folder: ${res.status} ${res.statusText} - ${errorText}`,
       );
@@ -1399,7 +1326,6 @@ export class SharePointService {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Error updating folder name:", errorText);
         throw new Error(
           `Failed to update folder name: ${res.status} ${res.statusText} - ${errorText}`,
         );
@@ -1435,13 +1361,11 @@ export class SharePointService {
 
       if (!itemRes.ok) {
         const errorText = await itemRes.text();
-        console.error("Error updating item:", errorText);
         throw new Error(
           `Failed to update item: ${itemRes.status} ${itemRes.statusText} - ${errorText}`,
         );
       }
     } catch (error) {
-      console.error("Error updating item:", error);
       throw error;
     }
   }
@@ -1463,14 +1387,12 @@ export class SharePointService {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Error deleting folder:", errorText);
 
         throw new Error(
           `Failed to delete folder: ${res.status} ${res.statusText} - ${errorText}`,
         );
       }
     } catch (error) {
-      console.error("Delete error:", error);
       throw error;
     }
   }
@@ -1481,7 +1403,6 @@ export class SharePointService {
       // const url = `https://graph.microsoft.com/beta/drives//b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/root/children`
       // const url = `https://graph.microsoft.com/beta/drives/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/items/01R2P44ADQAX4IFHRZLND3XS4FTYQOZUS2/listitem/fields$expand=listitem($expand=fields)`
       const url = `https://graph.microsoft.com/beta/drives/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/items/01R2P44ADQAX4IFHRZLND3XS4FTYQOZUS2?$expand=listItem($expand=fields)`;
-      console.log("Fetching file content:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -1492,18 +1413,15 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching file content:", errorText);
         throw new Error(
           `Failed to fetch file content: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.arrayBuffer();
-      console.log("File content fetched successfully");
 
       return data;
     } catch (error) {
-      console.error("Error fetching file content:", error);
       throw error;
     }
   }
@@ -1538,8 +1456,6 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-
-        console.error("Error creating folder:", errorText);
         throw new Error(
           `Failed to create folder: ${response.status} ${response.statusText} - ${errorText}`,
         );
@@ -1548,7 +1464,6 @@ export class SharePointService {
       const folderId = resData.id ?? "";
       return folderId;
     } catch (error) {
-      console.error("Error creating folder:", error);
       throw error;
     }
   }
@@ -1560,7 +1475,6 @@ export class SharePointService {
   ): Promise<void> {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${itemId}`;
-      console.log("Deleting file:", url);
 
       const response = await fetch(url, {
         method: "DELETE",
@@ -1572,15 +1486,11 @@ export class SharePointService {
 
       if (!response.ok && response.status !== 204) {
         const errorText = await response.text();
-        console.error("Error deleting file:", errorText);
         throw new Error(
           `Failed to delete file: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
-
-      console.log("File deleted successfully");
     } catch (error) {
-      console.error("Error deleting file:", error);
       throw error;
     }
   }
@@ -1592,7 +1502,6 @@ export class SharePointService {
   ): Promise<ArrayBuffer> {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${driveId}/items/${itemId}/content`;
-      console.log("Fetching file content:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -1603,7 +1512,6 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching file content:", errorText);
         throw new Error(
           `Failed to fetch file content: ${response.status} ${response.statusText} - ${errorText}`,
         );
@@ -1611,7 +1519,6 @@ export class SharePointService {
 
       return await response.arrayBuffer();
     } catch (error) {
-      console.error("Error getting file content:", error);
       throw error;
     }
   }
@@ -1625,7 +1532,6 @@ export class SharePointService {
   ): Promise<void> {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${path}:/${fileName}.${fileType}:/content`;
-      console.log("Creating Office file:", url);
 
       // Determine the content type based on the file type
       let contentType = "application/octet-stream"; // Default
@@ -1643,7 +1549,6 @@ export class SharePointService {
             "application/vnd.openxmlformats-officedocument.presentationml.presentation";
           break;
         default:
-          console.warn("Unknown file type, using default octet-stream");
       }
 
       const response = await fetch(url, {
@@ -1657,15 +1562,11 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error creating Office file:", errorText);
         throw new Error(
           `Failed to create Office file: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
-
-      console.log("Office file created successfully");
     } catch (error) {
-      console.error("Error creating Office file:", error);
       throw error;
     }
   }
@@ -1683,8 +1584,6 @@ export class SharePointService {
 
       const url = `${appConfig.endpoints.graphBaseUrl}/sites/${normalizedSiteId}`;
 
-      console.log("Fetching site details:", { url, siteId: normalizedSiteId });
-
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -1695,14 +1594,12 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching site details:", errorText);
         throw new Error(
           `Failed to get site details: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("Site details data:", data);
 
       return {
         displayName: data.displayName,
@@ -1710,7 +1607,6 @@ export class SharePointService {
         webUrl: data.webUrl || "",
       };
     } catch (error) {
-      console.error("Error getting site details:", error);
       throw error;
     }
   }
@@ -1723,8 +1619,6 @@ export class SharePointService {
     try {
       // Use the SharePoint Embedded containers endpoint
       const url = `${appConfig.endpoints.graphBaseUrl}/storage/fileStorage/containers`;
-
-      console.log("Creating container:", { displayName, description });
 
       const response = await fetch(url, {
         method: "POST",
@@ -1740,18 +1634,15 @@ export class SharePointService {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error creating container:", errorText);
         throw new Error(
           `Failed to create container: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("Container created:", data);
 
       return { id: data.id };
     } catch (error) {
-      console.error("Error creating container:", error);
       throw error;
     }
   }
@@ -1766,8 +1657,6 @@ export class SharePointService {
   ): Promise<void> {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${itemId}/invite`;
-
-      console.log("Sharing file:", { containerId, itemId, recipients, role });
 
       const response = await fetch(url, {
         method: "POST",
@@ -1786,15 +1675,11 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error sharing file:", errorText);
         throw new Error(
           `Failed to share file: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
-
-      console.log("File shared successfully");
     } catch (error) {
-      console.error("Error sharing file:", error);
       throw error;
     }
   }
@@ -1807,8 +1692,6 @@ export class SharePointService {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}/items/${itemId}/preview`;
 
-      console.log("Fetching file preview:", { url });
-
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -1819,99 +1702,21 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching file preview:", errorText);
         throw new Error(
           `Failed to get file preview: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("File preview response:", data);
 
       return data.getUrl + "&nb=true";
     } catch (error) {
-      console.error("Error getting file preview:", error);
       throw error;
     }
   }
 
-  // async listContainersUsingSearch(token: string): Promise<Array<{ id: string; name: string; webUrl?: string; createdDateTime?: string; description?: string; containerTypeId?: string }>> {
 
-  //   try {
-  //     const url = `${appConfig.endpoints.graphBaseUrl}/search/query`;
 
-  //     const requestBody = {
-  //       requests: [
-  //         {
-  //           entityTypes: ["drive"],
-  //           query: {
-  //             queryString: `ContainerTypeId:${appConfig.containerTypeId}`
-  //           },
-  //           sharePointOneDriveOptions: {
-  //             includeHiddenContent: true
-  //           },
-  //           fields: [
-  //             "name",
-  //             "description",
-  //             "createdDateTime",
-  //             "lastModifiedDateTime",
-  //             "webUrl",
-  //             "parentReference"
-  //           ]
-  //         }
-  //       ]
-  //     };
-
-  //     console.log('Searching for containers:', { url, body: requestBody });
-
-  //     const response = await fetch(url, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': `Bearer ${token}`,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify(requestBody)
-  //     });
-
-  //     if (!response.ok) {
-  //       const errorText = await response.text();
-  //       console.error('Error searching containers:', errorText);
-  //       throw new Error(`Failed to search containers: ${response.status} ${response.statusText} - ${errorText}`);
-  //     }
-
-  //     const data = await response.json();
-  //     console.log('Container search response:', data);
-
-  //     const containers: Array<{ id: string; name: string; webUrl?: string; createdDateTime?: string; description?: string; containerTypeId?: string }> = [];
-
-  //     if (data.value &&
-  //       data.value.length > 0 &&
-  //       data.value[0].hitsContainers &&
-  //       data.value[0].hitsContainers.length > 0) {
-
-  //       const hits = data.value[0].hitsContainers[0].hits || [];
-
-  //       for (const hit of hits) {
-  //         const resource = hit.resource;
-  //         if (resource && resource['@odata.type'] === '#microsoft.graph.drive') {
-  //           containers.push({
-  //             id: hit.hitId,
-  //             name: resource.name || 'Project Container',
-  //             webUrl: resource.webUrl,
-  //             createdDateTime: resource.createdDateTime || resource.lastModifiedDateTime || new Date().toISOString(),
-  //             description: resource.description || '',
-  //             containerTypeId: appConfig.containerTypeId
-  //           });
-  //         }
-  //       }
-  //     }
-
-  //     return containers;
-  //   } catch (error) {
-  //     console.error('Error listing containers:', error);
-  //     throw error;
-  //   }
-  // }
 
   async getAllContainers(
     token: string,
@@ -1929,8 +1734,6 @@ export class SharePointService {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/storage/fileStorage/containers?$filter=containerTypeId eq ${containerTypeId}`;
 
-      console.log("Fetching all containers:", { url, containerTypeId });
-
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -1941,14 +1744,12 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching all containers:", errorText);
         throw new Error(
           `Failed to get containers: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("All containers response:", data);
 
       // Assuming the API returns { value: [ ...containers ] }
       return data.value.map((container: any) => ({
@@ -1963,7 +1764,6 @@ export class SharePointService {
         containerTypeId: container.containerTypeId || containerTypeId,
       }));
     } catch (error) {
-      console.error("Error getting all containers:", error);
       throw error;
     }
   }
@@ -1982,8 +1782,6 @@ export class SharePointService {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${containerId}`;
 
-      console.log("Fetching container:", { url, containerId });
-
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -1991,18 +1789,15 @@ export class SharePointService {
           "Content-Type": "application/json",
         },
       });
-      console.log("Container response:", url);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error fetching container:", errorText);
         throw new Error(
           `Failed to get container: ${response.status} ${response.statusText} - ${errorText}`,
         );
       }
 
       const data = await response.json();
-      console.log("Container response:", data);
 
       return {
         id: data.id,
@@ -2016,7 +1811,6 @@ export class SharePointService {
         containerTypeId: appConfig.containerTypeId,
       };
     } catch (error) {
-      console.error("Error getting container:", error);
       throw error;
     }
   }
@@ -2048,7 +1842,6 @@ export class SharePointService {
         remaining: quota.remaining ?? 0,
       };
     } catch (error) {
-      console.error("Error fetching drive quota:", error);
       return { used: 0, total: 0, remaining: 0 };
     }
   }
@@ -2077,11 +1870,6 @@ export class SharePointService {
 
     const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Password,Status)`;
 
-    console.log("Fetching all UserDetails list items for vendor validation:", {
-      url,
-      username: trimmedUsername,
-    });
-
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -2090,11 +1878,8 @@ export class SharePointService {
       },
     });
 
-    console.log("Response:", response);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Error validating vendor credentials:", errorText);
       throw new Error(
         `Failed to validate vendor credentials: ${response.status} ${response.statusText}`,
       );
@@ -2102,8 +1887,6 @@ export class SharePointService {
 
     const data = await response.json();
     const items = Array.isArray(data.value) ? data.value : [];
-
-    console.log("UserDetails list items:", items);
 
     const match = items.find((item: any) => {
       const fields = item.fields || {};
@@ -2172,7 +1955,6 @@ export class SharePointService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Error creating vendor signup request:", errorText);
       throw new Error(
         `Failed to create vendor signup request: ${response.status} ${response.statusText}`,
       );
@@ -2215,7 +1997,6 @@ export class SharePointService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Error listing vendor users:", errorText);
       throw new Error(
         `Failed to list vendor users: ${response.status} ${response.statusText}`,
       );
@@ -2283,7 +2064,6 @@ export class SharePointService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Error updating vendor status:", errorText);
       throw new Error(
         `Failed to update vendor status: ${response.status} ${response.statusText}`,
       );
@@ -2422,7 +2202,6 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error creating invite:", errorText);
         throw new Error(
           `Failed to invite users: ${response.status} ${response.statusText}`,
         );
@@ -2448,7 +2227,6 @@ export class SharePointService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error creating link:", errorText);
         throw new Error(
           `Failed to create link: ${response.status} ${response.statusText}`,
         );
@@ -2461,3 +2239,6 @@ export class SharePointService {
 }
 
 export const sharePointService = new SharePointService();
+
+
+

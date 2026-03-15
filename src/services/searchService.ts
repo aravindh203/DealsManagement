@@ -70,8 +70,6 @@ export class SearchService {
           }
         ]
       };
-
-      console.log('Search request:', { url, body: requestBody });
       
       const response = await fetch(url, {
         method: 'POST',
@@ -84,12 +82,10 @@ export class SearchService {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error response from search API:', errorText);
         throw new Error(`Search failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Search API response:', data);
       
       const searchResults: SearchResult[] = [];
       
@@ -101,8 +97,6 @@ export class SearchService {
         const hits = data.value[0].hitsContainers[0].hits || [];
         
         for (const hit of hits) {
-          console.log('Processing hit:', hit);
-          console.log('Hit resource:', hit.resource);
           
           const resource = hit.resource;
           if (resource && resource['@odata.type'] === '#microsoft.graph.driveItem') {
@@ -112,7 +106,6 @@ export class SearchService {
             
             // Skip folders if we're looking for files
             if (resource.folder && !resource.file) {
-              console.log('Skipping folder:', resource.name);
               continue;
             }
             
@@ -130,15 +123,6 @@ export class SearchService {
             // Extract file name
             const title = resource.name || 'Unnamed File';
             
-            console.log('Extracted file info:', {
-              title,
-              createdBy,
-              createdDateTime,
-              driveId,
-              itemId,
-              webUrl: resource.webUrl
-            });
-            
             // Add the search result
             searchResults.push({
               id: itemId,
@@ -151,15 +135,11 @@ export class SearchService {
               webUrl: resource.webUrl
             });
           } else {
-            console.warn('Skipping non-driveItem resource or missing @odata.type:', resource);
           }
         }
       }
-      
-      console.log('Processed search results:', searchResults);
       return searchResults;
     } catch (error) {
-      console.error('Search error details:', error);
       throw error;
     }
   }
@@ -167,8 +147,6 @@ export class SearchService {
   async getFileDetails(token: string, driveId: string, itemId: string): Promise<{ webUrl: string }> {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${driveId}/items/${itemId}?$expand=listItem($expand=fields)`;
-      
-      console.log('Fetching file details:', { url });
       
       const response = await fetch(url, {
         method: 'GET',
@@ -180,18 +158,15 @@ export class SearchService {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error fetching file details:', errorText);
         throw new Error(`Failed to get file details: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('File details response:', data);
       
       return { 
         webUrl: data.webUrl || ''
       };
     } catch (error) {
-      console.error('Error getting file details:', error);
       throw error;
     }
   }
@@ -199,8 +174,6 @@ export class SearchService {
   async getFilePreviewUrl(token: string, driveId: string, itemId: string): Promise<string> {
     try {
       const url = `${appConfig.endpoints.graphBaseUrl}/drives/${driveId}/items/${itemId}/preview`;
-      
-      console.log('Fetching file preview URL:', { url });
       
       const response = await fetch(url, {
         method: 'POST',
@@ -212,18 +185,15 @@ export class SearchService {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error fetching file preview URL:', errorText);
         throw new Error(`Failed to get file preview URL: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('File preview URL response:', data);
       
       // Add &nb=true parameter as specified
       const previewUrl = data.getUrl + "&nb=true";
       return previewUrl;
     } catch (error) {
-      console.error('Error getting file preview URL:', error);
       throw error;
     }
   }
@@ -253,3 +223,4 @@ export class SearchService {
 }
 
 export const searchService = new SearchService();
+

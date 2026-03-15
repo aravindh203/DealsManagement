@@ -124,8 +124,6 @@ ${JSON.stringify(vendorData, null, 2)}
   if (content.endsWith("```")) {
     content = content.substring(0, content.length - 3);
   }
-
-  console.log("content", content);
   return JSON.parse(content);
 };
 
@@ -206,8 +204,6 @@ ${JSON.stringify(vendorData, null, 2)}
   if (content.endsWith("```")) {
     content = content.substring(0, content.length - 3);
   }
-
-  console.log("content", content);
   return JSON.parse(content);
 };
 
@@ -321,7 +317,5 @@ ${JSON.stringify(projectDetails, null, 2)}
   if (content.endsWith("```")) {
     content = content.substring(0, content.length - 3);
   }
-
-  console.log("content", content);
   return JSON.parse(content);
 };

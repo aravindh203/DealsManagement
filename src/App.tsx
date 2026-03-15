@@ -18,7 +18,7 @@ import Layout from "./components/Layout";
 import LayoutWithSearch from "./components/LayoutWithSearch";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Projects from "./pages/Projects";
+
 import Files from "./pages/Files";
 import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
@@ -41,7 +41,6 @@ const queryClient = new QueryClient({
 queryClient.getQueryCache().subscribe((event) => {
   // Check if the event has an error using the updated syntax for v5
   if (event.type === 'updated' && event.query.state.status === 'error') {
-    console.error('Query cache error:', event.query.state.error);
   }
 });
 
@@ -58,7 +57,6 @@ import Directory from "./pages/Directory";
 import Repository from "./pages/Repository";
 import Analytics from "./pages/Analytics";
 import Identity from "./pages/Identity";
-import ProjectDetail from "./pages/ProjectDetail";
 import VendorApprovals from "./pages/VendorApprovals";
 import { AdminLayout } from "./pages/AdminLayout";
 import ChatBot from "./components/AI/ChatBot";
@@ -71,7 +69,6 @@ const ChatBotForM365 = () => {
 };
 
 const App = () => {
-  console.log('App component rendering');
 
   return (
     <FluentProvider theme={webLightTheme}>
@@ -112,14 +109,7 @@ const App = () => {
                               </ModuleGuard>
                             )}
                           />
-                          <Route
-                            path="project/:id"
-                            element={(
-                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
-                                <ProjectDetail />
-                              </ModuleGuard>
-                            )}
-                          />
+
                           <Route
                             path="repository"
                             element={(
@@ -229,3 +219,4 @@ const ModuleGuard = ({
 };
 
 export default App;
+

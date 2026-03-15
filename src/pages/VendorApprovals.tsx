@@ -51,10 +51,8 @@ const VendorApprovals: React.FC = () => {
       const list = await sharePointService.listVendorUsers();
       setVendors(list);
     } catch (err) {
-      console.error("Failed to load vendor users:", err);
       toast({
         title: "Could not load vendors",
-        description: "Please try again or check the UserDetails list permissions.",
         variant: "destructive",
       });
     } finally {
@@ -76,7 +74,6 @@ const VendorApprovals: React.FC = () => {
       if (!token) {
         toast({
           title: "No access token",
-          description: "Could not get Graph access token for the current user. Please sign in again.",
           variant: "destructive",
         });
         return;
@@ -94,15 +91,12 @@ const VendorApprovals: React.FC = () => {
         ),
       );
       toast({
-        title: "Status updated",
-        description: `Vendor has been marked as ${status}.`,
+        title: `Vendor ${status.toLowerCase()} success`,
         variant: "success",
       });
     } catch (err) {
-      console.error("Failed to update vendor status:", err);
       toast({
-        title: "Update failed",
-        description: "Could not update vendor status. Please try again.",
+        title: "Update vendor status failed",
         variant: "destructive",
       });
     } finally {
@@ -178,10 +172,7 @@ const VendorApprovals: React.FC = () => {
             <span className={styles.overline}>VENDOR ACCESS</span>
             <h1 className={styles.pageTitle}>Review &amp; approve vendors</h1>
           </div>
-          <p className={styles.subtitle}>
-            Review vendor signup requests from the UserDetails list. Only Approved vendors
-            can sign in to Project and Repository.
-          </p>
+
         </header>
 
         <main className={styles.main}>

@@ -91,8 +91,7 @@ const ProjectDetails = ({ project }: { project: Project }) => {
           }
         }
       } catch (err: any) {
-        console.error('Error loading project metadata:', err);
-        setMetaError(err.message || 'Failed to load metadata.');
+          setMetaError(err.message || 'Failed to load metadata.');
       } finally {
         setMetaLoading(false);
       }
@@ -124,15 +123,12 @@ const ProjectDetails = ({ project }: { project: Project }) => {
       setMetaItemId(result.id);
 
       toast({
-        title: 'Metadata saved',
-        description: 'Project metadata has been saved successfully.',
+        title: 'Project metadata saved',
       });
     } catch (err: any) {
-      console.error('Error saving project metadata:', err);
       setMetaError(err.message || 'Failed to save metadata.');
       toast({
-        title: 'Error saving metadata',
-        description: 'Unable to save project metadata.',
+        title: 'Project metadata save error',
         variant: 'destructive',
       });
     } finally {
@@ -157,15 +153,12 @@ const ProjectDetails = ({ project }: { project: Project }) => {
       setBudget('');
 
       toast({
-        title: 'Metadata deleted',
-        description: 'Project metadata has been deleted.',
+        title: 'Project metadata deleted',
       });
     } catch (err: any) {
-      console.error('Error deleting project metadata:', err);
       setMetaError(err.message || 'Failed to delete metadata.');
       toast({
-        title: 'Error deleting metadata',
-        description: 'Unable to delete project metadata.',
+        title: 'Project metadata delete error',
         variant: 'destructive',
       });
     } finally {
@@ -280,28 +273,18 @@ const Projects = () => {
       }
 
       try {
-        console.log('Fetching projects using search method...');
         const projectsData = await sharePointService.listContainersUsingSearch(token);
-        console.log('Projects received:', projectsData);
 
-        // If we have a new container ID that's not in the search results, try to fetch it directly
         if (newContainerId && !projectsData.find(p => p.id === newContainerId)) {
-          console.log(`New container ${newContainerId} not found in search results, fetching directly...`);
           try {
             const newContainer = await sharePointService.getContainer(token, newContainerId);
-            console.log('Directly fetched new container:', newContainer);
-            projectsData.unshift(newContainer); // Add to the beginning
-            
+            projectsData.unshift(newContainer);
             toast({
-              title: "Container Created",
-              description: `Your container "${newContainer.name}" was created successfully and added to the list.`,
+              title: "Project container created",
             });
-          } catch (directFetchError) {
-            console.warn('Could not fetch new container directly:', directFetchError);
-            // Show a more helpful message about the delay
+          } catch {
             toast({
-              title: "Container Created Successfully", 
-              description: "Your container was created but may take a few minutes to appear in search results. You can refresh the page to check for it.",
+              title: "Project container creation success (delayed visibility)",
             });
           }
         }
@@ -324,9 +307,7 @@ const Projects = () => {
             const start = new Date(startDate);
             const futureDate = new Date(start.getTime() + (Math.floor(Math.random() * 30) + 1) * 24 * 60 * 60 * 1000);
             endDate = futureDate.toISOString();
-          } catch (err) {
-            // Fallback if date parsing fails
-            console.warn('Date parsing issue:', err);
+          } catch {
             const now = new Date();
             startDate = now.toISOString();
             endDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -350,14 +331,10 @@ const Projects = () => {
         
         setProjects(enhancedProjects);
       } catch (error: any) {
-        console.error('Error from search API:', error);
-        
-        // Check if it's a permissions error (403)
         if (error.message && error.message.includes('403')) {
           setPermissionError(true);
           toast({
-            title: "Permission Error",
-            description: "Your account doesn't have sufficient permissions to access projects.",
+            title: "Project loading permission error",
             variant: "destructive",
           });
         } else {
@@ -365,11 +342,9 @@ const Projects = () => {
         }
       }
     } catch (error: any) {
-      console.error('Error fetching projects:', error);
       setError(error.message);
       toast({
-        title: "Error",
-        description: "Failed to fetch projects",
+        title: "Project loading error",
         variant: "destructive",
       });
     } finally {
@@ -384,8 +359,7 @@ const Projects = () => {
 
   const handleCreateSuccess = (newContainerId?: string) => {
     setIsCreatePanelOpen(false);
-    console.log('Container created, refreshing with new container ID:', newContainerId);
-    fetchProjects(newContainerId); // Pass the new container ID to fetch function
+    fetchProjects(newContainerId);
   };
 
   const getHealthIcon = (health: Project['health']) => {

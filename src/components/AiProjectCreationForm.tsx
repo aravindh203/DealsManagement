@@ -84,7 +84,6 @@ export const AiProjectCreationForm: React.FC<AiProjectCreationFormProps> = ({ on
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
         if (event.error !== 'no-speech') {
            stopListening();
         }
@@ -101,7 +100,7 @@ export const AiProjectCreationForm: React.FC<AiProjectCreationFormProps> = ({ on
     return () => {
       stopListening();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const analyzeAudioLevel = () => {
@@ -146,7 +145,6 @@ export const AiProjectCreationForm: React.FC<AiProjectCreationFormProps> = ({ on
       recognitionRef.current.start();
       setIsListening(true);
     } catch (err) {
-      console.error("Microphone access denied:", err);
       alert("Could not access microphone.");
     }
   };
@@ -191,7 +189,6 @@ export const AiProjectCreationForm: React.FC<AiProjectCreationFormProps> = ({ on
 
       onGenerated(projectData);
     } catch (error) {
-      console.error("Failed to generate project", error);
     } finally {
       setIsLoading(false);
     }
@@ -343,3 +340,4 @@ export const AiProjectCreationForm: React.FC<AiProjectCreationFormProps> = ({ on
     </div>
   );
 };
+
