@@ -45,20 +45,15 @@ export const CreateFolderForm: React.FC<CreateFolderFormProps> = ({ onSuccess, o
             //getAccessToken();
             if (!token) {
                 toast({
-                    title: "Authentication Error",
-                    description: "Failed to get access token. Please try logging in again.",
+                    title: "Create folder authentication error",
                     variant: "destructive",
                 });
                 return;
             }
-
-            console.log('Creating container with data:', data);
             const newFolder = await sharePointService.createFolder(token, "b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ", "", data.FolderName,);
-            console.log('Folder created successfully:', newFolder);
 
             toast({
-                title: "Success",
-                description: `Folder "${data.FolderName}" created successfully!`,
+                title: `Folder "${data.FolderName}" creation success`,
             });
 
             form.reset();
@@ -66,10 +61,8 @@ export const CreateFolderForm: React.FC<CreateFolderFormProps> = ({ onSuccess, o
             // Pass the new folder ID to the parent component
             onSuccess();
         } catch (error: any) {
-            console.error('Error creating folder:', error);
             toast({
-                title: "Error",
-                description: error.message || "Failed to create folder",
+                title: "Create folder error",
                 variant: "destructive",
             });
         } finally {
@@ -117,3 +110,4 @@ export const CreateFolderForm: React.FC<CreateFolderFormProps> = ({ onSuccess, o
         </Form>
     );
 };
+

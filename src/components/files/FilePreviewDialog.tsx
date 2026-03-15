@@ -17,7 +17,6 @@ const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
   previewUrl,
   previewLoading,
 }) => {
-  console.log('FilePreviewDialog rendering:', { isOpen, previewUrl, previewLoading });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -74,3 +73,4 @@ const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
 };
 
 export default FilePreviewDialog;
+

@@ -1,10 +1,13 @@
 import axios from "axios";
 
 export const getFileContent = async (file: File, type: string) => {
-  const endpoint =
-    "https://documentintelligenceroca.cognitiveservices.azure.com";
+  const endpoint = "https://madhesteam.cognitiveservices.azure.com";
+  // const endpoint =
+  //   "https://documentintelligenceroca.cognitiveservices.azure.com";
   const apiKey =
-    "7Lb5CA8I8fsAhwQkGXXjTzAQOj5ed1Al0aEefXJZU19jiSTrxqouJQQJ99BGACYeBjFXJ3w3AAALACOGHtGK";
+    "6CsLs6TJ703l2djYHbjmvFlCgCrbzrXGcbKVtPJqEdUxWo6sWuq6JQQJ99CCACGhslBXJ3w3AAALACOGyxc6";
+  // const apiKey =
+  //   "7Lb5CA8I8fsAhwQkGXXjTzAQOj5ed1Al0aEefXJZU19jiSTrxqouJQQJ99BGACYeBjFXJ3w3AAALACOGHtGK";
 
   const url = `${endpoint}/documentintelligence/documentModels/prebuilt-read:analyze?api-version=2024-11-30`;
 
@@ -48,9 +51,7 @@ export const getFileContent = async (file: File, type: string) => {
       }
     }
     return result;
-    console.log("Extracted text:", result);
   } catch (error) {
-    console.error("Error extracting text:", error);
     throw error;
   }
 };

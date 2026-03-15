@@ -51,8 +51,7 @@ const CreateOfficeFileDialog: React.FC<CreateOfficeFileDialogProps> = ({
   const handleCreate = async () => {
     if (!fileName.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a file name",
+        title: "Create Office file missing name",
         variant: "destructive",
       });
       return;
@@ -63,8 +62,7 @@ const CreateOfficeFileDialog: React.FC<CreateOfficeFileDialogProps> = ({
       const token = await getAccessToken();
       if (!token) {
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token",
+          title: "Create Office file authentication error",
           variant: "destructive",
         });
         return;
@@ -73,8 +71,7 @@ const CreateOfficeFileDialog: React.FC<CreateOfficeFileDialogProps> = ({
       const selectedOption = fileTypeOptions.find(opt => opt.value === fileType);
       if (!selectedOption) {
         toast({
-          title: "Error",
-          description: "Invalid file type selected",
+          title: "Create Office file invalid type",
           variant: "destructive",
         });
         return;
@@ -89,8 +86,7 @@ const CreateOfficeFileDialog: React.FC<CreateOfficeFileDialogProps> = ({
       );
 
       toast({
-        title: "Success",
-        description: `${selectedOption.label} created successfully`,
+        title: `${selectedOption.label} created successfully`,
       });
 
       setFileName('');
@@ -98,10 +94,8 @@ const CreateOfficeFileDialog: React.FC<CreateOfficeFileDialogProps> = ({
       onOpenChange(false);
       onFileCreated();
     } catch (error) {
-      console.error('Error creating Office file:', error);
       toast({
-        title: "Error",
-        description: "Failed to create file. Please try again.",
+        title: "Create Office file error",
         variant: "destructive",
       });
     } finally {
@@ -178,3 +172,4 @@ const CreateOfficeFileDialog: React.FC<CreateOfficeFileDialogProps> = ({
 };
 
 export default CreateOfficeFileDialog;
+

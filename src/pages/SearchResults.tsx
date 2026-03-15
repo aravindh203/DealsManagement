@@ -52,22 +52,18 @@ const SearchResults = () => {
         if (!token) {
           setError("Failed to get access token. Please try logging in again.");
           toast({
-            title: "Authentication Error",
-            description: "Failed to get access token",
+            title: "Search authentication error",
             variant: "destructive",
           });
           return;
         }
         
         const searchResults = await searchService.searchFiles(token, searchTerm, containerId);
-        console.log('Setting search results:', searchResults);
         setResults(searchResults);
       } catch (error: any) {
-        console.error('Search error:', error);
         setError(error.message || 'An error occurred while searching');
         toast({
-          title: "Search Error",
-          description: `Failed to search: ${error.message || 'Unknown error'}`,
+          title: "Search error",
           variant: "destructive",
         });
       } finally {
@@ -85,81 +81,56 @@ const SearchResults = () => {
   };
   
   const handleEditOfficeDocument = async (result: SearchResult) => {
-    console.log('Edit button clicked for:', result);
-    
     if (!result.driveId || !result.itemId) {
-      console.error('Missing driveId or itemId:', { driveId: result.driveId, itemId: result.itemId });
       toast({
-        title: "Error",
-        description: "Cannot open this file: Missing file information",
+        title: "File edit error",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      console.log('Getting access token...');
       const token = await getAccessToken();
       if (!token) {
-        console.error('Failed to get access token');
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token",
+          title: "File edit authentication error",
           variant: "destructive",
         });
         return;
       }
       
-      console.log('Fetching file details for editing:', { driveId: result.driveId, itemId: result.itemId });
       const fileDetails = await searchService.getFileDetails(token, result.driveId, result.itemId);
-      console.log('File details received:', fileDetails);
       
       if (fileDetails.webUrl) {
-        console.log('Opening webUrl:', fileDetails.webUrl);
         window.open(fileDetails.webUrl, '_blank');
       } else {
-        console.error('No webUrl in file details');
         toast({
-          title: "Error",
-          description: "Could not retrieve file URL",
+          title: "File open URL error",
           variant: "destructive",
         });
       }
     } catch (error: any) {
-      console.error('Error opening Office document:', error);
       toast({
-        title: "Error",
-        description: `Failed to open file: ${error.message || 'Unknown error'}`,
+        title: "File open error",
         variant: "destructive",
       });
     }
   };
   
   const handlePreviewDocument = async (result: SearchResult) => {
-    console.log('Preview button clicked for:', result);
-    
     if (!result.driveId || !result.itemId) {
-      console.error('Missing driveId or itemId for preview:', { driveId: result.driveId, itemId: result.itemId });
       toast({
-        title: "Error",
-        description: "Cannot preview this file: Missing file information",
+        title: "File preview error",
         variant: "destructive",
       });
       return;
     }
-    
     try {
-      console.log('Converting SearchResult to FileItem...');
       const fileItem = searchService.convertToFileItem(result);
-      console.log('Converted FileItem:', fileItem);
-      
-      console.log('Calling handleViewFile...');
       await handleViewFile(fileItem);
     } catch (error: any) {
-      console.error('Error previewing document:', error);
       toast({
-        title: "Error",
-        description: `Failed to preview file: ${error.message || 'Unknown error'}`,
+        title: "File preview failed",
         variant: "destructive",
       });
     }
@@ -238,13 +209,6 @@ const SearchResults = () => {
                   const fileExt = getFileExtension(result.title);
                   const isOffice = isOfficeDocument(result.title);
                   
-                  console.log('Rendering result:', { 
-                    title: result.title, 
-                    driveId: result.driveId, 
-                    itemId: result.itemId, 
-                    isOffice 
-                  });
-                  
                   return (
                     <TableRow key={`result-${result.id || Math.random().toString()}`}>
                       <TableCell>
@@ -277,10 +241,7 @@ const SearchResults = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              console.log('Edit button clicked, calling handleEditOfficeDocument');
-                              handleEditOfficeDocument(result);
-                            }}
+                            onClick={() => handleEditOfficeDocument(result)}
                             className="flex items-center gap-2"
                           >
                             <Edit className="h-4 w-4" />
@@ -290,10 +251,7 @@ const SearchResults = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              console.log('Preview button clicked, calling handlePreviewDocument');
-                              handlePreviewDocument(result);
-                            }}
+                            onClick={() => handlePreviewDocument(result)}
                             className="flex items-center gap-2"
                           >
                             <Eye className="h-4 w-4" />

@@ -18,21 +18,17 @@ const CopilotChat: React.FC<CopilotChatProps> = ({ containerId, className }) => 
   useEffect(() => {
     if (!containerId || typeof containerId !== 'string') {
       const errorMsg = 'CopilotChat: No valid containerId provided';
-      console.error(errorMsg);
       
       // Only show toast once to avoid spamming
       if (!errorShown) {
         setErrorShown(true);
         toast({
-          title: "Copilot Error",
-          description: "No valid container ID provided. Copilot chat cannot load.",
+          title: "Copilot missing container ID",
           variant: "destructive",
         });
       }
       return;
     }
-    
-    console.log('CopilotChat initialized with containerId:', containerId);
     setErrorShown(false);
   }, [containerId, errorShown]);
 
@@ -40,12 +36,10 @@ const CopilotChat: React.FC<CopilotChatProps> = ({ containerId, className }) => 
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       if (event.error && event.error.message && event.error.message.includes('Cannot read properties of undefined')) {
-        console.error('Caught SharePoint Embedded error:', event.error);
         if (!errorShown) {
           setErrorShown(true);
           toast({
-            title: "Copilot Error",
-            description: "An error occurred while loading the chat component. Please try refreshing.",
+            title: "Copilot loading error",
             variant: "destructive",
           });
         }
@@ -86,3 +80,4 @@ const CopilotChat: React.FC<CopilotChatProps> = ({ containerId, className }) => 
 };
 
 export default CopilotChat;
+

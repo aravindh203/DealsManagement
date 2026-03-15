@@ -31,7 +31,6 @@ const Index = () => {
           return;
         }
 
-        // Track API call
         const apiCallData = {
           method: 'GET',
           url: '/search/query',
@@ -39,22 +38,15 @@ const Index = () => {
         };
 
         try {
-          // Directly use the search-based method for consistency
-          console.log('Fetching projects using search method...');
           const projectsList = await sharePointService.listContainersUsingSearch(token);
-          console.log('Projects received:', projectsList);
           setProjects(projectsList);
           
-          // Track successful API call
           addApiCall({
             ...apiCallData,
             response: projectsList,
             status: 200
           });
         } catch (error: any) {
-          console.error('Error from search API:', error);
-          
-          // Track failed API call
           addApiCall({
             ...apiCallData,
             response: { error: error.message },
@@ -69,7 +61,6 @@ const Index = () => {
           }
         }
       } catch (error: any) {
-        console.error('Error fetching projects:', error);
         setError(error.message || "Failed to fetch projects");
       } finally {
         setLoading(false);

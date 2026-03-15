@@ -55,6 +55,7 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
   const [pendingVendor, setPendingVendor] = useState<VendorDetails | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [assigningVendor, setAssigningVendor] = useState(false);
+  const [showAllVendors, setShowAllVendors] = useState(false);
   const { reloadProjects } = useProjects();
 
   const vendors = vendorsData || analyzedVendors;
@@ -63,7 +64,6 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
     if (!project) {
       toast({
         title: 'Unable to select vendor',
-        description: 'Missing project context. Please reopen this project and try again.',
         variant: 'destructive',
       });
       return false;
@@ -73,8 +73,7 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
       const token = await getAccessTokenByApp();
       if (!token) {
         toast({
-          title: 'Unable to select vendor',
-          description: 'Could not get access token.',
+          title: 'Unable to select vendor access token error',
           variant: 'destructive',
         });
         return false;
@@ -95,18 +94,15 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
       await reloadProjects();
 
       toast({
-        title: 'Vendor selected',
-        description: `${vendor.name} has been set as the finalized vendor for this project.`,
+        title: `Vendor ${vendor.name} selected`,
         variant: 'success',
       });
 
       onClose();
       return true;
     } catch (err) {
-      console.error('Error updating finalized vendor:', err);
       toast({
         title: 'Vendor selection failed',
-        description: 'Could not update the project in SharePoint. Please check the console for details.',
         variant: 'destructive',
       });
       return false;
@@ -225,7 +221,6 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                           vendorObj.documents.Other.push({ type: sub.name, ...docObj });
                         }
                       } catch (err) {
-                        console.error(`Failed to download content for file ${f.name}:`, err);
                       }
                     }
                   }
@@ -236,7 +231,8 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
           }
 
           const finalScoredVendors: VendorDetails[] = [];
-          for (const vendor of allVendors) {
+          for (let i = 0; i < allVendors.length; i++) {
+            const vendor = allVendors[i];
             try {
               setProcessingStatus(`Analyzing ${vendor.vendorName}...`);
               const openAiResult = await analyzeVendorDocuments(vendor, projectDetails || project);
@@ -252,16 +248,29 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                 reasonsForMatch: openAiResult.reasonsForMatch || []
               });
             } catch (err) {
-              console.error(`Error scoring vendor ${vendor.vendorName}:`, err);
+            }
+
+            // Wait 10 seconds between each vendor analysis (except after the last one)
+            if (i < allVendors.length - 1) {
+              for (let sec = 10; sec > 0; sec--) {
+                setProcessingStatus(`Waiting ${sec}s before analyzing next vendor...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
             }
           }
 
-          const sortedVendors = [...finalScoredVendors].sort((a, b) => b.matchPercentage - a.matchPercentage);
+          const sortedVendors = [...finalScoredVendors].sort((a, b) => {
+            const getAmount = (val: any) => {
+              if (typeof val === 'number') return val;
+              const parsed = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+              return isNaN(parsed) ? Infinity : parsed;
+            };
+            return getAmount(a.bidAmount) - getAmount(b.bidAmount);
+          });
           setAnalyzedVendors(sortedVendors);
           setIsAnalyzing(false);
 
         } catch (error) {
-          console.error("Error fetching vendor files:", error);
           setIsAnalyzing(false);
         }
       };
@@ -281,40 +290,39 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="sm:max-w-[1000px] bg-[#f4f5f7] border-0 text-slate-800 shadow-2xl overflow-hidden p-0 rounded-3xl font-[Inter,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] [&>button]:hidden gap-0"
+        className="sm:max-w-[720px] bg-[#f4f5f7] border-0 text-slate-800 shadow-2xl overflow-hidden p-0 rounded-3xl font-[Inter,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] [&>button]:hidden gap-0"
         onInteractOutside={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => event.preventDefault()}
       >
 
-        <div className="px-8 pt-6 pb-4 bg-[#f4f5f7] relative">
-          <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors z-20">
-            <X className="w-5 h-5" />
-          </button>
-
-          <div className="flex justify-between items-center pr-10">
-            <div className="max-w-xl">
-              <div className="flex items-center gap-3 mb-1.5">
-                <div className="p-2 bg-[#5b45ff] rounded-xl text-white shadow-sm flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <h2 className="text-[24px] font-bold tracking-tight text-[#1a1b25]">
-                  AI Suggested Vendors
-                </h2>
-              </div>
-              <p className="text-[#6b7280] text-[13px] leading-relaxed ml-[48px]">
-                Our intelligence engine analyzed your documents to find your perfect project matches.
-              </p>
+        <div className="px-6 pt-5 pb-4 bg-[#f4f5f7] relative flex flex-col gap-1">
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-[#5b45ff] rounded-xl text-white shadow-sm flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5" />
             </div>
+            <h2 className="text-[20px] sm:text-[24px] font-bold tracking-tight text-[#1a1b25] whitespace-nowrap">
+              AI Suggested Vendors
+            </h2>
+
+            <div className="flex-1" />
 
             {!isAnalyzing && (
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
-                <div className="w-2 h-2 rounded-full bg-[#00c875] animate-pulse" />
-                <span className="text-[11px] font-[800] text-[#1a1b25] uppercase tracking-wider">
+              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-gray-200 shadow-sm shrink-0 whitespace-nowrap mr-2">
+                <div className="w-2 h-2 rounded-full bg-[#00c875] animate-pulse shrink-0" />
+                <span className="text-[10px] font-[800] text-[#1a1b25] uppercase tracking-wider">
                   {vendors.length} Vendors Uploaded
                 </span>
               </div>
             )}
+
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors shrink-0 p-1">
+              <X className="w-5 h-5" />
+            </button>
           </div>
+
+          <p className="text-[#6b7280] text-[12px] sm:text-[13px] leading-relaxed ml-[52px] truncate">
+            Our intelligence engine analyzed your documents to find your perfect project matches.
+          </p>
         </div>
 
         <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent opacity-60" />
@@ -351,13 +359,13 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {vendors.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-gray-500 font-medium bg-white rounded-3xl">
                   No vendors found or matched for this project.
                 </div>
               ) : (
-                vendors.slice(0, 3).map((vendor, vIndex) => (
+                vendors.slice(0, showAllVendors ? vendors.length : 2).map((vendor, vIndex) => (
                   <div
                     key={vIndex}
                     className={`flex flex-col bg-white rounded-[24px] overflow-hidden relative shadow-sm transition-all duration-300
@@ -371,15 +379,16 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                     )}
 
                     <div className="p-4 pt-6 pb-2">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-center justify-between min-h-[44px]">
                         <div className="pt-0.5">
                           <h3 className="text-[17px] font-bold text-[#1a1b25] leading-tight flex items-center gap-1.5">
                             {vendor.name}
                           </h3>
-                          <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-gray-400">
-                            <Globe className="w-3 h-3" />
-                            <span className="truncate max-w-[140px] hover:text-gray-600 transition-colors cursor-pointer">{vendor.website}</span>
-                          </div>
+                          {vendor.website && (
+                            <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-gray-400">
+                              <span className="truncate max-w-[140px] hover:text-gray-600 transition-colors cursor-pointer">{vendor.website}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="relative w-[44px] h-[44px] flex items-center justify-center shrink-0">
@@ -477,6 +486,15 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
         <div className="bg-white px-8 py-4 flex items-center justify-end border-t border-gray-100">
 
           <div className="flex items-center gap-3">
+            {!isAnalyzing && vendors.length > 2 && (
+              <button
+                type="button"
+                onClick={() => setShowAllVendors(!showAllVendors)}
+                className="bg-white border border-gray-200 text-slate-700 hover:bg-gray-50 hover:text-slate-900 px-4 py-2 rounded-xl text-[12px] font-[700] transition-colors shadow-sm"
+              >
+                {showAllVendors ? "View Less" : "View More"}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleExportReport}
@@ -551,3 +569,4 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
 };
 
 export default AiSummarize;
+

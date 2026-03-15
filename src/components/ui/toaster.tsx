@@ -42,14 +42,10 @@ export function Toaster() {
         return (
           <Toast key={id} variant={variant} {...props}>
             <ToastIcon variant={variant} />
-            <div className="grid gap-1 flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-center pr-[44px]">
               {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
             </div>
             {action}
-            <ToastClose />
           </Toast>
         )
       })}

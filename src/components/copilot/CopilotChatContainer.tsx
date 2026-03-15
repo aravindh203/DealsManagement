@@ -28,7 +28,6 @@ const CopilotChatContainer: React.FC<CopilotChatContainerProps> = ({ containerId
   
   // Don't proceed if we don't have a valid container ID
   if (!normalizedContainerId) {
-    console.error('CopilotChatContainer: Invalid containerId provided:', containerId);
     return null;
   }
   
@@ -45,10 +44,8 @@ const CopilotChatContainer: React.FC<CopilotChatContainerProps> = ({ containerId
   const safeSiteName = siteName || 'SharePoint Site';
   
   const handleError = useCallback((errorMessage: string) => {
-    console.error('Copilot chat error:', errorMessage);
     toast({
       title: "Copilot error",
-      description: errorMessage,
       variant: "destructive",
     });
   }, []);
@@ -60,13 +57,9 @@ const CopilotChatContainer: React.FC<CopilotChatContainerProps> = ({ containerId
       getToken: async () => {
         try {
           if (!isAuthenticated) {
-            console.error('User not authenticated, cannot get token');
             return '';
           }
-          
-          console.log('Getting SharePoint token for hostname:', safeSharePointHostname);
           const token = await getSharePointToken(safeSharePointHostname);
-          console.log('SharePoint auth token retrieved:', token ? 'successfully' : 'failed');
           
           if (!token) {
             handleError('Failed to get authentication token for SharePoint.');
@@ -75,7 +68,6 @@ const CopilotChatContainer: React.FC<CopilotChatContainerProps> = ({ containerId
           
           return token;
         } catch (err) {
-          console.error('Error getting token for Copilot chat:', err);
           handleError('Failed to authenticate with SharePoint. Please try again.');
           return '';
         }
@@ -123,7 +115,6 @@ const CopilotChatContainer: React.FC<CopilotChatContainerProps> = ({ containerId
   
   // Reset chat when there's an issue
   const handleResetChat = useCallback(() => {
-    console.log('Resetting Copilot chat');
     setChatKey(prev => prev + 1);
     setChatApi(null);
     setIsOpen(false);
@@ -135,12 +126,9 @@ const CopilotChatContainer: React.FC<CopilotChatContainerProps> = ({ containerId
   // Handles API ready event from ChatEmbedded component
   const handleApiReady = useCallback((api: ChatEmbeddedAPI) => {
     if (!api) {
-      console.error('Chat API is undefined');
       handleError('Chat API initialization failed');
       return;
     }
-    
-    console.log('Copilot chat API is ready');
     setChatApi(api);
   }, [handleError]);
 
@@ -165,3 +153,4 @@ const CopilotChatContainer: React.FC<CopilotChatContainerProps> = ({ containerId
 };
 
 export default CopilotChatContainer;
+

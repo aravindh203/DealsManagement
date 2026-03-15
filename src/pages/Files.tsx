@@ -94,8 +94,7 @@ const Files = () => {
       const token = await getAccessToken();
       if (!token) {
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token",
+          title: "Files access token error",
           variant: "destructive",
         });
         return;
@@ -119,14 +118,11 @@ const Files = () => {
           );
           
           toast({
-            title: "Upload Success",
-            description: `File ${file.name} uploaded successfully`,
+            title: `File ${file.name} upload success`,
           });
         } catch (err) {
-          console.error(`Failed to upload ${file.name}:`, err);
           toast({
-            title: "Upload Failed",
-            description: `File ${file.name} could not be uploaded`,
+            title: `File ${file.name} upload failed`,
             variant: "destructive",
           });
         }
@@ -135,10 +131,8 @@ const Files = () => {
       refreshFiles();
       event.target.value = '';
     } catch (error) {
-      console.error('Error uploading files:', error);
       toast({
-        title: "Error",
-        description: "Failed to upload files. Please try again.",
+        title: "File upload error",
         variant: "destructive",
       });
     } finally {
@@ -155,8 +149,7 @@ const Files = () => {
       const token = await getAccessToken();
       if (!token) {
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token",
+          title: "Files access token error",
           variant: "destructive",
         });
         return;
@@ -172,8 +165,7 @@ const Files = () => {
       );
       
       toast({
-        title: "Success",
-        description: `Folder "${newFolderName}" created successfully`,
+        title: `Folder "${newFolderName}" creation success`,
       });
       
       setNewFolderName('');
@@ -181,10 +173,8 @@ const Files = () => {
       
       refreshFiles();
     } catch (error) {
-      console.error('Error creating folder:', error);
       toast({
-        title: "Error",
-        description: "Failed to create folder. Please try again.",
+        title: "Folder creation error",
         variant: "destructive",
       });
     } finally {
@@ -454,3 +444,4 @@ const Files = () => {
 };
 
 export default Files;
+

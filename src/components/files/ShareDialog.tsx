@@ -43,8 +43,7 @@ const ShareDialog = ({
   const handleShare = async () => {
     if (!recipients.trim()) {
       toast({
-        title: "Missing Recipients",
-        description: "Please enter at least one recipient email address",
+        title: "Share missing recipients",
         variant: "destructive",
       });
       return;
@@ -61,8 +60,7 @@ const ShareDialog = ({
       
       if (recipientsList.length === 0) {
         toast({
-          title: "Invalid Recipients",
-          description: "Please enter valid email addresses",
+          title: "Share invalid recipients",
           variant: "destructive",
         });
         return;
@@ -71,8 +69,7 @@ const ShareDialog = ({
       const token = await getAccessToken();
       if (!token) {
         toast({
-          title: "Authentication Error",
-          description: "Failed to get access token",
+          title: "Share authentication error",
           variant: "destructive",
         });
         return;
@@ -88,8 +85,7 @@ const ShareDialog = ({
       );
       
       toast({
-        title: "Shared Successfully",
-        description: `Shared ${file.name} with ${recipientsList.length} recipient(s)`,
+        title: `Shared ${file.name} successfully`,
       });
       
       // Reset form
@@ -103,10 +99,8 @@ const ShareDialog = ({
         onShareComplete();
       }
     } catch (error) {
-      console.error('Error sharing file:', error);
       toast({
-        title: "Share Failed",
-        description: "Failed to share file. Please try again.",
+        title: "Share file error",
         variant: "destructive",
       });
     } finally {
@@ -189,3 +183,4 @@ const ShareDialog = ({
 };
 
 export default ShareDialog;
+

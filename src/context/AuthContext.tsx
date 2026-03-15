@@ -143,11 +143,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
       
       // Log relevant information for debugging
-      console.log('Login attempt with config:', {
-        clientId: msalConfig.auth.clientId,
-        authority: msalConfig.auth.authority,
-        redirectUri: msalConfig.auth.redirectUri
-      });
       
       // Login with popup
       const response: AuthenticationResult = await msalInstance.loginPopup(loginRequest);
@@ -162,7 +157,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         msalInstance.setActiveAccount(response.account);
       }
     } catch (error) {
-      console.error('Login failed:', error);
       throw error;
     }
   };
@@ -209,7 +203,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem('preferExternalChat');
         localStorage.removeItem('lastChatError');
       }).catch(error => {
-        console.error('Logout failed:', error);
       });
     }
   };
@@ -221,7 +214,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const accounts = msalInstance.getAllAccounts();
       if (accounts.length === 0) {
-        console.error('No accounts found when trying to get access token');
         return null;
       }
 
@@ -230,8 +222,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ? [`${resource}/.default`]
         : ["https://graph.microsoft.com/.default"];
       
-      console.log(`Acquiring token silently for account: ${accounts[0].username}, resource: ${resource || 'graph'}`);
-      
       // Request token with specific scopes for the requested resource
       const tokenRequest = {
         scopes: tokenScopes,
@@ -239,12 +229,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       const tokenResponse = await msalInstance.acquireTokenSilent(tokenRequest);
-      console.log('Token acquired successfully for resource:', resource || 'graph');
       
       return tokenResponse.accessToken;
     } catch (error) {
       if (error instanceof InteractionRequiredAuthError) {
-        console.log(`Silent token acquisition failed for resource: ${resource || 'graph'}, trying popup`);
         
         try {
           // If silent acquisition fails, try popup
@@ -255,14 +243,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const tokenResponse = await msalInstance.acquireTokenPopup({
             scopes: tokenScopes
           });
-          console.log('Token acquired with popup for resource:', resource || 'graph');
           return tokenResponse.accessToken;
         } catch (fallbackError) {
-          console.error(`Failed to get access token with popup for resource: ${resource || 'graph'}`, fallbackError);
           return null;
         }
       } else {
-        console.error(`Failed to get access token for resource: ${resource || 'graph'}`, error);
         return null;
       }
     }
@@ -277,7 +262,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Use the SharePoint Online scope format with the specific domain
       return await getAccessToken(`https://${domain}`);
     } catch (error) {
-      console.error('Failed to get SharePoint token:', error);
       return null;
     }
   };
@@ -307,3 +291,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

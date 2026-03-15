@@ -18,8 +18,8 @@ export const appConfig = {
   clientSecret: "2c98Q~afKVPc9lvufXfrPoVkSpuWgeSusqAZAbSi",
 };
 
-let cachedToken: string | null = null;
-let tokenExpiresAt: number | null = null;
+const cachedToken: string | null = null;
+const tokenExpiresAt: number | null = null;
 
 /**
  * Acquires an app-only access token for Microsoft Graph via Vite proxy.
@@ -29,22 +29,12 @@ let tokenExpiresAt: number | null = null;
  *   Vite proxy rewrites → POST https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token
  */
 export const getAccessTokenByApp = async (): Promise<string | null> => {
-  // Return cached token if still valid
   if (cachedToken && tokenExpiresAt && tokenExpiresAt > Date.now()) {
-    console.log("Using cached app token");
     return cachedToken;
   }
 
   try {
-    // Use the Vite proxy path instead of the direct Azure AD URL
-    // const tokenUrl = `/api/token/${appConfig.tenantId}/oauth2/v2.0/token`;
     const tokenurl = `https://geotekdevapp-ahhdanhcg7bthucd.westus-01.azurewebsites.net/fetch-access-token?tenantId=${appConfig.tenantId}`;
-    const body = new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: appConfig.clientId,
-      client_secret: appConfig.clientSecret,
-      scope: "https://graph.microsoft.com/.default",
-    });
 
     const response = await axios({
       baseURL: tokenurl,
@@ -57,31 +47,8 @@ export const getAccessTokenByApp = async (): Promise<string | null> => {
       },
     });
 
-    // const response = await fetch(tokenUrl, {
-    //     method: 'POST',
-    //     headers: {
-    //         'Content-Type': 'application/x-www-form-urlencoded',
-    //     },
-    //     body,
-    // });
-
-    // if (!response.ok) {
-    //   const errorText = await response.text();
-    //   console.error("Token error response:", errorText);
-    //   throw new Error(
-    //     `Token request failed: ${response.status} - ${errorText}`,
-    //   );
-    // }
-
-    // const tokenData = await response.json();
-    // cachedToken = tokenData.access_token;
-    // // Cache until 60 s before actual expiry
-    // tokenExpiresAt = Date.now() + tokenData.expires_in * 1000 - 60000;
-
-    console.log("App-only token acquired successfully");
     return response?.data?.access_token || null;
-  } catch (error) {
-    console.error("Client credentials auth failed:", error);
+  } catch {
     return null;
   }
 };
