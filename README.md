@@ -1,83 +1,72 @@
 # Deals Management & Vendor Analysis Platform
 
-A premium, AI-driven project management and document collaboration platform powered by **SharePoint Embedded** and **Azure OpenAI**.
+An AI-powered enterprise platform for managing project deals, vendor submissions, and ROI analysis, integrated with SharePoint Embedded for secure document storage.
 
-## 🚀 Key Features
+## Features
 
-### 🧠 AI-Powered Intelligence
-- **AI Suggested Vendors**: Automatically analyzes proposal, cost, and policy documents to score vendors based on project criteria.
-- **Contextual ChatBot**: A persistent AI assistant that helps users query project data, create projects, and surface insights instantly.
-- **Smart Summarization**: Generates intelligence reports from complex vendor submissions.
+- **Project Lifecycle Management**: Full CRUD operations for projects with custom metadata and folder structures.
+- **AI-Powered Workflows**:
+  - **Auto-Project Creation**: Generate project structures from high-level descriptions.
+  - **Proposal Analysis**: AI scoring (0-100) of vendor documents against project requirements.
+  - **ROI Insights**: Automatic summary of bid amounts and vendor capabilities.
+- **Secure Document Storage**: Leveraging SharePoint Embedded (Microsoft Graph API) for enterprise-grade security and compliance.
+- **Identity & Access Governance**: Integrated M365 authentication and dedicated vendor portal.
 
-### 📄 Advanced Document Collaboration
-- **Office Online Integration**: Seamlessly view and edit Word, Excel, and PowerPoint files directly within the application.
-- **Premium Document Viewer**: A high-fidelity, in-app preview system with support for diverse file types (PDF, Images, Office Docs).
-- **Advanced Sharing**: A unified sharing workflow supporting:
-  - **Anyone** (Anonymous links)
-  - **Organization-wide** access
-  - **Specific People** (Via Graph API invitations)
-  - Granular **View/Edit** permission controls.
+## Technology Stack
 
-### ✨ Premium User Experience
-- **Modern Dashboard**: Visually rich interface with glassmorphism, dynamic animations, and a tailored purple theme.
-- **Responsive Design**: Fully optimized for diverse screen sizes.
-- **Intelligent Notifications**: Custom-built, non-intrusive toast system positioned for optimal visibility.
+- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS.
+- **UI Components**: Radix UI, Fluent UI (Microsoft), Lucide Icons.
+- **Authentication**: MSAL (Microsoft Authentication Library).
+- **Backend Services**: Microsoft Graph API, Azure OpenAI (GPT-3.5 Turbo).
+- **Deployment**: Netlify (with Edge Functions for CORS/Proxy).
 
-## 🛠️ Technology Stack
+## Prerequisites
 
-- **Frontend**: React 18, Vite, TypeScript
-- **Styling**: Tailwind CSS, Lucide Icons, Radix UI (shadcn/ui)
-- **Authentication**: MSAL (Microsoft Authentication Library) for Azure AD
-- **Backend Services**: Microsoft Graph API (File & Sharing operations)
-- **AI Engine**: Azure OpenAI (GPT-4) for document analysis and chat
+- **Node.js**: v22.22.0 (Recommended)
+- **Azure Tenant**: With SharePoint Embedded and Azure OpenAI enabled.
+- **Environment Variables**: Configure `clientId`, `tenantId`, and `containerTypeId` in `src/config/appConfig.ts`.
 
-## ⚙️ Getting Started
+## Getting Started
 
-### Prerequisites
-- **Node.js** (v18 or higher)
-- **Azure AD App Registration** with appropriate Graph API permissions:
-  - `Files.ReadWrite.All`
-  - `Sites.Read.All`
-  - `User.Read`
-  - `FileStorageContainer.Selected` (for SPE)
-
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd DealsManagement
-   ```
-
-2. Install dependencies:
+1. **Install dependencies**:
    ```bash
    npm install
    ```
-
-3. Configure the application:
-   Update `src/config/appConfig.ts` with your Azure and SharePoint Embedded details:
-   ```typescript
-   export const appConfig = {
-     clientId: "YOUR_CLIENT_ID",
-     tenantId: "YOUR_TENANT_ID",
-     containerTypeId: "YOUR_CONTAINER_TYPE_ID",
-     sharePointHostname: "https://your-tenant.sharepoint.com",
-     // ... other settings
-   };
-   ```
-
-4. Run in development mode:
+2. **Run locally**:
    ```bash
    npm run dev
    ```
+3. **Build for production**:
+   ```bash
+   npm run build
+   ```
 
-## 📂 Project Structure
+## Project Structure
 
-- `src/components`: Reusable UI components (Modals, Chat, Forms).
-- `src/pages`: Main application views (Dashboard, Repository, Directory).
-- `src/services`: Core logic for API interactions (SharePoint, AI).
-- `src/context`: React Context for global state management (Auth, Projects).
-- `src/hooks`: Custom hooks for common logic and API calls.
+- `src/config/`: Application configuration and MSAL setup.
+- `src/context/`: Auth, Projects, and API state management.
+- `src/services/`:
+  - `sharePointService.ts`: Microsoft Graph API integration.
+  - `aiSummary.ts`: Azure OpenAI service calls.
+- `src/pages/`:
+  - `Insights`: Dashboard with AI-driven analytics.
+  - `Projects`: Main project sites rollup and management.
+  - `Repository`: File explorer for project documents.
+  - `Identity`: Access governance and user role management.
+  - `VendorApprovals`: Admin workflow for onboarding new vendors.
 
-## 📄 License
+## Authentication & Security
 
-Internal Project - All Rights Reserved.
+The platform uses a dual-authentication system handled via `src/context/AuthContext.tsx`:
+
+1. **M365 / Entra ID Login**: For internal users (Admin, Broker, Executive) authenticated via MSAL.
+2. **Vendor Portal Login**: Dedicated login for partners, validated against a secure SharePoint user registry.
+
+## Netlify Deployment Guide
+
+The project is optimized for Netlify deployment using the following configuration:
+
+- **Build Command**: `npm run build`
+- **Publish Directory**: `dist`
+- **SPA Routing**: Catch-all redirects configured in `netlify.toml`.
+- **CORS Proxying**: Netlify Edge Functions handle token acquisition to bypass Azure AD CORS restrictions.

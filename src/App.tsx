@@ -105,7 +105,7 @@ const App = () => {
                           <Route
                             path="projects"
                             element={(
-                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
+                              <ModuleGuard allowedRoles={['admin', 'broker', 'executive']} allowVendor>
                                 <Directory />
                               </ModuleGuard>
                             )}
@@ -114,7 +114,7 @@ const App = () => {
                           <Route
                             path="repository"
                             element={(
-                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']} allowVendor>
+                              <ModuleGuard allowedRoles={['admin', 'broker', 'executive']} allowVendor>
                                 <Repository />
                               </ModuleGuard>
                             )}
@@ -122,7 +122,7 @@ const App = () => {
                           <Route
                             path="analytics"
                             element={(
-                              <ModuleGuard allowedRoles={['admin', 'manager', 'executive']}>
+                              <ModuleGuard allowedRoles={['admin', 'broker', 'executive']}>
                                 <Analytics />
                               </ModuleGuard>
                             )}

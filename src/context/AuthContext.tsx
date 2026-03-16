@@ -9,7 +9,7 @@ import {
 import { appConfig } from '../config/appConfig';
 import { sharePointService } from '../services/sharePointService';
 
-export type AppRole = 'admin' | 'manager' | 'executive';
+export type AppRole = 'admin' | 'broker' | 'executive';
 
 export type LoginType = 'm365' | 'vendor';
 
@@ -17,9 +17,9 @@ const VENDOR_SESSION_KEY = 'nexus_vendor_session';
 
 // Azure AD security group object IDs (from Entra ID)
 // Replace these with your actual group object IDs if they differ.
-const DEALS_MGMT_MANAGER_GROUP_ID = '50595f9b-6355-4db0-b90b-bdb3ec800caa';
-const DEALS_MGMT_ADMIN_GROUP_ID = '10b10632-bcef-4029-8af2-1fb1521e6255';
-const DEALS_MGMT_EXEC_GROUP_ID = 'f0620cab-6faa-4510-93cb-4a9ff11e4c2d';
+const DEALS_MGMT_BROKER_GROUP_ID = 'YOUR_BROKER_GROUP_ID';
+const DEALS_MGMT_ADMIN_GROUP_ID = 'YOUR_ADMIN_GROUP_ID';
+const DEALS_MGMT_EXEC_GROUP_ID = 'YOUR_EXECUTIVE_GROUP_ID';
 
 export interface VendorUser {
   username: string;
@@ -52,7 +52,7 @@ const deriveRoleFromAccount = (account: AccountInfo | null): AppRole => {
   const groups: string[] = claims.groups || claims['groups'] || [];
   if (Array.isArray(groups) && groups.length > 0) {
     if (groups.includes(DEALS_MGMT_ADMIN_GROUP_ID)) return 'admin';
-    if (groups.includes(DEALS_MGMT_MANAGER_GROUP_ID)) return 'manager';
+    if (groups.includes(DEALS_MGMT_BROKER_GROUP_ID)) return 'broker';
     if (groups.includes(DEALS_MGMT_EXEC_GROUP_ID)) return 'executive';
   }
 
@@ -60,7 +60,7 @@ const deriveRoleFromAccount = (account: AccountInfo | null): AppRole => {
   const roles: string[] = claims.roles || claims['roles'] || [];
   if (Array.isArray(roles)) {
     if (roles.includes('DealsManagementAdmin')) return 'admin';
-    if (roles.includes('DealsManagementManager')) return 'manager';
+    if (roles.includes('DealsManagementBroker')) return 'broker';
     if (roles.includes('DealsManagementExecutive')) return 'executive';
   }
 

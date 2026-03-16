@@ -1,22 +1,21 @@
 // Configuration for SharePoint Embedded application
 export const appConfig = {
   // These values should be updated with your actual values
-  clientId: "453b9fbd-7155-4832-8324-efd5c13de9fb", // Replace with your application client ID
-  tenantId: "3e8e53be-a48f-4147-adf8-7e90a6e46b57", // Replace with your tenant ID
-  containerTypeId: "5d56b164-88fc-4574-b399-7da2520f3a03", // Replace with your container type ID
+  clientId: "YOUR_CLIENT_ID", // Replace with your application client ID
+  tenantId: "YOUR_TENANT_ID", // Replace with your tenant ID
+  containerTypeId: "YOUR_CONTAINER_TYPE_ID", // Replace with your container type ID
   appName: "Nexus",
-  ContainerID:
-    "b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ",
+  ContainerID: "YOUR_CONTAINER_ID",
 
   // Add the SharePoint hostname explicitly
-  sharePointHostname: "https://chandrudemo.sharepoint.com",
+  sharePointHostname: "https://YOUR_TENANT.sharepoint.com",
 
   // MSAL configuration
   msalConfig: {
     auth: {
-      clientId: "453b9fbd-7155-4832-8324-efd5c13de9fb", // Same as above
+      clientId: "YOUR_CLIENT_ID", // Same as above
       authority:
-        "https://login.microsoftonline.com/3e8e53be-a48f-4147-adf8-7e90a6e46b57", // Will be updated with actual tenant ID
+        "https://login.microsoftonline.com/YOUR_TENANT_ID", // Will be updated with actual tenant ID
       redirectUri: window.location.origin, // Dynamic redirect URI based on current origin
     },
     cache: {

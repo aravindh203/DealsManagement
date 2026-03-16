@@ -11,11 +11,11 @@
 import axios from "axios";
 
 export const appConfig = {
-  clientId: "453b9fbd-7155-4832-8324-efd5c13de9fb",
-  tenantId: "3e8e53be-a48f-4147-adf8-7e90a6e46b57",
-  containerTypeId: "5d56b164-88fc-4574-b399-7da2520f3a03",
+  clientId: "YOUR_CLIENT_ID",
+  tenantId: "YOUR_TENANT_ID",
+  containerTypeId: "YOUR_CONTAINER_TYPE_ID",
   appName: "Sharepoint Embedded",
-  clientSecret: "2c98Q~afKVPc9lvufXfrPoVkSpuWgeSusqAZAbSi",
+  clientSecret: "YOUR_CLIENT_SECRET",
 };
 
 const cachedToken: string | null = null;
@@ -34,7 +34,7 @@ export const getAccessTokenByApp = async (): Promise<string | null> => {
   }
 
   try {
-    const tokenurl = `https://geotekdevapp-ahhdanhcg7bthucd.westus-01.azurewebsites.net/fetch-access-token?tenantId=${appConfig.tenantId}`;
+    const tokenurl = `https://YOUR_PROXY_URL/fetch-access-token?tenantId=${appConfig.tenantId}`;
 
     const response = await axios({
       baseURL: tokenurl,
