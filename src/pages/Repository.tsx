@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./Repository.module.scss";
 import { AddRegular, ArrowLeftRegular, FolderAddRegular } from "@fluentui/react-icons";
-import { Download, Trash2, Eye, Share2, Globe2, Building2, Users2, Edit2, X, Share, FileText } from "lucide-react";
+import { Download, Trash2, Eye, Share2, Globe2, Building2, Users2, Edit2, X, Share, FileText, User, Settings, Shield, History } from "lucide-react";
 import { UserMenu } from "../components/UserMenu";
 import { useProjects } from "@/context/ProjectsContext";
 import { useAuth } from "@/context/AuthContext";
@@ -122,6 +122,13 @@ const Repository: React.FC = () => {
   const [shareNotify, setShareNotify] = useState(true);
   const [shareRetain, setShareRetain] = useState(true);
   const [shareLinkResult, setShareLinkResult] = useState<string | null>(null);
+  const [shareTab, setShareTab] = useState<"share" | "manage">("share");
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyItem, setHistoryItem] = useState<FileItem | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   useEffect(() => {
     refetch();
@@ -520,6 +527,89 @@ const Repository: React.FC = () => {
     }
   };
 
+  const fetchPermissions = useCallback(async () => {
+    if (!sharingItem) return;
+    const token = await getAccessTokenByApp();
+    if (!token) return;
+    setLoadingPermissions(true);
+    try {
+      const perms = await sharePointService.getItemPermissions(
+        token,
+        appConfig.ContainerID,
+        sharingItem.id
+      );
+      setPermissions(perms);
+    } catch (err) {
+      toast({ title: "Failed to fetch permissions", variant: "destructive" });
+    } finally {
+      setLoadingPermissions(false);
+    }
+  }, [sharingItem]);
+
+  useEffect(() => {
+    if (isShareOpen && shareTab === "manage") {
+      fetchPermissions();
+    }
+  }, [isShareOpen, shareTab, fetchPermissions]);
+
+  const handleDeletePermission = async (permissionId: string) => {
+    if (!sharingItem) return;
+    const token = await getAccessTokenByApp();
+    if (!token) return;
+    try {
+      await sharePointService.deleteItemPermission(
+        token,
+        appConfig.ContainerID,
+        sharingItem.id,
+        permissionId
+      );
+      toast({ title: "Permission removed successfully", variant: "success" });
+      fetchPermissions();
+    } catch (err) {
+      toast({ title: "Failed to remove permission", variant: "destructive" });
+    }
+  };
+
+  const handleUpdatePermission = async (permissionId: string, role: "read" | "write") => {
+    if (!sharingItem) return;
+    const token = await getAccessTokenByApp();
+    if (!token) return;
+    try {
+      const roles = role === "write" ? ["write"] : ["read"];
+      await sharePointService.updateItemPermission(
+        token,
+        appConfig.ContainerID,
+        sharingItem.id,
+        permissionId,
+        roles
+      );
+      toast({ title: "Permission updated successfully", variant: "success" });
+      fetchPermissions();
+    } catch (err) {
+      toast({ title: "Failed to update permission", variant: "destructive" });
+    }
+  };
+
+  const handleOpenHistory = async (item: FileItem) => {
+    setHistoryItem(item);
+    setIsHistoryOpen(true);
+    setLoadingVersions(true);
+    const token = await getAccessTokenByApp();
+    if (!token) return;
+    try {
+      const vers = await sharePointService.getItemVersions(
+        token,
+        appConfig.ContainerID,
+        item.id
+      );
+      setVersions(vers);
+    } catch (err) {
+      toast({ title: "Failed to fetch version history", variant: "destructive" });
+    } finally {
+      setLoadingVersions(false);
+    }
+  };
+
   const isRoot = navStack.length === 0;
   const PROJECT_SUBFOLDER_NAMES = ["Project", "Project files", "Supporting documents"];
   const VENDOR_FOLDER_NAMES = ["Vendor", "Vendors"];
@@ -778,6 +868,17 @@ const Repository: React.FC = () => {
                                     <span>Share</span>
                                   </button>
                                 )}
+                                {!isVendor && (
+                                  <button
+                                    type="button"
+                                    className={styles.fileActionBtn}
+                                    title="Version History"
+                                    onClick={() => handleOpenHistory(item)}
+                                  >
+                                    <History size={16} />
+                                    <span>History</span>
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   className={styles.fileActionBtn}
@@ -951,94 +1052,170 @@ const Repository: React.FC = () => {
           </DialogHeader>
 
           <div className="flex flex-col gap-6">
-            {/* Scope Selection */}
-            <div className="space-y-3">
-              <Label className="text-[15px] font-semibold text-slate-900">Scope</Label>
-              <div className="grid grid-cols-3 gap-4">
-                <button
-                  type="button"
-                  onClick={() => { setShareScope("anonymous"); setShareLinkResult(null); }}
-                  className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "anonymous" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                >
-                  <Globe2 className="mb-2" size={24} strokeWidth={1.5} />
-                  <span className="font-semibold text-[13px] mb-0.5">Anyone</span>
-                  <span className="text-[11px] opacity-70">Anyone with the link</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShareScope("organization"); setShareLinkResult(null); }}
-                  className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "organization" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                >
-                  <Building2 className="mb-2" size={24} strokeWidth={1.5} />
-                  <span className="font-semibold text-[13px] mb-0.5">Organization</span>
-                  <span className="text-[11px] opacity-70">People in your org</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShareScope("users"); setShareLinkResult(null); }}
-                  className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "users" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                >
-                  <Users2 className="mb-2" size={24} strokeWidth={1.5} />
-                  <span className="font-semibold text-[13px] mb-0.5">Specific people</span>
-                  <span className="text-[11px] opacity-70">Only recipients</span>
-                </button>
-              </div>
+            {/* Tab Navigation */}
+            <div className="flex border-b border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShareTab("share")}
+                className={`px-6 py-2 text-sm font-semibold transition-all border-b-2 ${shareTab === "share" ? "border-[#6B47E5] text-[#6B47E5]" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                Share
+              </button>
+              <button
+                type="button"
+                onClick={() => setShareTab("manage")}
+                className={`px-6 py-2 text-sm font-semibold transition-all border-b-2 ${shareTab === "manage" ? "border-[#6B47E5] text-[#6B47E5]" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                Manage Access
+              </button>
             </div>
 
-            {/* Permission Selection */}
-            <div className="space-y-3">
-              <Label className="text-[15px] font-semibold text-slate-900">Permission</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => { setShareRole("read"); setShareLinkResult(null); }}
-                  className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "read" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                >
-                  <Eye className="mr-3" size={20} strokeWidth={1.5} />
-                  <div className="flex flex-col text-left">
-                    <span className="font-semibold text-[13px]">View</span>
-                    <span className="text-[11px] opacity-70">Can view only</span>
+            {shareTab === "share" ? (
+              <>
+                {/* Scope Selection */}
+                <div className="space-y-3">
+                  <Label className="text-[15px] font-semibold text-slate-900">Scope</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => { setShareScope("anonymous"); setShareLinkResult(null); }}
+                      className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "anonymous" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                    >
+                      <Globe2 className="mb-2" size={24} strokeWidth={1.5} />
+                      <span className="font-semibold text-[13px] mb-0.5">Anyone</span>
+                      <span className="text-[11px] opacity-70">Anyone with the link</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShareScope("organization"); setShareLinkResult(null); }}
+                      className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "organization" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                    >
+                      <Building2 className="mb-2" size={24} strokeWidth={1.5} />
+                      <span className="font-semibold text-[13px] mb-0.5">Organization</span>
+                      <span className="text-[11px] opacity-70">People in your org</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShareScope("users"); setShareLinkResult(null); }}
+                      className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all ${shareScope === "users" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                    >
+                      <Users2 className="mb-2" size={24} strokeWidth={1.5} />
+                      <span className="font-semibold text-[13px] mb-0.5">Specific people</span>
+                      <span className="text-[11px] opacity-70">Only recipients</span>
+                    </button>
                   </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShareRole("write"); setShareLinkResult(null); }}
-                  className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "write" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
-                >
-                  <Edit2 className="mr-3" size={20} strokeWidth={1.5} />
-                  <div className="flex flex-col text-left">
-                    <span className="font-semibold text-[13px]">Edit</span>
-                    <span className="text-[11px] opacity-70">Can view & edit</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Users Input (only for Specific people) */}
-            {shareScope === "users" && (
-              <div className="space-y-3">
-                <Label htmlFor="share-emails" className="text-[15px] font-semibold text-slate-900">Recipients (comma separated)</Label>
-                <Input
-                  id="share-emails"
-                  type="text"
-                  value={shareEmails}
-                  onChange={(e) => setShareEmails(e.target.value)}
-                  placeholder="Add people via email..."
-                  className="rounded-lg border-slate-200"
-                />
-              </div>
-            )}
-
-            {/* Toggles removed per user request */}
-
-            {/* Result Area */}
-            {shareLinkResult && shareScope !== "users" && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg mt-2">
-                <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully</Label>
-                <div className="flex items-center gap-2">
-                  <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
-                  <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({ title: "Repository share link copied", variant: "success" }) }}>Copy</Button>
                 </div>
+
+                {/* Permission Selection */}
+                <div className="space-y-3">
+                  <Label className="text-[15px] font-semibold text-slate-900">Permission</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => { setShareRole("read"); setShareLinkResult(null); }}
+                      className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "read" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                    >
+                      <Eye className="mr-3" size={20} strokeWidth={1.5} />
+                      <div className="flex flex-col text-left">
+                        <span className="font-semibold text-[13px]">View</span>
+                        <span className="text-[11px] opacity-70">Can view only</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShareRole("write"); setShareLinkResult(null); }}
+                      className={`flex items-center px-4 py-3 border rounded-xl transition-all ${shareRole === "write" ? "border-[#6B47E5] bg-[#F4F0FF] text-[#6B47E5] shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600"}`}
+                    >
+                      <Edit2 className="mr-3" size={20} strokeWidth={1.5} />
+                      <div className="flex flex-col text-left">
+                        <span className="font-semibold text-[13px]">Edit</span>
+                        <span className="text-[11px] opacity-70">Can view & edit</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Users Input (only for Specific people) */}
+                {shareScope === "users" && (
+                  <div className="space-y-3">
+                    <Label htmlFor="share-emails" className="text-[15px] font-semibold text-slate-900">Recipients (comma separated)</Label>
+                    <Input
+                      id="share-emails"
+                      type="text"
+                      value={shareEmails}
+                      onChange={(e) => setShareEmails(e.target.value)}
+                      placeholder="Add people via email..."
+                      className="rounded-lg border-slate-200"
+                    />
+                  </div>
+                )}
+
+                {/* Result Area */}
+                {shareLinkResult && shareScope !== "users" && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg mt-2">
+                    <Label className="text-[13px] text-green-800 font-semibold mb-2 block">Link Generated Successfully</Label>
+                    <div className="flex items-center gap-2">
+                      <Input readOnly value={shareLinkResult} className="h-9 text-xs bg-white border-green-200 focus-visible:ring-green-500" />
+                      <Button size="sm" variant="outline" className="h-9 px-4 border-green-200 text-green-700 hover:bg-green-100" onClick={() => { navigator.clipboard.writeText(shareLinkResult); toast({ title: "Repository share link copied", variant: "success" }) }}>Copy</Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                <Label className="text-[15px] font-semibold text-slate-900">People with access</Label>
+                {loadingPermissions ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B47E5]"></div>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[280px] pr-4">
+                    <div className="space-y-3">
+                      {permissions.length === 0 ? (
+                        <p className="text-center text-slate-500 py-8 text-sm">No specific permissions found.</p>
+                      ) : (
+                        permissions.map((perm) => {
+                          const user = perm.grantedTo?.user || perm.grantedTo?.group || { displayName: "Anyone with link" };
+                          const isLink = !!perm.link;
+                          const email = user.email || (isLink ? perm.link.type : "");
+                          const role = perm.roles?.[0] || "read";
+
+                          return (
+                            <div key={perm.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[#6B47E5]">
+                                  {isLink ? <Globe2 size={20} /> : <User size={20} />}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-semibold text-slate-900">{user.displayName || "Unknown"}</span>
+                                  <span className="text-xs text-slate-500">{email}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={role}
+                                  onChange={(e) => handleUpdatePermission(perm.id, e.target.value as "read" | "write")}
+                                  className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#6B47E5]"
+                                >
+                                  <option value="read">View</option>
+                                  <option value="write">Edit</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePermission(perm.id)}
+                                  className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                  title="Remove access"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                )}
               </div>
             )}
           </div>
@@ -1047,16 +1224,110 @@ const Repository: React.FC = () => {
             <Button
               variant="outline"
               className="rounded-lg px-6 font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200"
-              onClick={() => setIsShareOpen(false)}
+              onClick={() => { setIsShareOpen(false); setShareTab("share"); }}
             >
-              Cancel
+              Close
             </Button>
+            {shareTab === "share" && (
+              <Button
+                onClick={handleShareSubmitAdvanced}
+                disabled={sharing || (shareScope === "users" && !shareEmails.trim())}
+                className="bg-[#6B47E5] hover:bg-[#5A3DD4] text-white rounded-lg px-6 font-medium border border-transparent shadow-sm"
+              >
+                {sharing ? "Processing..." : shareScope === "users" ? "Send" : "Create Link"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Version History Dialog */}
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="sm:max-w-[500px] gap-0 p-6">
+          <DialogHeader className="mb-6 space-y-1">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <History size={24} className="text-[#6B47E5]" strokeWidth={2} /> Version History
+            </DialogTitle>
+            {historyItem && (
+              <div className="text-sm text-muted-foreground ml-[2px] flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                <span className="truncate font-medium">{historyItem.name}</span>
+              </div>
+            )}
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            {loadingVersions ? (
+              <div className="flex justify-center py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#6B47E5] border-t-transparent"></div>
+                  <span className="text-xs text-slate-500 font-medium">Loading history...</span>
+                </div>
+              </div>
+            ) : (
+              <ScrollArea className="h-[400px] pr-4 -mr-2">
+                <div className="space-y-4 py-2">
+                  {versions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                      <History size={32} className="text-slate-300 mb-2" />
+                      <p className="text-slate-400 text-sm font-medium">No version history found</p>
+                    </div>
+                  ) : (
+                    <div className="relative ml-4 pl-8 border-l-2 border-slate-100 space-y-8 pb-4">
+                      {versions.map((v, index) => (
+                        <div key={v.id || index} className="relative group">
+                          {/* Timeline dot */}
+                          <div className="absolute -left-[41px] top-1 w-4 h-4 rounded-full border-2 border-white bg-[#6B47E5] shadow-sm z-10 group-hover:scale-110 transition-transform"></div>
+                          
+                          <div className="flex flex-col gap-1 transition-all">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[13px] font-bold text-slate-900 leading-none">
+                                Version {v.id || versions.length - index}
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 bg-[#6B47E5]/5 text-[#6B47E5] rounded-full border border-[#6B47E5]/10 shadow-sm">
+                                {formatSize(v.size || 0)}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 mt-1.5 p-2.5 rounded-xl border border-slate-100 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] group-hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] group-hover:border-[#6B47E5]/10 transition-all">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6B47E5]/10 to-[#8E70F5]/5 border border-[#6B47E5]/10 flex items-center justify-center text-[#6B47E5] shadow-inner shrink-0">
+                                {v.lastModifiedBy?.user?.displayName ? (
+                                  <span className="text-xs font-bold uppercase">{v.lastModifiedBy.user.displayName.charAt(0)}</span>
+                                ) : (
+                                  <User size={18} />
+                                )}
+                              </div>
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="text-sm font-semibold text-slate-800 truncate leading-tight">
+                                  {v.lastModifiedBy?.user?.displayName || "System Account"}
+                                </span>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[11px] text-slate-400 font-medium">
+                                    {formatDate(v.lastModifiedDateTime || "")}
+                                  </span>
+                                  <span className="text-[11px] text-slate-300">•</span>
+                                  <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+                                    {new Date(v.lastModifiedDateTime || "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+
+          <DialogFooter className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-100">
             <Button
-              onClick={handleShareSubmitAdvanced}
-              disabled={sharing || (shareScope === "users" && !shareEmails.trim())}
-              className="bg-[#6B47E5] hover:bg-[#5A3DD4] text-white rounded-lg px-6 font-medium border border-transparent shadow-sm"
+              variant="outline"
+              className="rounded-xl px-8 font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-slate-200 transition-all active:scale-95"
+              onClick={() => setIsHistoryOpen(false)}
             >
-              {sharing ? "Processing..." : shareScope === "users" ? "Send" : "Create Link"}
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
