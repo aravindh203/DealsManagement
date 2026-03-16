@@ -37,10 +37,10 @@ const mockData = {
     { name: 'Project F', effort: 30 }
   ],
   managerDistribution: [
-    { name: 'Manager 1', value: 45 },
-    { name: 'Manager 2', value: 25 },
-    { name: 'Manager 3', value: 15 },
-    { name: 'Manager 4', value: 15 }
+    { name: 'Broker 1', value: 45 },
+    { name: 'Broker 2', value: 25 },
+    { name: 'Broker 3', value: 15 },
+    { name: 'Broker 4', value: 15 }
   ]
 };
 
@@ -163,14 +163,14 @@ export function ProjectDashboard({ projectName }: ProjectDashboardProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Projects by Project Manager</CardTitle>
+            <CardTitle>Projects by Broker</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[200px]">
               <ChartContainer config={{
                 managerDistribution: {
                   color: "#00C49F",
-                  label: "Manager Distribution"
+                  label: "Broker Distribution"
                 }
               }}>
                 <ResponsiveContainer width="100%" height="100%">

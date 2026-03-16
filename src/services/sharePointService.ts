@@ -1,5 +1,5 @@
 import { log } from "console";
-import { appConfig } from "../config/appConfig";
+import { appConfig } from '@/config/appConfig';
 import { getAccessTokenByApp } from "../hooks/useClientCredentialsAuth";
 import { Project } from "@/pages/projectsData";
 
@@ -1399,10 +1399,7 @@ export class SharePointService {
 
   async getColumns(token: string): Promise<ArrayBuffer> {
     try {
-      // const url = `https://graph.microsoft.com/beta/storage/fileStorage/containers/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/columns`
-      // const url = `https://graph.microsoft.com/beta/drives//b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/root/children`
-      // const url = `https://graph.microsoft.com/beta/drives/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/items/01R2P44ADQAX4IFHRZLND3XS4FTYQOZUS2/listitem/fields$expand=listitem($expand=fields)`
-      const url = `https://graph.microsoft.com/beta/drives/b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ/items/01R2P44ADQAX4IFHRZLND3XS4FTYQOZUS2?$expand=listItem($expand=fields)`;
+      const url = `${appConfig.endpoints.graphBaseUrl}/drives/${appConfig.ContainerID}/items/YOUR_ITEM_ID?$expand=listItem($expand=fields)`;
 
       const response = await fetch(url, {
         method: "GET",
@@ -1866,7 +1863,7 @@ export class SharePointService {
     }
 
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
-    const sitePath = "/sites/HackerthonDealsManagement";
+    const sitePath = "/sites/YOUR_SITE_NAME";
 
     const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Password,Status)`;
 
@@ -1927,9 +1924,8 @@ export class SharePointService {
     }
 
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
-    const sitePath = "/sites/HackerthonDealsManagement";
-    // const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items`;
-    const url = `https://graph.microsoft.com/v1.0/sites/chandrudemo.sharepoint.com:/sites/HackerthonDealsManagement:/lists/UserDetails/items`;
+    const sitePath = "/sites/YOUR_SITE_NAME";
+    const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items`;
     const body = {
       fields: {
         Title: trimmedUsername,
@@ -1984,7 +1980,7 @@ export class SharePointService {
     }
 
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
-    const sitePath = "/sites/HackerthonDealsManagement";
+    const sitePath = "/sites/YOUR_SITE_NAME";
     const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Company,Email,MobileNumber,Status,FirstName,LastName)&$orderby=createdDateTime desc`;
 
     const response = await fetch(url, {
@@ -2050,7 +2046,7 @@ export class SharePointService {
     status: string,
   ): Promise<void> {
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
-    const sitePath = "/sites/HackerthonDealsManagement";
+    const sitePath = "/sites/YOUR_SITE_NAME";
     const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items/${itemId}/fields`;
 
     const response = await fetch(url, {
@@ -2080,7 +2076,7 @@ export class SharePointService {
     if (!token) return [];
 
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
-    const sitePath = "/sites/HackerthonDealsManagement";
+    const sitePath = "/sites/YOUR_SITE_NAME";
     const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=Company,Status)`;
 
     try {
@@ -2124,7 +2120,7 @@ export class SharePointService {
     if (!token) return null;
 
     const host = appConfig.sharePointHostname.replace(/^https?:\/\//, "");
-    const sitePath = "/sites/HackerthonDealsManagement";
+    const sitePath = "/sites/YOUR_SITE_NAME";
     const url = `${appConfig.endpoints.graphBaseUrl}/sites/${host}:${sitePath}:/lists/UserDetails/items?$expand=fields($select=UserName,Company)`;
 
     try {

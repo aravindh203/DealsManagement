@@ -1,6 +1,6 @@
 import axios from "axios";
-const AZURE_OPENAI_ENDPOINT = "https://yasazureopenai.openai.azure.com/";
-const AZURE_OPENAI_API_KEY = "51dba10bffe44152968d18f9cd135e85";
+const AZURE_OPENAI_ENDPOINT = "https://YOUR_AZURE_OPENAI_ENDPOINT.openai.azure.com/";
+const AZURE_OPENAI_API_KEY = "YOUR_AZURE_OPENAI_API_KEY";
 const AZURE_DEPLOYMENT_NAME = "gpt-35-turbo";
 const AZURE_API_VERSION = "2025-01-01-preview";
 

@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { appConfig, getAccessTokenByApp } from '@/hooks/useClientCredentialsAuth';
+import { appConfig } from '@/config/appConfig';
+import { getAccessTokenByApp } from '@/hooks/useClientCredentialsAuth';
 import { Label } from "@/components/ui/label";
 import {
     Form,
@@ -50,7 +51,7 @@ export const CreateFolderForm: React.FC<CreateFolderFormProps> = ({ onSuccess, o
                 });
                 return;
             }
-            const newFolder = await sharePointService.createFolder(token, "b!q-fcBJA8zE6Af0BM2Nw6xtTONTR4hJ9CufdHAYe_x0y3nP3LqEnASJ6COdc9ZIcQ", "", data.FolderName,);
+            const newFolder = await sharePointService.createFolder(token, appConfig.ContainerID, "", data.FolderName,);
 
             toast({
                 title: `Folder "${data.FolderName}" creation success`,

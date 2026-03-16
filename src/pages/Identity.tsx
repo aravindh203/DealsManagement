@@ -12,7 +12,7 @@ const MoreVerticalIcon = () => (
 );
 
 type Tab = 'USERS' | 'TEAMS' | 'DELEGATIONS';
-type ProtocolRole = 'ADMIN' | 'MANAGER' | 'BROKER';
+type ProtocolRole = 'ADMIN' | 'BROKER' | 'EXECUTIVE';
 
 interface AccessUser {
     id: string;
@@ -25,8 +25,8 @@ interface AccessUser {
 
 const accessUsers: AccessUser[] = [
     { id: '1', initial: 'A', name: 'Alex Mercer', email: 'ALEX@TECHNORUCS.COM', role: 'ADMIN', teamManager: 'Global Architect' },
-    { id: '2', initial: 'S', name: 'Sarah Jenkins', email: 'S.JENKINS@TECHNORUCS.COM', role: 'MANAGER', teamManager: 'Global Architect' },
-    { id: '3', initial: 'L', name: 'Lisa Johnson', email: 'LISA@TECHNORUCS.COM', role: 'BROKER', teamManager: 'Reports to Sarah Jenkins' },
+    { id: '2', initial: 'S', name: 'Sarah Jenkins', email: 'S.JENKINS@TECHNORUCS.COM', role: 'BROKER', teamManager: 'Global Architect' },
+    { id: '3', initial: 'L', name: 'Lisa Johnson', email: 'LISA@TECHNORUCS.COM', role: 'EXECUTIVE', teamManager: 'Reports to Sarah Jenkins' },
 ];
 
 interface TeamSummary {

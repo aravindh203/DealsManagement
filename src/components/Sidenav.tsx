@@ -131,7 +131,7 @@ export const Sidenav: React.FC<SidenavProps> = ({
       return true;
     }
 
-    if (role === "manager" || role === "executive") {
+    if (role === "broker" || role === "executive") {
       return to === "/projects" || to === "/repository" || to === "/analytics";
     }
 
