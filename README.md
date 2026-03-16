@@ -61,12 +61,3 @@ The platform uses a dual-authentication system handled via `src/context/AuthCont
 
 1. **M365 / Entra ID Login**: For internal users (Admin, Broker, Executive) authenticated via MSAL.
 2. **Vendor Portal Login**: Dedicated login for partners, validated against a secure SharePoint user registry.
-
-## Netlify Deployment Guide
-
-The project is optimized for Netlify deployment using the following configuration:
-
-- **Build Command**: `npm run build`
-- **Publish Directory**: `dist`
-- **SPA Routing**: Catch-all redirects configured in `netlify.toml`.
-- **CORS Proxying**: Netlify Edge Functions handle token acquisition to bypass Azure AD CORS restrictions.
