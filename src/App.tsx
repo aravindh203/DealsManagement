@@ -24,6 +24,7 @@ import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./context/AuthContext";
 import React, { Suspense } from 'react';
+// import './App.css';
 
 
 // Initialize QueryClient with default options and error handling

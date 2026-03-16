@@ -318,6 +318,7 @@ const Insights: React.FC = () => {
                       ? `$${(totalBudget / 1e3).toFixed(0)}K`
                       : `$${totalBudget.toLocaleString()}`}
                 </h2>
+                <span className={styles.cardSub}>Projected project budget</span>
               </div>
             </div>
 
