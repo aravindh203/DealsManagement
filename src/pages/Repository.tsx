@@ -24,6 +24,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 
 const BellIcon = () => (
   <svg
@@ -129,6 +138,21 @@ const Repository: React.FC = () => {
   const [historyItem, setHistoryItem] = useState<FileItem | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [previewItem, setPreviewItem] = useState<FileItem | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handleEditCurrentPreview = () => {
+    if (previewItem?.webUrl) {
+      window.open(previewItem.webUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    toast({
+      title: "Repository file edit error",
+      variant: "destructive",
+    });
+  };
 
   useEffect(() => {
     refetch();
@@ -467,14 +491,47 @@ const Repository: React.FC = () => {
     }
   };
 
-  const handleViewFile = (item: FileItem) => {
-    if (item.webUrl) {
-      window.open(item.webUrl, "_blank");
-    } else {
+  const handleViewFile = async (item: FileItem) => {
+    setPreviewItem(item);
+    setIsPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+
+    try {
+      const token = await getAccessTokenByApp();
+      if (!token) {
+        toast({
+          title: "Repository access token error",
+          variant: "destructive",
+        });
+        setIsPreviewOpen(false);
+        return;
+      }
+
+      const url = await sharePointService.getFilePreview(
+        token,
+        appConfig.ContainerID,
+        item.id,
+      );
+
+      if (!url) {
+        toast({
+          title: "Repository file view error",
+          variant: "destructive",
+        });
+        setIsPreviewOpen(false);
+        return;
+      }
+
+      setPreviewUrl(url);
+    } catch {
       toast({
         title: "Repository file view error",
-        variant: "destructive"
+        variant: "destructive",
       });
+      setIsPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -487,6 +544,7 @@ const Repository: React.FC = () => {
     setShareNotify(true);
     setShareRetain(true);
     setShareLinkResult(null);
+    setShareTab("share");
     setIsShareOpen(true);
   };
 
@@ -851,21 +909,21 @@ const Repository: React.FC = () => {
                                   type="button"
                                   className={styles.fileActionBtn}
                                   title="View"
+                                  aria-label={`View ${item.name}`}
                                   disabled={actionItemId === item.id}
                                   onClick={() => handleViewFile(item)}
                                 >
                                   <Eye size={16} />
-                                  <span>View</span>
                                 </button>
                                 {!isVendor && (
                                   <button
                                     type="button"
                                     className={styles.fileActionBtn}
                                     title="Share"
+                                    aria-label={`Share ${item.name}`}
                                     onClick={() => handleOpenShare(item)}
                                   >
                                     <Share2 size={16} />
-                                    <span>Share</span>
                                   </button>
                                 )}
                                 {!isVendor && (
@@ -873,32 +931,32 @@ const Repository: React.FC = () => {
                                     type="button"
                                     className={styles.fileActionBtn}
                                     title="Version History"
+                                    aria-label={`View version history for ${item.name}`}
                                     onClick={() => handleOpenHistory(item)}
                                   >
                                     <History size={16} />
-                                    <span>History</span>
                                   </button>
                                 )}
                                 <button
                                   type="button"
                                   className={styles.fileActionBtn}
                                   title="Download"
+                                  aria-label={`Download ${item.name}`}
                                   disabled={actionItemId === item.id}
                                   onClick={() => handleDownloadFile(item)}
                                 >
                                   <Download size={16} />
-                                  <span>Download</span>
                                 </button>
                                 {!isVendor && showUploadOption && (
                                   <button
                                     type="button"
                                     className={`${styles.fileActionBtn} ${styles.fileActionBtnDanger}`}
                                     title="Delete"
+                                    aria-label={`Delete ${item.name}`}
                                     disabled={actionItemId === item.id}
                                     onClick={() => handleDeleteFile(item)}
                                   >
                                     <Trash2 size={16} />
-                                    <span>Delete</span>
                                   </button>
                                 )}
                               </div>
@@ -1034,7 +1092,10 @@ const Repository: React.FC = () => {
 
       {/* Share Dialog */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
-        <DialogContent className="sm:max-w-[600px] gap-0 p-6">
+        <DialogContent
+          className="sm:max-w-[600px] gap-0 p-6"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader className="mb-6 space-y-1">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Share2 size={24} className="text-[#6B47E5]" strokeWidth={2} /> Share
@@ -1243,19 +1304,27 @@ const Repository: React.FC = () => {
 
       {/* Version History Dialog */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="sm:max-w-[500px] gap-0 p-6">
-          <DialogHeader className="mb-6 space-y-1">
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <History size={24} className="text-[#6B47E5]" strokeWidth={2} /> Version History
-            </DialogTitle>
-            {historyItem && (
-              <div className="text-sm text-muted-foreground ml-[2px] flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                <span className="truncate font-medium">{historyItem.name}</span>
-              </div>
-            )}
-          </DialogHeader>
+        <DialogContent
+          className="sm:max-w-[520px] gap-0 p-0 rounded-3xl bg-white shadow-[0_24px_60px_rgba(15,23,42,0.22)] border border-slate-100"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <div className="border-b border-slate-100 bg-gradient-to-r from-white via-slate-50 to-[#f4f0ff] px-6 pt-4 pb-3">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                <History size={22} className="text-[#6B47E5]" strokeWidth={2} /> Version History
+              </DialogTitle>
+              {historyItem && (
+                <div className="text-xs text-slate-500 flex items-center gap-2 bg-white/70 px-3 py-2 rounded-xl border border-slate-100 shadow-sm">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#6B47E5]/10 text-[#6B47E5] text-[11px] font-semibold">
+                    {historyItem.name?.charAt(0).toUpperCase() || "D"}
+                  </span>
+                  <span className="truncate font-medium text-slate-800">{historyItem.name}</span>
+                </div>
+              )}
+            </DialogHeader>
+          </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 px-6 pt-4 pb-5">
             {loadingVersions ? (
               <div className="flex justify-center py-12">
                 <div className="flex flex-col items-center gap-3">
@@ -1264,7 +1333,7 @@ const Repository: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <ScrollArea className="h-[400px] pr-4 -mr-2">
+              <ScrollArea className="h-[400px] pr-3 -mr-1">
                 <div className="space-y-4 py-2">
                   {versions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
@@ -1272,23 +1341,23 @@ const Repository: React.FC = () => {
                       <p className="text-slate-400 text-sm font-medium">No version history found</p>
                     </div>
                   ) : (
-                    <div className="relative ml-4 pl-8 border-l-2 border-slate-100 space-y-8 pb-4">
+                    <div className="relative ml-4 pl-8 border-l-2 border-[#E5DFFB] space-y-8 pb-4">
                       {versions.map((v, index) => (
                         <div key={v.id || index} className="relative group">
                           {/* Timeline dot */}
                           <div className="absolute -left-[41px] top-1 w-4 h-4 rounded-full border-2 border-white bg-[#6B47E5] shadow-sm z-10 group-hover:scale-110 transition-transform"></div>
-                          
+
                           <div className="flex flex-col gap-1 transition-all">
                             <div className="flex items-center justify-between">
                               <span className="text-[13px] font-bold text-slate-900 leading-none">
                                 Version {v.id || versions.length - index}
                               </span>
-                              <span className="text-[10px] font-bold px-2 py-0.5 bg-[#6B47E5]/5 text-[#6B47E5] rounded-full border border-[#6B47E5]/10 shadow-sm">
+                              <span className="text-[10px] font-bold px-2.5 py-0.5 bg-[#6B47E5]/5 text-[#6B47E5] rounded-full border border-[#6B47E5]/10 shadow-sm">
                                 {formatSize(v.size || 0)}
                               </span>
                             </div>
-                            
-                            <div className="flex items-center gap-3 mt-1.5 p-2.5 rounded-xl border border-slate-100 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] group-hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] group-hover:border-[#6B47E5]/10 transition-all">
+
+                            <div className="flex items-center gap-3 mt-1.5 p-2.5 rounded-xl border border-slate-100 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] group-hover:shadow-[0_6px_16px_-4px_rgba(15,23,42,0.28)] group-hover:border-[#6B47E5]/18 transition-all">
                               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6B47E5]/10 to-[#8E70F5]/5 border border-[#6B47E5]/10 flex items-center justify-center text-[#6B47E5] shadow-inner shrink-0">
                                 {v.lastModifiedBy?.user?.displayName ? (
                                   <span className="text-xs font-bold uppercase">{v.lastModifiedBy.user.displayName.charAt(0)}</span>
@@ -1321,7 +1390,7 @@ const Repository: React.FC = () => {
             )}
           </div>
 
-          <DialogFooter className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-100">
+          <DialogFooter className="mt-2 flex justify-end gap-3 pt-4 border-t border-slate-100 px-6 pb-4">
             <Button
               variant="outline"
               className="rounded-xl px-8 font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-slate-200 transition-all active:scale-95"
@@ -1332,6 +1401,87 @@ const Repository: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* File preview side panel (Sheet) */}
+      <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-[980px] p-0 flex flex-col bg-slate-50 border-l border-slate-200"
+        >
+          <SheetHeader className="px-6 pt-4 pb-3 border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-[#f4f0ff]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 flex flex-col">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6B47E5]">
+                  File preview
+                </span>
+                <SheetTitle className="mt-1 text-sm font-semibold text-slate-900 truncate">
+                  {previewItem?.name ?? "Document"}
+                </SheetTitle>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                  {previewItem?.size != null && (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1 w-1 rounded-full bg-slate-400" />
+                      <span>
+                        {formatSize(previewItem.size)}
+                      </span>
+                    </span>
+                  )}
+                  {previewItem?.lastModifiedDateTime && (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1 w-1 rounded-full bg-slate-400" />
+                      <span>
+                        Last updated{" "}
+                        {formatDate(previewItem.lastModifiedDateTime)}
+                      </span>
+                    </span>
+                  )}
+
+                  <div className="inline-flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 text-[#6B47E5] font-medium">
+                      <span className="h-1 w-1 rounded-full bg-[#6B47E5]" />
+                      View-only snapshot – use Edit in Office to make changes.
+                    </span>
+
+                    {/* Edit is only available for M365 users inside Project attachments */}
+                    {!isVendor && isInsideProjectSubfolder && previewItem?.webUrl && (
+                      <button
+                        type="button"
+                        onClick={handleEditCurrentPreview}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#6B47E5]/20 bg-[#6B47E5]/10 px-3.5 py-1.5 text-[11px] font-medium text-[#4b3ac9] shadow-sm hover:bg-[#6B47E5]/15 hover:border-[#6B47E5]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B47E5] focus-visible:ring-offset-2"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                        <span>Edit in Office</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SheetHeader>
+
+          <div className="flex-1 bg-slate-50 px-5 pb-6 pt-4">
+            {previewLoading && (
+              <div className="h-full flex items-center justify-center rounded-2xl border border-dashed border-[#6B47E5]/30 bg-white/70">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-[#6B47E5] border-t-transparent" />
+                  <span className="text-xs text-slate-600 font-medium">
+                    Loading preview…
+                  </span>
+                </div>
+              </div>
+            )}
+            {!previewLoading && previewUrl && (
+              <div className="h-full rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] overflow-hidden">
+                <iframe
+                  src={previewUrl}
+                  title={previewItem?.name || "File preview"}
+                  className="w-full h-full border-0"
+                />
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

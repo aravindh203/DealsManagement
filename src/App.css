@@ -4,11 +4,11 @@
 
 /* Blue theme colors */
 :root {
-  --blue-primary: #1E88E5;
-  --blue-secondary: #2196F3;
-  --blue-accent: #64B5F6;
-  --blue-light: #E3F2FD;
-  --blue-dark: #1565C0;
+  --blue-primary: #1e88e5;
+  --blue-secondary: #2196f3;
+  --blue-accent: #64b5f6;
+  --blue-light: #e3f2fd;
+  --blue-dark: #1565c0;
 }
 
 .logo {
@@ -44,4 +44,8 @@
 
 .read-the-docs {
   color: #888;
+}
+
+div[role="dialog"]:has(.file-previe-dialog-content) {
+  gap: 0 !important;
 }

@@ -334,13 +334,13 @@
 
 .cardDark .cardLabel,
 .cardPurple .cardLabel {
-    opacity: 0.9;
-    color: #fff;
+    opacity: 1;
+    color: #F9FAFB;
 }
 
 .cardLight .cardLabel {
-    color: #1A202C;
-    opacity: 0.7;
+    color: #111827;
+    opacity: 0.95;
 }
 
 .cardValue {
@@ -357,13 +357,21 @@
 
 .cardSub {
     font-size: 11px;
-    opacity: 0.6;
+    opacity: 0.7;
     margin-top: 3px;
     color: inherit;
 }
 
 .cardLight .cardSub {
-    color: #ADB5BD;
+    color: #4b5563;
+    opacity: 0.9;
+}
+
+/* Boost contrast for subtitles on dark/purple cards (Total Budget, Open Project) */
+.cardDark .cardSub,
+.cardPurple .cardSub {
+    color: #E5E7EB;
+    opacity: 0.95;
 }
 
 /* ---- BOTTOM SECTION ---- */
