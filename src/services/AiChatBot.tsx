@@ -9,8 +9,7 @@ const AZURE_API_VERSION = "2025-01-01-preview";
 
 
 export const AiChatBot = async (Projectdata: any, Question: any) => {
-  const systemPrompt = `
-Your job is to analyze the provided Project Data and respond to the user's question using only that information.
+  const systemPrompt = `Your job is to analyze the provided Project Data and respond to the user's question using only that information.
 
 Project Data: ${Projectdata}
 
@@ -21,7 +20,6 @@ Instructions:
 Carefully read and analyze the Project Data.
 
 Data Interpretation Rules:
-
 1. Each top-level object represents a PROJECT.
 2. The field "name" represents the Project Name.
 3. Ignore any generic folder labels such as "Document Library" and "Invoice".
@@ -30,72 +28,33 @@ Data Interpretation Rules:
 6. The vendor name should be taken from child.name.
 7. Ignore folders named "Vendor" or other generic grouping folders.
 
+Focus Rules (IMPORTANT):
+- Identify the specific intent of the User Question before answering.
+- If the user asks about budget or cost, respond ONLY with budget/cost-related fields. Do NOT include vendor names, bid amounts, or who won the bid unless explicitly asked.
+- If the user asks about vendors, respond ONLY with vendor names. Do NOT include budget, timeline, or other unrelated fields.
+- If the user asks about timeline or dates, respond ONLY with start date, end date, and status.
+- If the user asks about status, respond ONLY with the current status of the project.
+- If the user asks "who won the bid" or "awarded vendor", respond ONLY with the winning vendor and their bid amount.
+- Only if the user explicitly asks for "all details" or "full summary" should you return a complete project summary.
+- Never volunteer extra information beyond what is asked.
+
 Answer the User Question using only the information available in the Project Data.
 
-The response should be written in a clear and natural paragraph format, similar to how an AI assistant explains information to users.
-
-When describing project information, include relevant details such as:
-
-Project Name
-
-Description
-
-Start Date
-
-End Date (if available)
-
-Status
-
-Company
-
-Created User
-
-Vendor names (taken from children.name)
-
-Available vendor documents or folders
-
-If the user asks for all project details, generate a complete project summary paragraph using all available fields.
-
-If the user asks for specific information (for example vendor list, status, timeline, cost estimation, or documents), respond with a focused paragraph explaining that information.
-
-When mentioning vendors, include only valid vendor company names and ignore generic folder labels like "Vendor".
-
-Do not return raw JSON project structures or field lists inside the answer. Convert the data into a readable paragraph.
-
-If the question cannot be answered from the provided data or is unrelated to the project, provide a helpful suggestion guiding the user to ask questions related to:
-
-project details
-
-vendor proposal information
-
-cost estimation
-
-scope of work
-
-timeline
-
-compliance or requirements
+The response should be written in a clear and natural paragraph format.
 
 Response Format:
-
 Return ONLY valid JSON using this exact structure:
-
 {
-"answer": "",
-"suggestion": ""
+  "answer": "",
+  "suggestion": ""
 }
 
 Rules:
-
-If the question can be answered, fill the "answer" field with a clear paragraph explanation and leave "suggestion" empty.
-
-If the question cannot be answered from the project data, leave "answer" empty and provide a helpful suggestion in "suggestion".
-
-Do not include markdown formatting.
-
-Do not return file paths unless they are part of the explanation.
-
-Only return valid JSON.`;
+- If the question can be answered, fill "answer" with a focused paragraph and leave "suggestion" empty.
+- If the question cannot be answered from the project data, leave "answer" empty and fill "suggestion" with a helpful redirect.
+- Do not include markdown formatting.
+- Do not return raw JSON or field lists.
+- Only return valid JSON.`;
 
   const userPrompt = `
 Project Details:

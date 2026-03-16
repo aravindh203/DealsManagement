@@ -2236,6 +2236,130 @@ export class SharePointService {
       return data.link.webUrl;
     }
   }
+
+  /**
+   * List all permissions for a drive item.
+   */
+  async getItemPermissions(
+    token: string,
+    driveId: string,
+    itemId: string,
+  ): Promise<any[]> {
+    try {
+      const url = `${appConfig.endpoints.graphBaseUrl}/drives/${driveId}/items/${itemId}/permissions`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(
+          `getItemPermissions failed: ${response.status} - ${text}`,
+        );
+      }
+
+      const data = await response.json();
+      return data.value || [];
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Update roles for a specific permission.
+   */
+  async updateItemPermission(
+    token: string,
+    driveId: string,
+    itemId: string,
+    permissionId: string,
+    roles: string[],
+  ): Promise<any> {
+    try {
+      const url = `${appConfig.endpoints.graphBaseUrl}/drives/${driveId}/items/${itemId}/permissions/${permissionId}`;
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ roles }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(
+          `updateItemPermission failed: ${response.status} - ${text}`,
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a specific permission.
+   */
+  async deleteItemPermission(
+    token: string,
+    driveId: string,
+    itemId: string,
+    permissionId: string,
+  ): Promise<void> {
+    try {
+      const url = `${appConfig.endpoints.graphBaseUrl}/drives/${driveId}/items/${itemId}/permissions/${permissionId}`;
+      const response = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok && response.status !== 204) {
+        const text = await response.text();
+        throw new Error(
+          `deleteItemPermission failed: ${response.status} - ${text}`,
+        );
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * List all versions for a drive item.
+   */
+  async getItemVersions(
+    token: string,
+    driveId: string,
+    itemId: string,
+  ): Promise<any[]> {
+    try {
+      const url = `${appConfig.endpoints.graphBaseUrl}/drives/${driveId}/items/${itemId}/versions`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`getItemVersions failed: ${response.status} - ${text}`);
+      }
+
+      const data = await response.json();
+      return data.value || [];
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export const sharePointService = new SharePointService();
