@@ -21,6 +21,7 @@ import { getAccessTokenByApp } from '../../hooks/useClientCredentialsAuth';
 import { getFileContent } from '../../services/aiFileService';
 import { analyzeVendorDocuments } from '../../services/aiSummary';
 import { toast } from '@/hooks/use-toast';
+import { formatCurrencyDisplay } from '../../utils/numberFormat';
 import { useProjects } from '../../context/ProjectsContext';
 
 interface DocumentScore {
@@ -411,7 +412,16 @@ const AiSummarize: React.FC<AiSummarizeProps> = ({ isOpen, onClose, vendorsData,
                           <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Bid Amount</div>
                           <div className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3 text-gray-400" />
-                            <span className="text-[14px] font-[900] text-[#1a1b25] tracking-tight">{typeof vendor.bidAmount === 'number' ? `$${vendor.bidAmount.toLocaleString()}` : vendor.bidAmount}</span>
+                            <span className="text-[14px] font-[900] text-[#1a1b25] tracking-tight">
+                              {typeof vendor.bidAmount === "number"
+                                ? formatCurrencyDisplay(vendor.bidAmount, {
+                                    prefix: "₹",
+                                  })
+                                : formatCurrencyDisplay(
+                                    vendor.bidAmount ?? "",
+                                    { prefix: "₹" },
+                                  )}
+                            </span>
                           </div>
                         </div>
                         <div className="w-px h-8 bg-gray-200" />

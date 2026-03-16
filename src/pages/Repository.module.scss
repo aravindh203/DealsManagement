@@ -150,7 +150,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: auto;
 }
 
 .mainStatic {
@@ -357,7 +357,6 @@
 .mainScroll {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
     padding: 0 48px 48px;
 }
 
