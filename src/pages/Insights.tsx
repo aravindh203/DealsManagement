@@ -19,6 +19,7 @@ import { getAccessTokenByApp } from "../hooks/useClientCredentialsAuth";
 import { appConfig } from "../config/appConfig";
 import { sharePointService } from "../services/sharePointService";
 import { toast } from "../hooks/use-toast";
+import { formatCurrencyDisplay, formatNumberWithCommas } from "../utils/numberFormat";
 import type { Project } from "./projectsData";
 import {
   Dialog,
@@ -312,11 +313,7 @@ const Insights: React.FC = () => {
               <div className={styles.cardBottom}>
                 <span className={styles.cardLabel}>TOTAL BUDGET</span>
                 <h2 className={styles.cardValue}>
-                  {totalBudget >= 1e6
-                    ? `$${(totalBudget / 1e6).toFixed(1)}M`
-                    : totalBudget >= 1e3
-                      ? `$${(totalBudget / 1e3).toFixed(0)}K`
-                      : `$${totalBudget.toLocaleString()}`}
+                  {formatCurrencyDisplay(totalBudget, { prefix: "₹" })}
                 </h2>
                 <span className={styles.cardSub}>Projected project budget</span>
               </div>
@@ -456,12 +453,18 @@ const Insights: React.FC = () => {
                             </td>
                             <td>{date.toLocaleDateString()}</td>
                             <td>
-                              {project.P_Budget ? `$${project.P_Budget}` : "—"}
+                              {project.P_Budget
+                                ? formatCurrencyDisplay(project.P_Budget, {
+                                    prefix: "₹",
+                                  })
+                                : "—"}
                             </td>
                             <td>
                               {project.V_BidAmount != null &&
                               String(project.V_BidAmount).trim() !== ""
-                                ? `$${project.V_BidAmount}`
+                                ? formatCurrencyDisplay(project.V_BidAmount, {
+                                    prefix: "₹",
+                                  })
                                 : "—"}
                             </td>
                             <td>

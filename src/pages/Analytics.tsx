@@ -4,6 +4,7 @@ import { Folder, CircleDollarSign, DollarSign, FolderOpen } from 'lucide-react';
 import { UserMenu } from '../components/UserMenu';
 import { useProjects } from '../context/ProjectsContext';
 import type { Project } from './projectsData';
+import { formatCurrencyDisplay, formatNumberWithCommas } from '../utils/numberFormat';
 import {
     ResponsiveContainer,
     BarChart,
@@ -135,11 +136,7 @@ const Analytics: React.FC = () => {
                             <div className={styles.cardBottom}>
                                 <span className={styles.cardLabel}>Total budget</span>
                                 <h2 className={styles.cardValue}>
-                                    {budgetVsBid.totalBudget.toLocaleString('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD',
-                                        maximumFractionDigits: 0,
-                                    })}
+                                    {formatCurrencyDisplay(budgetVsBid.totalBudget, { prefix: '₹' })}
                                 </h2>
                                 <span className={`${styles.cardSub} ${styles.cardSubGreen}`}>
                                     {budgetVsBid.totalBudget > 0 && budgetVsBid.totalBid > 0
@@ -157,11 +154,7 @@ const Analytics: React.FC = () => {
                             <div className={styles.cardBottom}>
                                 <span className={styles.cardLabel}>Total bid amount</span>
                                 <h2 className={styles.cardValue}>
-                                    {budgetVsBid.totalBid.toLocaleString('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD',
-                                        maximumFractionDigits: 0,
-                                    })}
+                                    {formatCurrencyDisplay(budgetVsBid.totalBid, { prefix: '₹' })}
                                 </h2>
                                 <span className={styles.cardSub}>Sum of all vendor bids</span>
                             </div>
@@ -219,11 +212,7 @@ const Analytics: React.FC = () => {
                                         />
                                         <Tooltip
                                             formatter={(value: number, key) => [
-                                                value.toLocaleString('en-US', {
-                                                    style: 'currency',
-                                                    currency: 'USD',
-                                                    maximumFractionDigits: 0,
-                                                }),
+                                                formatCurrencyDisplay(value, { prefix: '₹' }),
                                                 key === 'allocated' ? 'Budget' : 'Actual',
                                             ]}
                                         />

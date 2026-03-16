@@ -47,6 +47,7 @@ import { appConfig } from "../config/appConfig";
 import { sharePointService } from "../services/sharePointService";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrencyDisplay } from "../utils/numberFormat";
 
 const PAGE_SIZE = 10;
 
@@ -950,7 +951,9 @@ const Directory: React.FC = () => {
                                 const amount =
                                   projectVendorBidAmountMap[String(project.id)];
                                 return amount != null && amount !== ""
-                                  ? `$${amount}`
+                                  ? formatCurrencyDisplay(amount, {
+                                      prefix: "₹",
+                                    })
                                   : "-";
                               })()}
                             </td>
@@ -972,7 +975,11 @@ const Directory: React.FC = () => {
                                 : "-"}
                             </td>
                             <td>
-                              {project.P_Budget ? `$${project.P_Budget}` : "-"}
+                              {project.P_Budget
+                                ? formatCurrencyDisplay(project.P_Budget, {
+                                    prefix: "₹",
+                                  })
+                                : "-"}
                             </td>
                             {directoryTab365 === "assigned" && (
                               <td>{project.V_BidDescription || "-"}</td>
